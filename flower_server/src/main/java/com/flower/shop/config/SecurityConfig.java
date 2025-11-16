@@ -23,6 +23,9 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // 允许测试接口无需认证访问
                 .requestMatchers("/test/**").permitAll()
+                // 允许管理员初始化和登录接口无需认证访问
+                .requestMatchers("/admin/init/**").permitAll()
+                .requestMatchers("/admin/auth/login").permitAll()
                 // 允许静态资源访问
                 .requestMatchers("/static/**", "/css/**", "/js/**", "/images/**").permitAll()
                 // 允许错误页面访问
