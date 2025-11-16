@@ -1,0 +1,93 @@
+# =============================================
+# 【花言花语】鲜花售卖系统 - Spring Boot配置文件
+# 端口: 8080
+# 数据库: MySQL 8.0+
+# =============================================
+
+# 应用配置
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: flower-shop
+
+  # 数据库配置
+  datasource:
+    url: jdbc:mysql://localhost:3306/flower_shop?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      maximum-pool-size: 10
+      minimum-idle: 5
+
+# MyBatis-Plus配置
+mybatis-plus:
+  configuration:
+    # 驼峰命名转换
+    map-underscore-to-camel-case: true
+    # SQL日志输出
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      # 主键策略：自增
+      id-type: auto
+      # 逻辑删除配置（可选）
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  # XML文件位置
+  mapper-locations: classpath*:/mapper/**/*.xml
+  # 实体类包路径
+  type-aliases-package: com.flower.shop.entity
+
+# 日志配置
+logging:
+  level:
+    root: info
+    com.flower.shop: debug
+    com.flower.shop.mapper: debug
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/flower-shop.log
+    max-size: 100MB
+    max-history: 30
+
+# 管理端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# 自定义配置
+flower-shop:
+  # 配送设置
+  delivery:
+    max-distance: 10  # 最大配送距离（公里）
+    default-fee: 10.0  # 默认配送费
+
+  # 库存设置
+  inventory:
+    low-stock-threshold: 5  # 低库存预警阈值
+
+  # 支付设置
+  payment:
+    mock-enabled: true  # 启用模拟支付
+
+  # 图片上传设置
+  upload:
+    max-file-size: 5MB
+    allowed-types: jpg,jpeg,png,gif,webp
+    upload-path: uploads/
