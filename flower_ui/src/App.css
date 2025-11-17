@@ -1,0 +1,221 @@
+/* Ant Design 样式定制 */
+.ant-layout-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flower-header {
+  background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+}
+
+.flower-header .flower-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin: 0;
+}
+
+.flower-header .flower-subtitle {
+  font-size: 14px;
+  opacity: 0.8;
+  margin-left: 16px;
+}
+
+/* 登录表单样式 */
+.login-form .ant-form-item-label > label {
+  color: #666;
+  font-weight: 500;
+}
+
+.login-form .ant-btn-primary {
+  height: 44px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+  border: none;
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.login-form .ant-btn-primary:hover {
+  opacity: 0.9;
+}
+
+/* 初始化页面样式 */
+.init-form .ant-card {
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.init-form .ant-input-affix-wrapper {
+  border-radius: 8px;
+}
+
+.init-form .ant-btn-primary {
+  height: 44px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 16px;
+}
+
+/* 公共店铺页面样式 */
+.shop-container {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.shop-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.shop-title {
+  font-size: 48px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 16px;
+}
+
+.shop-subtitle {
+  font-size: 18px;
+  color: #666;
+}
+
+.product-card {
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.product-image {
+  height: 200px;
+  object-fit: cover;
+}
+
+.product-info {
+  padding: 16px;
+}
+
+.product-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.product-price {
+  font-size: 24px;
+  font-weight: bold;
+  color: #ff6b6b;
+}
+
+.product-original-price {
+  font-size: 16px;
+  color: #999;
+  text-decoration: line-through;
+  margin-left: 8px;
+}
+
+/* 管理后台样式 */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.dashboard-title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logout-btn {
+  color: #ff4d4f;
+  border: 1px solid #ff4d4f;
+}
+
+.logout-btn:hover {
+  color: #fff;
+  background-color: #ff4d4f;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .shop-title {
+    font-size: 32px;
+  }
+
+  .shop-subtitle {
+    font-size: 16px;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .user-info {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+/* 加载状态 */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+}
+
+/* 空状态 */
+.empty-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  color: #999;
+}
+
+.empty-container .empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.empty-container .empty-text {
+  font-size: 16px;
+}
