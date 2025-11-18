@@ -61,3 +61,27 @@ login_page_*
 current_admin_*
 PixPin_*
 reddit_*
+
+# Java and Maven
+target/
+*.jar
+*.war
+*.class
+*.gradle
+.gradle/
+
+# Spring Boot
+*.log
+logs/
+*.out
+
+# IDE
+.classpath
+.project
+.settings/
+nb-configuration.xml
+
+# Mac
+.DS_Store
+.DS_Store?
+._*

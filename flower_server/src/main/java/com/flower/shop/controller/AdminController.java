@@ -22,6 +22,8 @@ public class AdminController {
 
     private final AdminService adminService;
 
+
+
     /**
      * 检查系统是否已初始化
      */
