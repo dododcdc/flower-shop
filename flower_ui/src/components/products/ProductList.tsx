@@ -230,7 +230,15 @@ const ProductList: React.FC = () => {
 
   const parseImages = (product: Product) => {
     try {
-      return parseImagesJson(product.images);
+      const images = parseImagesJson(product.images);
+      // Add backend API URL prefix to image paths
+      return images.map(img => {
+        // If image path starts with /uploads, add the backend URL
+        if (img.startsWith('/uploads')) {
+          return `http://localhost:8080/api${img}`;
+        }
+        return img;
+      });
     } catch {
       return [];
     }
