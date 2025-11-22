@@ -22,7 +22,7 @@ CREATE TABLE categories (
     code VARCHAR(20) NOT NULL UNIQUE COMMENT '分类代码',
     type ENUM('FLOWER', 'PACKAGING') NOT NULL COMMENT '分类类型：FLOWER-花材，PACKAGING-包装',
     sort_order INT DEFAULT 0 COMMENT '排序顺序',
-    is_active BOOLEAN DEFAULT TRUE COMMENT '是否启用',
+    status TINYINT(1) DEFAULT 1 COMMENT '状态：0-禁用，1-启用',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
 ) COMMENT '商品分类表';
@@ -39,7 +39,8 @@ CREATE TABLE products (
     care_guide TEXT COMMENT '养护指南',
     category_id BIGINT NOT NULL COMMENT '分类ID',
     sort_order INT DEFAULT 0 COMMENT '排序顺序',
-    is_active BOOLEAN DEFAULT TRUE COMMENT '是否上架',
+    status TINYINT(1) DEFAULT 1 COMMENT '状态：0-下架，1-上架',
+    featured TINYINT(1) DEFAULT 0 COMMENT '是否推荐：0-不推荐，1-推荐',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     FOREIGN KEY (category_id) REFERENCES categories(id)
@@ -81,7 +82,6 @@ CREATE TABLE orders (
     status ENUM('PENDING', 'PAID', 'PREPARING', 'DELIVERING', 'COMPLETED', 'CANCELLED') DEFAULT 'PENDING' COMMENT '订单状态',
     payment_method ENUM('ALIPAY', 'WECHAT', 'CASH', 'MOCK') DEFAULT 'MOCK' COMMENT '支付方式',
     payment_status ENUM('PENDING', 'PAID', 'REFUNDED') DEFAULT 'PENDING' COMMENT '支付状态',
-    delivery_address JSON NOT NULL COMMENT '配送地址',
     delivery_time DATETIME COMMENT '期望配送时间',
     notes TEXT COMMENT '订单备注',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -139,9 +139,15 @@ INSERT INTO users (username, password, role, email, phone) VALUES
 
 -- 4. 创建索引（优化查询性能）
 
+-- 分类表索引
+CREATE INDEX idx_categories_status ON categories(status);
+CREATE INDEX idx_categories_type ON categories(type);
+CREATE INDEX idx_categories_parent_id ON categories(parent_id);
+
 -- 商品表索引
 CREATE INDEX idx_products_category_id ON products(category_id);
-CREATE INDEX idx_products_is_active ON products(is_active);
+CREATE INDEX idx_products_status ON products(status);
+CREATE INDEX idx_products_featured ON products(featured);
 CREATE INDEX idx_products_sort_order ON products(sort_order);
 
 -- 库存表索引
@@ -174,7 +180,8 @@ SELECT
     p.images,
     p.flower_language,
     p.care_guide,
-    p.is_active,
+    p.status,
+    p.featured,
     c.name AS category_name,
     c.type AS category_type,
     i.stock_quantity,
@@ -198,7 +205,6 @@ SELECT
     o.status,
     o.payment_method,
     o.payment_status,
-    o.delivery_address,
     o.delivery_time,
     o.notes,
     o.created_at,
@@ -223,4 +229,13 @@ SELECT '用户表记录数' AS table_name, COUNT(*) AS record_count FROM users;
 -- 4. 性能优化索引已创建
 -- 5. 业务查询视图已创建
 -- 6. 默认管理员账号: admin / admin123
+--
+-- 表结构说明:
+-- - categories: 商品分类表（支持花材和包装分类）
+-- - products: 商品表（包含status和featured字段）
+-- - inventory: 库存表（包含预警阈值）
+-- - orders: 订单表（移除了delivery_address冗余字段）
+-- - order_items: 订单详情表
+-- - users: 用户表（管理员）
+-- - delivery_addresses: 配送地址表（通过order_id关联）
 -- =============================================

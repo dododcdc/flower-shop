@@ -115,19 +115,22 @@ GET http://localhost:8080/api/test/info
 ## 数据库设计
 
 ### 核心表结构
-- **categories** - 商品分类（5种花材 + 2种包装）
-- **products** - 商品信息
-- **inventory** - 库存管理
-- **orders** - 订单主表
-- **order_items** - 订单详情
+- **categories** - 商品分类（花材分类 + 包装分类，使用type字段区分：FLOWER/PACKAGING）
+- **products** - 商品信息（关联categories表，status字段：0-下架，1-上架，featured字段：0-不推荐，1-推荐）
+- **inventory** - 库存管理（stock_quantity字段：库存数量，low_stock_threshold字段：预警阈值）
+- **orders** - 订单主表（status字段：PENDING,PAID,PREPARING,DELIVERING,COMPLETED,CANCELLED，通过delivery_address_id关联配送地址）
+- **order_items** - 订单详情（记录商品购买数量和价格快照）
 - **users** - 用户（管理员）
-- **delivery_addresses** - 配送地址
+- **delivery_addresses** - 配送地址（记录每笔订单的配送地址，支持省市区分层存储）
 
 ### 枚举值设计
 所有枚举值使用大写：
 - 订单状态：PENDING, PAID, PREPARING, DELIVERING, COMPLETED, CANCELLED
 - 支付方式：ALIPAY, WECHAT, CASH, MOCK
 - 用户角色：ADMIN, CUSTOMER
+- 商品状态：0(下架), 1(上架)
+- 商品推荐：0(不推荐), 1(推荐)
+- 分类状态：0(禁用), 1(启用)
 
 ## 配置说明
 
