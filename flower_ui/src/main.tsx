@@ -12,7 +12,7 @@ root.render(
   <React.StrictMode>
     <ThemeProvider theme={luxuryTheme}>
       <CssBaseline />
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true }}>
         <App />
       </BrowserRouter>
     </ThemeProvider>

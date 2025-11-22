@@ -41,8 +41,8 @@ public class ProductController {
      */
     @GetMapping("/page")
     public Result<IPage<Product>> getProductPage(
-            @RequestParam(defaultValue = "1") @Min(1) Integer current,
-            @RequestParam(defaultValue = "10") @Min(1) Integer size) {
+            @RequestParam(value = "current", defaultValue = "1") @Min(1) Integer current,
+            @RequestParam(value = "size", defaultValue = "10") @Min(1) Integer size) {
         try {
             IPage<Product> productPage = productService.getProductPage(current, size);
             return Result.success("获取商品列表成功", productPage);

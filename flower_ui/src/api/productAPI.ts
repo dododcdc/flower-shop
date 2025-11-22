@@ -16,6 +16,7 @@ import {
 // API Endpoints
 const ENDPOINTS = {
   PRODUCTS: '/products',
+  PAGE: '/products/page',
   SEARCH: '/products/search',
   ONLINE: '/products/online',
   FEATURED: '/products/featured',
@@ -36,13 +37,13 @@ type ApiResponse<T> = {
 // ====== CRUD Operations ======
 
 /**
- * Get products with pagination and filtering
+ * Get products with pagination and filtering (for admin management)
  */
 export const getProducts = async (filters: ProductFilters = {}): Promise<ProductApiResponse> => {
   // Validate filters with Zod schema
   const validatedFilters = productSearchSchema.parse(filters);
 
-  const response = await axiosClient.get<ApiResponse<ProductApiResponse>>(ENDPOINTS.ONLINE, {
+  const response = await axiosClient.get<ApiResponse<ProductApiResponse>>(ENDPOINTS.PAGE, {
     params: validatedFilters,
   });
 

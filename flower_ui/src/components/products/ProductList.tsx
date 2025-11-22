@@ -115,6 +115,18 @@ const ProductList: React.FC = () => {
   };
 
   const handleSearch = () => {
+    // Price validation: either both filled or both empty
+    if ((searchForm.minPrice && !searchForm.maxPrice) || (!searchForm.minPrice && searchForm.maxPrice)) {
+      setError('价格区间验证失败：最低价格和最高价格必须同时填写或同时留空');
+      return;
+    }
+
+    // Additional price validation: min should be less than max
+    if (searchForm.minPrice && searchForm.maxPrice && Number(searchForm.minPrice) > Number(searchForm.maxPrice)) {
+      setError('价格区间验证失败：最低价格不能大于最高价格');
+      return;
+    }
+
     const newFilters: ProductFilters = {
       ...filters,
       current: 1, // Reset to first page when searching
@@ -270,6 +282,20 @@ const ProductList: React.FC = () => {
               </FormControl>
             </Grid>
 
+            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>创建时间</InputLabel>
+                <Select
+                  value={searchForm.sortBy === 'created_at' ? 'created_at' : ''}
+                  label="创建时间"
+                  onChange={(e) => setSearchForm({ ...searchForm, sortBy: e.target.value === 'created_at' ? 'created_at' : searchForm.sortBy, sortOrder: e.target.value === 'created_at' ? 'desc' : searchForm.sortOrder })}
+                >
+                  <MenuItem value="">不限制</MenuItem>
+                  <MenuItem value="created_at">最新创建</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
             {/* 第二行：价格和排序 + 操作按钮 */}
             <Grid size={{ xs: 12, sm: 4, md: 2 }}>
               <TextField
@@ -325,8 +351,8 @@ const ProductList: React.FC = () => {
               </FormControl>
             </Grid>
 
-            <Grid size={{ xs: 12, sm: 8, md: 2 }}>
-              <Stack direction="row" spacing={1} sx={{ height: '100%', alignItems: 'flex-end' }}>
+            <Grid size={{ xs: 12, sm: 8, md: 3 }}>
+              <Stack direction="row" spacing={1.5} sx={{ height: '100%', alignItems: 'flex-end', justifyContent: 'flex-end' }}>
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
@@ -340,10 +366,15 @@ const ProductList: React.FC = () => {
                     },
                     color: 'white',
                     fontWeight: 600,
-                    minWidth: 90,
-                    px: 1.5,
+                    height: 40,
+                    px: 2,
                     fontSize: '0.875rem',
-                    whiteSpace: 'nowrap',
+                    minWidth: 80,
+                    borderRadius: 1,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    '&:hover': {
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+                    },
                   }}
                 >
                   添加
@@ -359,10 +390,15 @@ const ProductList: React.FC = () => {
                     },
                     color: 'white',
                     fontWeight: 600,
-                    minWidth: 90,
-                    px: 1.5,
+                    height: 40,
+                    px: 2,
                     fontSize: '0.875rem',
-                    whiteSpace: 'nowrap',
+                    minWidth: 80,
+                    borderRadius: 1,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    '&:hover': {
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+                    },
                   }}
                 >
                   搜索
@@ -371,10 +407,17 @@ const ProductList: React.FC = () => {
                   variant="outlined"
                   onClick={handleReset}
                   sx={{
-                    minWidth: 90,
-                    px: 1.5,
+                    height: 40,
+                    px: 2,
                     fontSize: '0.875rem',
-                    whiteSpace: 'nowrap',
+                    minWidth: 80,
+                    borderRadius: 1,
+                    borderColor: 'grey.300',
+                    color: 'text.primary',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      backgroundColor: 'action.hover',
+                    },
                   }}
                 >
                   重置
