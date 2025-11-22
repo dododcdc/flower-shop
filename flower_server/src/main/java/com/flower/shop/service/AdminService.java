@@ -28,7 +28,7 @@ public class AdminService {
      */
     public boolean isSystemInitialized() {
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("role", "ADMIN");
+        queryWrapper.eq("role", "ROLE_ADMIN");
         queryWrapper.eq("is_active", true);
 
         Long count = userMapper.selectCount(queryWrapper);
@@ -58,7 +58,7 @@ public class AdminService {
               .setPassword(PasswordUtil.encode(request.getPassword()))
               .setEmail(request.getEmail())
               .setPhone(request.getPhone())
-              .setRole("ADMIN")
+              .setRole("ROLE_ADMIN")
               .setIsActive(true)
               .setLastLogin(LocalDateTime.now());
 
@@ -85,7 +85,7 @@ public class AdminService {
         }
 
         // 检查角色
-        if (!"ADMIN".equals(user.getRole())) {
+        if (!"ROLE_ADMIN".equals(user.getRole())) {
             throw new IllegalArgumentException("无权限访问管理员系统");
         }
 

@@ -63,7 +63,7 @@ CREATE TABLE users (
     password VARCHAR(255) NOT NULL COMMENT '密码(加密)',
     email VARCHAR(100) COMMENT '邮箱',
     phone VARCHAR(20) COMMENT '电话',
-    role ENUM('ADMIN', 'CUSTOMER') DEFAULT 'CUSTOMER' COMMENT '角色',
+    role ENUM('ROLE_ADMIN', 'ROLE_CUSTOMER') DEFAULT 'ROLE_CUSTOMER' COMMENT '角色',
     is_active BOOLEAN DEFAULT TRUE COMMENT '是否启用',
     last_login TIMESTAMP NULL COMMENT '最后登录时间',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -135,7 +135,7 @@ INSERT INTO categories (name, code, type, sort_order) VALUES
 -- 插入默认管理员 (密码: admin123)
 -- BCrypt加密后的密码: $2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iKVjzieMwkOmANgNOgKQNNBDvAGK
 INSERT INTO users (username, password, role, email, phone) VALUES
-('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iKVjzieMwkOmANgNOgKQNNBDvAGK', 'ADMIN', 'admin@flower-shop.com', '13800138000');
+('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iKVjzieMwkOmANgNOgKQNNBDvAGK', 'ROLE_ADMIN', 'admin@flower-shop.com', '13800138000');
 
 -- 4. 创建索引（优化查询性能）
 
