@@ -5,11 +5,15 @@ import com.flower.shop.dto.Result;
 import com.flower.shop.dto.ProductSearchRequest;
 import com.flower.shop.entity.Product;
 import com.flower.shop.service.ProductService;
+import com.flower.shop.config.FileUploadConfig;
+import com.flower.shop.util.FileUploadUtil;
+import com.alibaba.fastjson.JSON;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -35,6 +39,7 @@ import java.util.Map;
 public class ProductController {
 
     private final ProductService productService;
+    private final FileUploadConfig fileUploadConfig;
 
     /**
      * 分页查询商品列表
@@ -187,9 +192,39 @@ public class ProductController {
     }
 
     /**
-     * 更新商品信息
+     * 更新商品信息（支持图片上传）
      */
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = { "multipart/form-data" })
+    @PreAuthorize("hasRole('ADMIN')")
+    public Result<Product> updateProductWithImages(
+            @PathVariable("id") @NotNull Long id,
+            @RequestPart("product") String productJson,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images) {
+        try {
+            // 解析 JSON 字符串为 Product 对象
+            Product product = JSON.parseObject(productJson, Product.class);
+            product.setId(id);
+
+            // 处理图片上传
+            if (images != null && !images.isEmpty()) {
+                List<String> imagePaths = FileUploadUtil.uploadFiles(images, fileUploadConfig.getUploadPath());
+                product.setImages(JSON.toJSONString(imagePaths));
+            }
+
+            Product updatedProduct = productService.updateProduct(product);
+            return Result.success("更新商品成功", updatedProduct);
+        } catch (IllegalArgumentException e) {
+            return Result.validationError(e.getMessage());
+        } catch (Exception e) {
+            log.error("更新商品失败", e);
+            return Result.error("更新商品失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 更新商品信息（仅JSON，不含图片）
+     */
+    @PutMapping(value = "/{id}", consumes = { "application/json" })
     @PreAuthorize("hasRole('ADMIN')")
     public Result<Product> updateProduct(
             @PathVariable("id") @NotNull Long id,

@@ -90,4 +90,4 @@ flower-shop:
   upload:
     max-file-size: 5MB
     allowed-types: jpg,jpeg,png,gif,webp
-    upload-path: uploads/
+    upload-path: /Users/wenbin/Projects/flower_shop/flower_server/uploads/

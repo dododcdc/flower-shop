@@ -17,7 +17,11 @@ import {
     Alert,
     CircularProgress,
     Stack,
+    IconButton,
+    Card,
+    CardMedia,
 } from '@mui/material';
+import { CloudUpload as UploadIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { type Product, type ProductFormData } from '../../models/product';
 import { productAPI } from '../../api/productAPI';
 import { categoryAPI, type Category } from '../../api/categoryAPI';
@@ -53,6 +57,10 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
         flowerLanguage: '',
         careGuide: '',
     });
+
+    // 图片相关状态
+    const [selectedImages, setSelectedImages] = useState<File[]>([]);
+    const [existingImages, setExistingImages] = useState<string[]>([]);
 
     // 加载分类列表
     useEffect(() => {

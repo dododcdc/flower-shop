@@ -120,20 +120,17 @@ export const updateProduct = async (id: number, formData: ProductFormData): Prom
     throw new Error(`表单验证失败: ${Object.values(validatedData.errors || {}).join(', ')}`);
   }
 
-  // Create FormData for multipart request (images)
+  // Create FormData for multipart request
   const formDataToSend = new FormData();
 
-  // Add all fields except images
-  Object.entries(validatedData.data).forEach(([key, value]) => {
-    if (key !== 'images') {
-      formDataToSend.append(key, String(value));
-    }
-  });
+  // Add product data as JSON string
+  const { images, ...productData } = validatedData.data;
+  formDataToSend.append('product', JSON.stringify(productData));
 
-  // Add images
-  if (validatedData.data.images && validatedData.data.images.length > 0) {
-    validatedData.data.images.forEach((file, index) => {
-      formDataToSend.append(`images[${index}]`, file);
+  // Add images if provided
+  if (images && images.length > 0) {
+    images.forEach((file: File) => {
+      formDataToSend.append('images', file);
     });
   }
 
