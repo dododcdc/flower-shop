@@ -2,6 +2,7 @@ package com.flower.shop.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.flower.shop.dto.Result;
+import com.flower.shop.dto.ProductSearchRequest;
 import com.flower.shop.entity.Product;
 import com.flower.shop.service.ProductService;
 import lombok.RequiredArgsConstructor;
@@ -98,13 +99,20 @@ public class ProductController {
     }
 
     /**
-     * 搜索商品
+     * 搜索商品（支持多条件查询）
      */
-    @GetMapping("/search")
-    public Result<List<Product>> searchProducts(@RequestParam @NotNull String keyword) {
+    @PostMapping("/search")
+    public Result<IPage<Product>> searchProducts(@RequestBody @Valid ProductSearchRequest request) {
         try {
-            List<Product> products = productService.searchProducts(keyword);
-            return Result.success("搜索商品成功", products);
+            // 验证价格范围
+            if (!request.hasValidPriceRange()) {
+                return Result.validationError("最低价格不能大于最高价格");
+            }
+
+            IPage<Product> productPage = productService.searchProductsAdvanced(request);
+            return Result.success("搜索商品成功", productPage);
+        } catch (IllegalArgumentException e) {
+            return Result.validationError(e.getMessage());
         } catch (Exception e) {
             log.error("搜索商品失败", e);
             return Result.error("搜索商品失败");

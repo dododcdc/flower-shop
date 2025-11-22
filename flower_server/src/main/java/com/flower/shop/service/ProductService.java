@@ -2,6 +2,7 @@ package com.flower.shop.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.flower.shop.dto.ProductSearchRequest;
 import com.flower.shop.entity.Product;
 
 import java.math.BigDecimal;
@@ -49,9 +50,9 @@ public interface ProductService extends IService<Product> {
     List<Product> getProductsByPriceRange(BigDecimal minPrice, BigDecimal maxPrice);
 
     /**
-     * 搜索商品
+     * 搜索商品（多条件查询）
      */
-    List<Product> searchProducts(String keyword);
+    IPage<Product> searchProductsAdvanced(ProductSearchRequest request);
 
     
     /**

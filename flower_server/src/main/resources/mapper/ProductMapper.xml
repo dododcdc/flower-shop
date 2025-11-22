@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.flower.shop.mapper.ProductMapper">
+
+    <!-- 商品查询结果映射 -->
+    <resultMap id="ProductResultMap" type="com.flower.shop.entity.Product">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="price" column="price"/>
+        <result property="originalPrice" column="original_price"/>
+        <result property="images" column="images"/>
+        <result property="flowerLanguage" column="flower_language"/>
+        <result property="careGuide" column="care_guide"/>
+        <result property="categoryId" column="category_id"/>
+        <result property="specification" column="specification"/>
+        <result property="status" column="status"/>
+        <result property="featured" column="featured"/>
+        <result property="stockQuantity" column="stock_quantity"/>
+        <result property="lowStockThreshold" column="low_stock_threshold"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+                <!-- 分类名称（关联查询结果） -->
+        <result property="categoryName" column="category_name"/>
+    </resultMap>
+
+    <!-- 按销量查询热门商品（基于订单统计） -->
+    <select id="selectTopSellingProducts" resultMap="ProductResultMap">
+        SELECT
+            p.*,
+            c.name as category_name,
+            COALESCE(SUM(oi.quantity), 0) as total_sales
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.id
+        LEFT JOIN order_items oi ON p.id = oi.product_id
+        LEFT JOIN orders o ON oi.order_id = o.id
+        WHERE p.status = 1
+        AND (o.status = 'COMPLETED' OR o.status IS NULL)
+        GROUP BY p.id
+        ORDER BY total_sales DESC, p.created_at DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 多条件动态搜索商品 -->
+    <select id="searchProductsAdvanced" resultMap="ProductResultMap">
+        SELECT
+            p.*,
+            c.name as category_name
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.id
+        WHERE 1=1
+
+        <!-- 关键词搜索：商品名称、描述、花语 -->
+        <if test="keyword != null and keyword != ''">
+            AND (
+                p.name LIKE CONCAT('%', #{keyword}, '%')
+                OR p.description LIKE CONCAT('%', #{keyword}, '%')
+                OR p.flower_language LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+
+        <!-- 分类筛选 -->
+        <if test="categoryId != null">
+            AND p.category_id = #{categoryId}
+        </if>
+
+        <!-- 商品状态筛选 -->
+        <if test="status != null">
+            AND p.status = #{status}
+        </if>
+
+        <!-- 推荐商品筛选 -->
+        <if test="featured != null">
+            AND p.featured = #{featured}
+        </if>
+
+        <!-- 价格区间筛选 -->
+        <if test="minPrice != null">
+            AND p.price &gt;= #{minPrice}
+        </if>
+        <if test="maxPrice != null">
+            AND p.price &lt;= #{maxPrice}
+        </if>
+
+        <!-- 库存状态筛选 -->
+        <if test="stockStatus == 'in_stock'">
+            AND p.stock_quantity > 0
+            AND p.stock_quantity > p.low_stock_threshold
+        </if>
+        <if test="stockStatus == 'low_stock'">
+            AND p.stock_quantity > 0
+            AND p.stock_quantity &lt;= p.low_stock_threshold
+        </if>
+        <if test="stockStatus == 'out_of_stock'">
+            AND p.stock_quantity &lt;= 0
+        </if>
+
+        <!-- 排序 -->
+        <choose>
+            <when test="sortBy == 'price'">
+                ORDER BY p.price
+                <if test="sortOrder == 'asc'">ASC</if>
+                <if test="sortOrder == 'desc'">DESC</if>
+            </when>
+            <when test="sortBy == 'name'">
+                ORDER BY p.name
+                <if test="sortOrder == 'asc'">ASC</if>
+                <if test="sortOrder == 'desc'">DESC</if>
+            </when>
+            <when test="sortBy == 'stock_quantity'">
+                ORDER BY p.stock_quantity
+                <if test="sortOrder == 'asc'">ASC</if>
+                <if test="sortOrder == 'desc'">DESC</if>
+            </when>
+            <otherwise>
+                ORDER BY p.created_at DESC
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

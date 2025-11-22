@@ -1,8 +1,10 @@
 package com.flower.shop.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.flower.shop.dto.ProductSearchRequest;
 import com.flower.shop.entity.Product;
 import com.flower.shop.mapper.ProductMapper;
 import com.flower.shop.service.ProductService;
@@ -65,11 +67,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     }
 
     @Override
-    public List<Product> searchProducts(String keyword) {
-        if (keyword == null || keyword.trim().isEmpty()) {
-            return new ArrayList<>();
-        }
-        return productMapper.searchProducts(keyword.trim());
+    public IPage<Product> searchProductsAdvanced(ProductSearchRequest request) {
+        Page<Product> page = new Page<>(request.getCurrent(), request.getSize());
+        return productMapper.searchProductsAdvanced(page, request);
     }
 
     

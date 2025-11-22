@@ -117,13 +117,7 @@ public class Product {
     @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedAt;
 
-    /**
-     * 逻辑删除标记：0-未删除，1-已删除
-     */
-    @TableLogic
-    @TableField("deleted")
-    private Integer deleted;
-
+    
     /**
      * 花材分类名称（临时存储，用于显示）
      */
