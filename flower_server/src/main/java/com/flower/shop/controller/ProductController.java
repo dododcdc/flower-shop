@@ -7,6 +7,7 @@ import com.flower.shop.entity.Product;
 import com.flower.shop.service.ProductService;
 import com.flower.shop.config.FileUploadConfig;
 import com.flower.shop.util.FileUploadUtil;
+import com.flower.shop.util.ProductImagesUtil;
 import com.alibaba.fastjson.JSON;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -199,16 +201,96 @@ public class ProductController {
     public Result<Product> updateProductWithImages(
             @PathVariable("id") @NotNull Long id,
             @RequestPart("product") String productJson,
-            @RequestPart(value = "images", required = false) List<MultipartFile> images) {
+            @RequestPart(value = "images", required = false) List<MultipartFile> images,
+            @RequestParam(value = "imagesToDelete", required = false) String imagesToDeleteJson,
+            @RequestParam(value = "newImageMainIndex", required = false) Integer newImageMainIndex) {
         try {
             // 解析 JSON 字符串为 Product 对象
             Product product = JSON.parseObject(productJson, Product.class);
             product.setId(id);
 
-            // 处理图片上传
+            // 获取图片删除列表
+            List<String> imagesToDelete = new ArrayList<>();
+            if (imagesToDeleteJson != null && !imagesToDeleteJson.trim().isEmpty()) {
+                imagesToDelete = JSON.parseArray(imagesToDeleteJson, String.class);
+            }
+
+            // 如果有删除的图片，先从当前图片状态中移除
+            if (!imagesToDelete.isEmpty()) {
+                ProductImagesUtil.ProductImages productImages = ProductImagesUtil.ProductImages.fromJson(product.getImages());
+
+                // 从当前图片结构中移除要删除的图片
+                for (String imagePath : imagesToDelete) {
+                    if (productImages.getMain() != null && productImages.getMain().equals(imagePath)) {
+                        // 删除主图，提升第一张副图为主图
+                        if (productImages.getSubImages().size() > 0) {
+                            productImages.setMain(productImages.getSubImages().get(0));
+                            productImages.getSubImages().remove(0);
+                        } else {
+                            productImages.setMain(null);
+                        }
+                    } else {
+                        // 从副图中移除
+                        productImages.getSubImages().remove(imagePath);
+                    }
+
+                    // 删除物理文件
+                    try {
+                        FileUploadUtil.deleteFile(imagePath, fileUploadConfig.getUploadPath());
+                    } catch (Exception e) {
+                        log.warn("删除物理文件失败: {}", imagePath, e);
+                    }
+                }
+
+                product.setImages(productImages.toJson());
+            }
+
+            // 处理新图片上传
             if (images != null && !images.isEmpty()) {
                 List<String> imagePaths = FileUploadUtil.uploadFiles(images, fileUploadConfig.getUploadPath());
-                product.setImages(JSON.toJSONString(imagePaths));
+
+                // 解析当前的图片结构（可能已经被删除操作修改过）
+                ProductImagesUtil.ProductImages productImages = ProductImagesUtil.ProductImages.fromJson(product.getImages());
+
+                // 如果有新图片被指定为主图，设置主图逻辑
+                if (newImageMainIndex != null && newImageMainIndex >= 0 && newImageMainIndex < imagePaths.size()) {
+                    String newMainImagePath = imagePaths.get(newImageMainIndex);
+                    String oldMain = productImages.getMain();
+
+                    log.info("设置新图片主图: newMainImageIndex={}, newMainImagePath={}, oldMain={}",
+                             newImageMainIndex, newMainImagePath, oldMain);
+                    log.info("处理前的副图数量: {}", productImages.getSubImages().size());
+
+                    // 直接设置新主图，不调用setMainImage方法（避免副图重新排列）
+                    productImages.setMain(newMainImagePath);
+
+                    // 手动处理旧主图：将其添加到副图开头（如果存在且不重复）
+                    if (oldMain != null && !oldMain.isEmpty() && !oldMain.equals(newMainImagePath)) {
+                        if (!productImages.getSubImages().contains(oldMain)) {
+                            productImages.getSubImages().add(0, oldMain);
+                            log.info("添加旧主图到副图开头: {}", oldMain);
+                        } else {
+                            log.info("旧主图已存在于副图中，跳过: {}", oldMain);
+                        }
+                    }
+
+                    // 添加其他新图片到副图（不是主图的那些）
+                    for (int i = 0; i < imagePaths.size(); i++) {
+                        if (i != newImageMainIndex) {
+                            productImages.getSubImages().add(imagePaths.get(i));
+                            log.info("添加新图片到副图: {}", imagePaths.get(i));
+                        }
+                    }
+
+                    log.info("处理后的副图数量: {}", productImages.getSubImages().size());
+                } else {
+                    // 没有指定新图片为主图，全部添加到副图
+                    for (String imagePath : imagePaths) {
+                        productImages.getSubImages().add(imagePath);
+                    }
+                }
+
+                product.setImages(productImages.toJson());
             }
 
             Product updatedProduct = productService.updateProduct(product);
@@ -403,6 +485,90 @@ public class ProductController {
         } catch (Exception e) {
             log.error("获取库存不足商品失败", e);
             return Result.error("获取库存不足商品失败");
+        }
+    }
+
+    /**
+     * 设置商品主图
+     */
+    @PutMapping("/{id}/main-image")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Result<String> setMainImage(
+            @PathVariable("id") @NotNull Long id,
+            @RequestParam @NotNull String mainImagePath) {
+        try {
+            Product product = productService.getById(id);
+            if (product == null) {
+                return Result.error("商品不存在");
+            }
+
+            // 解析现有的图片结构
+            ProductImagesUtil.ProductImages productImages = ProductImagesUtil.ProductImages.fromJson(product.getImages());
+
+            // 设置主图
+            productImages.setMainImage(mainImagePath);
+
+            product.setImages(productImages.toJson());
+            boolean result = productService.updateById(product);
+
+            if (result) {
+                return Result.success("设置主图成功");
+            } else {
+                return Result.error("设置主图失败");
+            }
+        } catch (Exception e) {
+            log.error("设置主图失败", e);
+            return Result.error("设置主图失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 删除商品图片
+     */
+    @DeleteMapping("/{id}/images")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Result<String> removeProductImage(
+            @PathVariable("id") @NotNull Long id,
+            @RequestParam @NotNull String imagePath) {
+        try {
+            Product product = productService.getById(id);
+            if (product == null) {
+                return Result.error("商品不存在");
+            }
+
+            // 解析现有的图片结构
+            ProductImagesUtil.ProductImages productImages = ProductImagesUtil.ProductImages.fromJson(product.getImages());
+
+            // 移除图片
+            boolean removed = productImages.removeImage(imagePath);
+
+            if (removed) {
+                // 删除物理文件
+                try {
+                    FileUploadUtil.deleteFile(imagePath, fileUploadConfig.getUploadPath());
+                } catch (Exception e) {
+                    log.warn("删除物理文件失败: {}", imagePath, e);
+                }
+
+                // 检查是否还有图片
+                if (productImages.getTotalCount() == 0) {
+                    return Result.error("至少需要保留一张图片");
+                }
+
+                product.setImages(productImages.toJson());
+                boolean result = productService.updateById(product);
+
+                if (result) {
+                    return Result.success("删除图片成功");
+                } else {
+                    return Result.error("删除图片失败");
+                }
+            } else {
+                return Result.error("图片不存在");
+            }
+        } catch (Exception e) {
+            log.error("删除图片失败", e);
+            return Result.error("删除图片失败: " + e.getMessage());
         }
     }
 

@@ -44,7 +44,7 @@ public class SecurityConfig {
                 .requestMatchers("/admin/init/**").permitAll()
                 .requestMatchers("/admin/auth/login").permitAll()
                 // 允许静态资源访问
-                .requestMatchers("/static/**", "/css/**", "/js/**", "/images/**").permitAll()
+                .requestMatchers("/static/**", "/css/**", "/js/**", "/images/**", "/uploads/**").permitAll()
                 // 允许错误页面访问
                 .requestMatchers("/error").permitAll()
                 // 其他所有请求都需要认证

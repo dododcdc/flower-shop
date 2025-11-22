@@ -43,7 +43,7 @@ import {
   getDiscountPercentage,
   getProductStatusText,
   getProductStatusColor,
-  parseImagesJson,
+  getMainProductImage,
 } from '../../models/product';
 import { productAPI } from '../../api/productAPI';
 import { categoryAPI, type Category } from '../../api/categoryAPI';
@@ -230,20 +230,33 @@ const ProductList: React.FC = () => {
 
   const parseImages = (product: Product) => {
     try {
-      const images = parseImagesJson(product.images);
-      // Add backend API URL prefix to image paths
-      return images.map(img => {
-        // If image path starts with /uploads, add the backend URL
-        if (img.startsWith('/uploads')) {
-          return `http://localhost:8080/api${img}`;
+      // Get main image first
+      const mainImage = getMainProductImage(product.images);
+      if (!mainImage) {
+        return [];
+      }
+
+      // Convert main image path to URL that browsers can load
+      let imageUrl = mainImage;
+
+      // If already a URL (starts with http), return as‑is
+      if (!/^https?:/i.test(imageUrl)) {
+        // If it's a relative path starting with /uploads/, convert to full API URL
+        if (imageUrl.startsWith('/uploads/')) {
+          imageUrl = `http://localhost:8080/api${imageUrl}`;
         }
-        return img;
-      });
+        // Legacy absolute file system path support (convert to API URL)
+        else if (imageUrl.startsWith('/Users/wenbin/Projects/flower_shop/flower_server/uploads')) {
+          const relativePath = imageUrl.replace('/Users/wenbin/Projects/flower_shop/flower_server', '');
+          imageUrl = `http://localhost:8080/api${relativePath}`;
+        }
+      }
+
+      return [imageUrl];
     } catch {
       return [];
     }
   };
-
   return (
     <Box sx={{ px: 1, pt: 1 }}>
       {/* Search and Filters */}
@@ -391,6 +404,7 @@ const ProductList: React.FC = () => {
                     background: 'linear-gradient(135deg, #2C5F3C 0%, #1B3A2B 100%)',
                     '&:hover': {
                       background: 'linear-gradient(135deg, #1B3A2B 0%, #2C5F3C 100%)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
                     },
                     color: 'white',
                     fontWeight: 600,
@@ -400,9 +414,6 @@ const ProductList: React.FC = () => {
                     minWidth: 80,
                     borderRadius: 1,
                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                    '&:hover': {
-                      boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
-                    },
                   }}
                 >
                   添加
@@ -415,6 +426,7 @@ const ProductList: React.FC = () => {
                     background: 'linear-gradient(135deg, #1B3A2B 0%, #2C5F3C 100%)',
                     '&:hover': {
                       background: 'linear-gradient(135deg, #2C5F3C 0%, #1B3A2B 100%)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
                     },
                     color: 'white',
                     fontWeight: 600,
@@ -424,9 +436,6 @@ const ProductList: React.FC = () => {
                     minWidth: 80,
                     borderRadius: 1,
                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                    '&:hover': {
-                      boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
-                    },
                   }}
                 >
                   搜索

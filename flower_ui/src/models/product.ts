@@ -90,6 +90,11 @@ export interface ProductImage {
   preview?: string;
 }
 
+export interface ProductImages {
+  main?: string;
+  subImages: string[];
+}
+
 // ====== Utility Functions ======
 
 // Stock status utilities
@@ -152,6 +157,63 @@ export const parseImagesJson = (imagesJson: string): string[] => {
 
 export const imagesToJson = (images: string[]): string => {
   return JSON.stringify(images);
+};
+
+// New: Parse ProductImages structure
+export const parseProductImages = (imagesJson: string): ProductImages => {
+  try {
+    if (!imagesJson || imagesJson.trim() === '') {
+      return { subImages: [] };
+    }
+
+    const parsed = JSON.parse(imagesJson);
+
+    // Check if it's already the new format with main and subImages
+    if (parsed && typeof parsed === 'object' && ('main' in parsed || 'subImages' in parsed)) {
+      return {
+        main: parsed.main || undefined,
+        subImages: parsed.subImages || []
+      };
+    }
+
+    // Try to parse as array (legacy format)
+    if (Array.isArray(parsed)) {
+      if (parsed.length > 0) {
+        return {
+          main: parsed[0],
+          subImages: parsed.slice(1)
+        };
+      } else {
+        return { subImages: [] };
+      }
+    }
+
+    return { subImages: [] };
+  } catch (error) {
+    console.warn('Failed to parse product images JSON:', imagesJson, error);
+    return { subImages: [] };
+  }
+};
+
+// Convert ProductImages to JSON string
+export const productImagesToJson = (productImages: ProductImages): string => {
+  return JSON.stringify(productImages);
+};
+
+// Get all images (main + subImages)
+export const getAllProductImages = (productImages: ProductImages): string[] => {
+  const allImages: string[] = [];
+  if (productImages.main) {
+    allImages.push(productImages.main);
+  }
+  allImages.push(...productImages.subImages);
+  return allImages;
+};
+
+// Get main image or fallback to first image
+export const getMainProductImage = (imagesJson: string): string | undefined => {
+  const productImages = parseProductImages(imagesJson);
+  return productImages.main || productImages.subImages[0];
 };
 
 // Default form values

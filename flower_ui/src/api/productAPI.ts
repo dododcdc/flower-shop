@@ -144,6 +144,41 @@ export const updateProduct = async (id: number, formData: ProductFormData): Prom
 };
 
 /**
+ * Update product with images state (用于编辑时更新图片状态)
+ */
+export const updateProductWithImagesState = async (id: number, productData: any, imageFiles?: File[], imagesToDelete?: string[]): Promise<Product> => {
+  const formDataToSend = new FormData();
+
+  // Add product data as JSON string
+  formDataToSend.append('product', JSON.stringify(productData));
+
+  // Add image files if provided
+  if (imageFiles && imageFiles.length > 0) {
+    imageFiles.forEach((file: File) => {
+      formDataToSend.append('images', file);
+    });
+  }
+
+  // Add images to delete if provided
+  if (imagesToDelete && imagesToDelete.length > 0) {
+    formDataToSend.append('imagesToDelete', JSON.stringify(imagesToDelete));
+  }
+
+  // Add new image main index if provided
+  if (productData.newImageMainIndex !== null && productData.newImageMainIndex !== undefined) {
+    formDataToSend.append('newImageMainIndex', productData.newImageMainIndex.toString());
+  }
+
+  const response = await axiosClient.put<ApiResponse<Product>>(`${ENDPOINTS.PRODUCTS}/${id}`, formDataToSend, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+
+  return response.data.data;
+};
+
+/**
  * Delete product
  */
 export const deleteProduct = async (id: number): Promise<string> => {
@@ -315,6 +350,26 @@ export const createSampleProducts = async (): Promise<string> => {
   return response.data.message;
 };
 
+/**
+ * Set product main image
+ */
+export const setMainImage = async (productId: number, imagePath: string): Promise<string> => {
+  const response = await axiosClient.put<ApiResponse<string>>(`${ENDPOINTS.PRODUCTS}/${productId}/main-image`, null, {
+    params: { mainImagePath: imagePath },
+  });
+  return response.data.message;
+};
+
+/**
+ * Remove product image
+ */
+export const removeProductImage = async (productId: number, imagePath: string): Promise<string> => {
+  const response = await axiosClient.delete<ApiResponse<string>>(`${ENDPOINTS.PRODUCTS}/${productId}/images`, {
+    params: { imagePath },
+  });
+  return response.data.message;
+};
+
 // Export all API functions with error handling wrapper
 export const productAPI = {
   getProducts: (filters?: ProductFilters) => getProducts(filters).catch(handleAPIError),
@@ -336,6 +391,9 @@ export const productAPI = {
   batchUpdateStatus: (productIds: number[], status: 0 | 1) => batchUpdateStatus(productIds, status).catch(handleAPIError),
   getProductStatistics: () => getProductStatistics().catch(handleAPIError),
   createSampleProducts: () => createSampleProducts().catch(handleAPIError),
+  setMainImage: (productId: number, imagePath: string) => setMainImage(productId, imagePath).catch(handleAPIError),
+  removeProductImage: (productId: number, imagePath: string) => removeProductImage(productId, imagePath).catch(handleAPIError),
+  updateProductWithImagesState: (id: number, productData: any, imageFiles?: File[], imagesToDelete?: string[]) => updateProductWithImagesState(id, productData, imageFiles, imagesToDelete).catch(handleAPIError),
 };
 
 export default productAPI;

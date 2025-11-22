@@ -27,7 +27,7 @@ import {
     Delete as DeleteIcon,
     Image as ImageIcon,
 } from '@mui/icons-material';
-import { type Product, type ProductFormData, parseImagesJson } from '../../models/product';
+import { type Product, type ProductFormData, type ProductImages, parseProductImages, productImagesToJson } from '../../models/product';
 import { productAPI } from '../../api/productAPI';
 import { categoryAPI, type Category } from '../../api/categoryAPI';
 
@@ -65,8 +65,14 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
 
     // 图片相关状态
     const [selectedImages, setSelectedImages] = useState<File[]>([]);
-    const [existingImages, setExistingImages] = useState<string[]>([]);
+    const [productImages, setProductImages] = useState<ProductImages>({ subImages: [] });
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+    // 保存图片的原始显示顺序（用于位置保持）
+    const [imageDisplayOrder, setImageDisplayOrder] = useState<string[]>([]);
+    // 标记要删除的已保存图片
+    const [imagesToDelete, setImagesToDelete] = useState<Set<string>>(new Set());
+    // 跟踪新图片中哪张被设为主图（存储preview index）
+    const [newImageMainIndex, setNewImageMainIndex] = useState<number | null>(null);
 
     // 加载分类列表
     useEffect(() => {
@@ -106,8 +112,11 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
             careGuide: '',
         });
         setSelectedImages([]);
-        setExistingImages([]);
+        setProductImages({ subImages: [] });
         setImagePreviews([]);
+        setImageDisplayOrder([]);
+        setImagesToDelete(new Set());
+        setNewImageMainIndex(null);
         setError(null);
     };
 
@@ -133,8 +142,29 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
             });
 
             // 加载现有图片
-            const images = parseImagesJson(product.images);
-            setExistingImages(images);
+            const images = parseProductImages(product.images);
+            setProductImages(images);
+
+            // 调试信息
+            console.log('Loaded images:', images);
+            console.log('Main:', images.main);
+            console.log('SubImages:', images.subImages);
+            console.log('Main in subImages:', images.subImages.includes(images.main || ''));
+
+            // 设置图片显示顺序：保持后端的原始顺序
+            // 后端的逻辑：主图在subImages中可能存在也可能不存在
+            // 如果主图不在subImages中，应该先显示主图，再显示副图
+            // 如果主图在subImages中，只按副图顺序显示
+            let displayOrder = [];
+            if (images.main && !images.subImages.includes(images.main)) {
+                // 主图不在副图中，先显示主图，再显示副图
+                displayOrder = [images.main, ...images.subImages];
+            } else {
+                // 主图在副图中或者没有主图，按副图顺序显示
+                displayOrder = [...images.subImages];
+            }
+            console.log('Display order:', displayOrder);
+            setImageDisplayOrder(displayOrder);
         } catch (err) {
             setError(err instanceof Error ? err.message : '加载商品失败');
         } finally {
@@ -148,11 +178,11 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
         if (!files) return;
 
         const fileArray = Array.from(files);
-        const totalImages = existingImages.length + selectedImages.length + fileArray.length;
+        const totalImages = getTotalImageCount() + fileArray.length;
 
         // 限制最多9张图片
         if (totalImages > 9) {
-            setError(`最多只能上传9张图片，当前已有${existingImages.length + selectedImages.length}张`);
+            setError(`最多只能上传9张图片，当前已有${getTotalImageCount()}张`);
             return;
         }
 
@@ -187,15 +217,94 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
         }
     };
 
+    // 获取当前总图片数
+    const getTotalImageCount = () => {
+        return selectedImages.length + (productImages.main ? 1 : 0) + productImages.subImages.length;
+    };
+
+  // 设置主图（仅前端状态变更，位置不变）
+    const handleSetMainImage = (imagePath: string) => {
+        // Check if this is a new image (preview path)
+        const isNewImage = imagePath.startsWith('preview-');
+
+        if (isNewImage) {
+            // Extract the index from preview path
+            const index = parseInt(imagePath.replace('preview-', ''));
+            console.log(`设置新图片为主图: index=${index}, oldMainIndex=${newImageMainIndex}`);
+            setNewImageMainIndex(index);
+            // 保持原有主图信息，不清除！让后端处理主图切换
+            return;
+        }
+
+        // For existing images, clear new image main selection and update productImages
+        setNewImageMainIndex(null);
+
+        setProductImages(prev => {
+            const newImages = { ...prev };
+            const oldMain = newImages.main;
+
+            // 设置新主图
+            newImages.main = imagePath;
+
+            // 如果旧主图不在副图中，且新主图在副图中，需要将旧主图添加到副图
+            if (oldMain && oldMain !== imagePath && !newImages.subImages.includes(oldMain)) {
+                // 将旧主图添加到副图中
+                newImages.subImages.push(oldMain);
+            }
+
+            // 从副图中移除新主图（避免重复）
+            newImages.subImages = newImages.subImages.filter(img => img !== imagePath);
+
+            return newImages;
+        });
+    };
+
+    // 删除图片
+    const handleRemoveImage = (imagePath: string) => {
+        // 检查是否是已保存的图片（在productImages中）
+        const isExistingImage = productImages.main === imagePath ||
+                               productImages.subImages.includes(imagePath);
+
+        if (isExistingImage) {
+            // 已保存的图片：标记为要删除
+            setImagesToDelete(prev => new Set([...prev, imagePath]));
+
+            // 从显示顺序中移除
+            setImageDisplayOrder(prev => prev.filter(path => path !== imagePath));
+
+            // 从前端显示中移除
+            setProductImages(prev => {
+                const newImages = { ...prev };
+                if (prev.main === imagePath) {
+                    // 删除主图，提升第一张副图为主图
+                    if (prev.subImages.length > 0) {
+                        newImages.main = prev.subImages[0];
+                        newImages.subImages = prev.subImages.slice(1);
+                    } else {
+                        newImages.main = undefined;
+                    }
+                } else {
+                    // 从副图中移除
+                    newImages.subImages = prev.subImages.filter(img => img !== imagePath);
+                }
+                return newImages;
+            });
+        }
+        // 如果是新添加的图片，在提交时不会包含，所以不需要特殊处理
+    };
+
     // 删除新选择的图片
     const handleRemoveNewImage = (index: number) => {
         setSelectedImages(selectedImages.filter((_, i) => i !== index));
         setImagePreviews(imagePreviews.filter((_, i) => i !== index));
-    };
 
-    // 删除现有图片
-    const handleRemoveExistingImage = (index: number) => {
-        setExistingImages(existingImages.filter((_, i) => i !== index));
+        // 如果删除的新图片是主图，清除主图状态
+        if (newImageMainIndex === index) {
+            setNewImageMainIndex(null);
+        } else if (newImageMainIndex !== null && newImageMainIndex > index) {
+            // 如果删除的图片在主图之前，需要调整主图索引
+            setNewImageMainIndex(newImageMainIndex - 1);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -216,7 +325,8 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
         }
 
         // 验证至少有一张图片
-        if (existingImages.length === 0 && selectedImages.length === 0) {
+        const totalImages = getTotalImageCount();
+        if (totalImages === 0) {
             setError('请至少上传一张商品图片');
             return;
         }
@@ -225,8 +335,18 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
         setError(null);
 
         try {
-            // 构建提交数据
-            const productData: ProductFormData = {
+            // 构建完整的商品数据（包含当前图片状态）
+            // 简化逻辑：直接传递当前的productImages状态
+            // 新图片的主图设置将在后端处理
+            let finalImagesState = { ...productImages };
+
+            // 如果没有已保存图片，且有新图片，自动将第一张新图片设为主图
+            let finalNewImageMainIndex = newImageMainIndex;
+            if (imageDisplayOrder.length === 0 && selectedImages.length > 0 && newImageMainIndex === null) {
+                finalNewImageMainIndex = 0; // 第一张新图片为主图
+            }
+
+            const completeProductData = {
                 name: formData.name!,
                 categoryId: formData.categoryId!,
                 description: formData.description || '',
@@ -238,14 +358,15 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
                 featured: formData.featured!,
                 flowerLanguage: formData.flowerLanguage,
                 careGuide: formData.careGuide,
-                images: selectedImages, // 新上传的图片
+                // 直接传递当前状态，让后端处理新图片主图逻辑
+                images: finalImagesState,
+                // 添加标记：哪个新图片被设为主图（可能自动设置为第一张）
+                newImageMainIndex: finalNewImageMainIndex,
             };
 
-            // 如果有现有图片，需要保留它们
-            // 注意：这里简化处理，实际应该在后端合并新旧图片
-            // 暂时只上传新图片，如果没有新图片则保持原有图片不变
+            // 统一使用新的API处理图片
+            await productAPI.updateProductWithImagesState(productId, completeProductData, selectedImages, Array.from(imagesToDelete));
 
-            await productAPI.updateProduct(productId, productData);
             onSuccess();
             onClose();
         } catch (err) {
@@ -261,7 +382,7 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
         }
     };
 
-    const totalImages = existingImages.length + selectedImages.length;
+    const totalImages = getTotalImageCount();
 
     return (
         <Dialog
@@ -293,82 +414,146 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
                             {/* 商品图片上传 */}
                             <Box>
                                 <Typography variant="subtitle2" gutterBottom>
-                                    商品图片 ({totalImages}/9) {totalImages > 0 && <Chip label="第一张为主图" size="small" color="primary" />}
+                                    商品图片 ({totalImages}/9)
                                 </Typography>
 
-                                {/* 现有图片 */}
-                                {existingImages.length > 0 && (
-                                    <Stack direction="row" spacing={1} sx={{ mb: 1, flexWrap: 'wrap', gap: 1 }}>
-                                        {existingImages.map((img, index) => (
-                                            <Card key={`existing-${index}`} sx={{ width: 100, height: 100, position: 'relative' }}>
-                                                <CardMedia
-                                                    component="img"
-                                                    image={`http://localhost:8080/api${img}`}
-                                                    alt={`现有图片 ${index + 1}`}
-                                                    sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                />
-                                                {index === 0 && (
-                                                    <Chip
-                                                        label="主图"
-                                                        size="small"
-                                                        color="primary"
-                                                        sx={{ position: 'absolute', top: 4, left: 4, fontSize: '0.7rem' }}
-                                                    />
-                                                )}
-                                                <IconButton
-                                                    size="small"
-                                                    onClick={() => handleRemoveExistingImage(index)}
-                                                    sx={{
-                                                        position: 'absolute',
-                                                        top: 4,
-                                                        right: 4,
-                                                        bgcolor: 'rgba(0,0,0,0.6)',
-                                                        color: 'white',
-                                                        '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' },
-                                                    }}
-                                                >
-                                                    <DeleteIcon fontSize="small" />
-                                                </IconButton>
-                                            </Card>
-                                        ))}
-                                    </Stack>
-                                )}
+                                {/* 所有图片 - 已保存的 + 新添加的 */}
+                                <Stack direction="row" spacing={1} sx={{ mb: 1, flexWrap: 'wrap', gap: 1 }}>
+                                    {/* 获取所有图片并合并 */}
+                                    {(() => {
+                                        // 收集所有图片数据，按原始显示顺序排列
+                                        const allImages = [];
 
-                                {/* 新选择的图片预览 */}
-                                {imagePreviews.length > 0 && (
-                                    <Stack direction="row" spacing={1} sx={{ mb: 1, flexWrap: 'wrap', gap: 1 }}>
-                                        {imagePreviews.map((preview, index) => (
-                                            <Card key={`new-${index}`} sx={{ width: 100, height: 100, position: 'relative' }}>
-                                                <CardMedia
-                                                    component="img"
-                                                    image={preview}
-                                                    alt={`新图片 ${index + 1}`}
-                                                    sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                />
-                                                <Chip
-                                                    label="新"
-                                                    size="small"
-                                                    color="success"
-                                                    sx={{ position: 'absolute', top: 4, left: 4, fontSize: '0.7rem' }}
-                                                />
-                                                <IconButton
-                                                    size="small"
-                                                    onClick={() => handleRemoveNewImage(index)}
-                                                    sx={{
-                                                        position: 'absolute',
-                                                        top: 4,
-                                                        right: 4,
-                                                        bgcolor: 'rgba(0,0,0,0.6)',
-                                                        color: 'white',
-                                                        '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' },
-                                                    }}
-                                                >
-                                                    <DeleteIcon fontSize="small" />
-                                                </IconButton>
-                                            </Card>
-                                        ))}
-                                    </Stack>
-                                )}
+                                        // 按原始顺序显示已保存的图片
+                                        imageDisplayOrder.forEach(path => {
+                                            // 跳过已标记删除的图片
+                                            if (imagesToDelete.has(path)) {
+                                                return;
+                                            }
+                                            // 判断是否为主图：考虑新图片主图设置
+                                            let isMainImage = path === productImages.main;
+                                            // 如果有新图片被设为主图，则没有图片是主图（新图片在后续逻辑中处理）
+                                            if (newImageMainIndex !== null) {
+                                                isMainImage = false;
+                                            }
+                                            allImages.push({
+                                                path,
+                                                isMain: isMainImage,
+                                                isNew: false
+                                            });
+                                        });
+
+                                        // 添加新图片
+                                        imagePreviews.forEach((preview, index) => {
+                                            // 判断是否为主图
+                                            let shouldbeMain = false;
+                                            if (newImageMainIndex !== null) {
+                                                // 有明确设置的主图
+                                                shouldbeMain = newImageMainIndex === index;
+                                            } else if (imageDisplayOrder.length === 0 && index === 0) {
+                                                // 没有已保存图片且没有手动设置主图时，第一张新图片自动为主图
+                                                shouldbeMain = true;
+                                            }
+                                            console.log(`图片 ${index} 主图判断: newImageMainIndex=${newImageMainIndex}, shouldbeMain=${shouldbeMain}`);
+                                            allImages.push({
+                                                path: `preview-${index}`,
+                                                isMain: shouldbeMain,
+                                                isNew: true,
+                                                preview,
+                                                newIndex: index
+                                            });
+                                        });
+
+                                        return allImages.map((imageData, index) => {
+                                            const isMainImage = imageData.isMain;
+
+                                            return (
+                                                <Card key={`image-${index}`} sx={{
+                                                    width: 100,
+                                                    height: 100,
+                                                    position: 'relative',
+                                                    border: isMainImage ? '2px solid primary.main' : 'none'
+                                                }}>
+                                                    <CardMedia
+                                                        component="img"
+                                                        image={imageData.preview || (imageData.path.startsWith('/uploads/')
+                                                            ? `http://localhost:8080/api${imageData.path}`
+                                                            : imageData.path)}
+                                                        alt={`图片 ${index + 1}`}
+                                                        sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    />
+
+                                                    {/* 主图标签 */}
+                                                    {isMainImage && (
+                                                        <Chip
+                                                            label="主图"
+                                                            size="small"
+                                                            color="primary"
+                                                            sx={{ position: 'absolute', top: 4, left: 4, fontSize: '0.7rem' }}
+                                                        />
+                                                    )}
+
+                                                    {/* 新图片不显示"新"标记，因为已有"已保存"标记区分 */}
+
+                                                    {/* 已保存标签 */}
+                                                    {!imageData.isNew && (
+                                                        <Chip
+                                                            label="已保存"
+                                                            size="small"
+                                                            sx={{ position: 'absolute', bottom: 4, left: 4, fontSize: '0.6rem' }}
+                                                        />
+                                                    )}
+
+                                                    {/* 设为主图按钮 - 对所有非主图图片显示 */}
+                                                    {!isMainImage && getTotalImageCount() > 1 && (
+                                                        <Button
+                                                            size="small"
+                                                            onClick={() => handleSetMainImage(imageData.path)}
+                                                            sx={{
+                                                                position: 'absolute',
+                                                                top: 4,
+                                                                left: 4,
+                                                                fontSize: '0.6rem',
+                                                                minWidth: 'auto',
+                                                                px: 0.5,
+                                                                py: 0.25,
+                                                                bgcolor: 'rgba(255,255,255,0.9)',
+                                                                '&:hover': { bgcolor: 'rgba(255,255,255,1)' },
+                                                            }}
+                                                        >
+                                                            设为主图
+                                                        </Button>
+                                                    )}
+
+                                                    {/* 删除按钮 */}
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={() => {
+                                                            if (imageData.isNew) {
+                                                                // 删除新图片
+                                                                const newImageIndex = parseInt(imageData.path.split('preview-')[1]);
+                                                                handleRemoveNewImage(newImageIndex);
+                                                            } else {
+                                                                // 删除已保存图片
+                                                                handleRemoveImage(imageData.path);
+                                                            }
+                                                        }}
+                                                        sx={{
+                                                            position: 'absolute',
+                                                            top: 4,
+                                                            right: 4,
+                                                            bgcolor: 'rgba(0,0,0,0.6)',
+                                                            color: 'white',
+                                                            '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' },
+                                                        }}
+                                                    >
+                                                        <DeleteIcon fontSize="small" />
+                                                    </IconButton>
+                                                </Card>
+                                            );
+                                        });
+                                    })()}
+                                </Stack>
 
                                 {/* 上传按钮 */}
                                 {totalImages < 9 && (
@@ -378,7 +563,7 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
                                         startIcon={<UploadIcon />}
                                         disabled={submitting}
                                     >
-                                        选择图片
+                                        添加图片
                                         <input
                                             type="file"
                                             hidden

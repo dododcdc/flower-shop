@@ -62,10 +62,8 @@ public class FileUploadUtil {
 
         // 按日期创建子目录（如：uploads/2025/11/23/）
         String dateDir = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
-        String fullUploadPath = uploadPath + File.separator + dateDir;
-
-        // 创建目录
-        Path uploadDir = Paths.get(fullUploadPath);
+        // 使用绝对路径存储文件
+        Path uploadDir = Paths.get(uploadPath, dateDir);
         if (!Files.exists(uploadDir)) {
             Files.createDirectories(uploadDir);
         }
@@ -74,9 +72,10 @@ public class FileUploadUtil {
         Path filePath = uploadDir.resolve(newFileName);
         file.transferTo(filePath.toFile());
 
-        // 返回访问路径（相对路径，用于存储到数据库）
+        // 返回Web可访问的相对路径（用于存储到数据库）
+        String absolutePath = filePath.toAbsolutePath().toString();
         String relativePath = "/uploads/" + dateDir + "/" + newFileName;
-        log.info("文件上传成功: {}", relativePath);
+        log.info("文件上传成功，相对路径: {}, 绝对路径: {}", relativePath, absolutePath);
 
         return relativePath;
     }
