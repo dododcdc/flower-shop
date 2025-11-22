@@ -20,9 +20,14 @@ import {
     IconButton,
     Card,
     CardMedia,
+    Chip,
 } from '@mui/material';
-import { CloudUpload as UploadIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import { type Product, type ProductFormData } from '../../models/product';
+import {
+    CloudUpload as UploadIcon,
+    Delete as DeleteIcon,
+    Image as ImageIcon,
+} from '@mui/icons-material';
+import { type Product, type ProductFormData, parseImagesJson } from '../../models/product';
 import { productAPI } from '../../api/productAPI';
 import { categoryAPI, type Category } from '../../api/categoryAPI';
 
@@ -61,6 +66,7 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
     // 图片相关状态
     const [selectedImages, setSelectedImages] = useState<File[]>([]);
     const [existingImages, setExistingImages] = useState<string[]>([]);
+    const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
     // 加载分类列表
     useEffect(() => {
@@ -79,8 +85,31 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
     useEffect(() => {
         if (open && productId) {
             loadProduct();
+        } else if (!open) {
+            // 关闭对话框时清理状态
+            resetForm();
         }
     }, [open, productId]);
+
+    const resetForm = () => {
+        setFormData({
+            name: '',
+            categoryId: 0,
+            description: '',
+            price: 0,
+            originalPrice: 0,
+            stockQuantity: 0,
+            lowStockThreshold: 5,
+            status: 1,
+            featured: 0,
+            flowerLanguage: '',
+            careGuide: '',
+        });
+        setSelectedImages([]);
+        setExistingImages([]);
+        setImagePreviews([]);
+        setError(null);
+    };
 
     const loadProduct = async () => {
         if (!productId) return;
@@ -102,11 +131,71 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
                 flowerLanguage: product.flowerLanguage || '',
                 careGuide: product.careGuide || '',
             });
+
+            // 加载现有图片
+            const images = parseImagesJson(product.images);
+            setExistingImages(images);
         } catch (err) {
             setError(err instanceof Error ? err.message : '加载商品失败');
         } finally {
             setLoading(false);
         }
+    };
+
+    // 处理图片选择
+    const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = event.target.files;
+        if (!files) return;
+
+        const fileArray = Array.from(files);
+        const totalImages = existingImages.length + selectedImages.length + fileArray.length;
+
+        // 限制最多9张图片
+        if (totalImages > 9) {
+            setError(`最多只能上传9张图片，当前已有${existingImages.length + selectedImages.length}张`);
+            return;
+        }
+
+        // 验证文件类型和大小
+        const validFiles: File[] = [];
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        const maxSize = 5 * 1024 * 1024; // 5MB
+
+        for (const file of fileArray) {
+            if (!allowedTypes.includes(file.type)) {
+                setError(`文件 ${file.name} 格式不支持，仅支持 jpg, png, gif, webp`);
+                continue;
+            }
+            if (file.size > maxSize) {
+                setError(`文件 ${file.name} 大小超过5MB`);
+                continue;
+            }
+            validFiles.push(file);
+        }
+
+        if (validFiles.length > 0) {
+            setSelectedImages([...selectedImages, ...validFiles]);
+
+            // 生成预览
+            validFiles.forEach(file => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setImagePreviews(prev => [...prev, reader.result as string]);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+    };
+
+    // 删除新选择的图片
+    const handleRemoveNewImage = (index: number) => {
+        setSelectedImages(selectedImages.filter((_, i) => i !== index));
+        setImagePreviews(imagePreviews.filter((_, i) => i !== index));
+    };
+
+    // 删除现有图片
+    const handleRemoveExistingImage = (index: number) => {
+        setExistingImages(existingImages.filter((_, i) => i !== index));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -126,11 +215,17 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
             return;
         }
 
+        // 验证至少有一张图片
+        if (existingImages.length === 0 && selectedImages.length === 0) {
+            setError('请至少上传一张商品图片');
+            return;
+        }
+
         setSubmitting(true);
         setError(null);
 
         try {
-            // 构建提交数据（不包含图片，图片上传需要单独处理）
+            // 构建提交数据
             const productData: ProductFormData = {
                 name: formData.name!,
                 categoryId: formData.categoryId!,
@@ -143,8 +238,12 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
                 featured: formData.featured!,
                 flowerLanguage: formData.flowerLanguage,
                 careGuide: formData.careGuide,
-                images: [], // 暂不支持图片编辑
+                images: selectedImages, // 新上传的图片
             };
+
+            // 如果有现有图片，需要保留它们
+            // 注意：这里简化处理，实际应该在后端合并新旧图片
+            // 暂时只上传新图片，如果没有新图片则保持原有图片不变
 
             await productAPI.updateProduct(productId, productData);
             onSuccess();
@@ -159,9 +258,10 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
     const handleClose = () => {
         if (!submitting) {
             onClose();
-            setError(null);
         }
     };
+
+    const totalImages = existingImages.length + selectedImages.length;
 
     return (
         <Dialog
@@ -184,12 +284,115 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
                 ) : (
                     <Box component="form" onSubmit={handleSubmit}>
                         {error && (
-                            <Alert severity="error" sx={{ mb: 2 }}>
+                            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
                                 {error}
                             </Alert>
                         )}
 
                         <Stack spacing={2}>
+                            {/* 商品图片上传 */}
+                            <Box>
+                                <Typography variant="subtitle2" gutterBottom>
+                                    商品图片 ({totalImages}/9) {totalImages > 0 && <Chip label="第一张为主图" size="small" color="primary" />}
+                                </Typography>
+
+                                {/* 现有图片 */}
+                                {existingImages.length > 0 && (
+                                    <Stack direction="row" spacing={1} sx={{ mb: 1, flexWrap: 'wrap', gap: 1 }}>
+                                        {existingImages.map((img, index) => (
+                                            <Card key={`existing-${index}`} sx={{ width: 100, height: 100, position: 'relative' }}>
+                                                <CardMedia
+                                                    component="img"
+                                                    image={`http://localhost:8080/api${img}`}
+                                                    alt={`现有图片 ${index + 1}`}
+                                                    sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                />
+                                                {index === 0 && (
+                                                    <Chip
+                                                        label="主图"
+                                                        size="small"
+                                                        color="primary"
+                                                        sx={{ position: 'absolute', top: 4, left: 4, fontSize: '0.7rem' }}
+                                                    />
+                                                )}
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => handleRemoveExistingImage(index)}
+                                                    sx={{
+                                                        position: 'absolute',
+                                                        top: 4,
+                                                        right: 4,
+                                                        bgcolor: 'rgba(0,0,0,0.6)',
+                                                        color: 'white',
+                                                        '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' },
+                                                    }}
+                                                >
+                                                    <DeleteIcon fontSize="small" />
+                                                </IconButton>
+                                            </Card>
+                                        ))}
+                                    </Stack>
+                                )}
+
+                                {/* 新选择的图片预览 */}
+                                {imagePreviews.length > 0 && (
+                                    <Stack direction="row" spacing={1} sx={{ mb: 1, flexWrap: 'wrap', gap: 1 }}>
+                                        {imagePreviews.map((preview, index) => (
+                                            <Card key={`new-${index}`} sx={{ width: 100, height: 100, position: 'relative' }}>
+                                                <CardMedia
+                                                    component="img"
+                                                    image={preview}
+                                                    alt={`新图片 ${index + 1}`}
+                                                    sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                />
+                                                <Chip
+                                                    label="新"
+                                                    size="small"
+                                                    color="success"
+                                                    sx={{ position: 'absolute', top: 4, left: 4, fontSize: '0.7rem' }}
+                                                />
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => handleRemoveNewImage(index)}
+                                                    sx={{
+                                                        position: 'absolute',
+                                                        top: 4,
+                                                        right: 4,
+                                                        bgcolor: 'rgba(0,0,0,0.6)',
+                                                        color: 'white',
+                                                        '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' },
+                                                    }}
+                                                >
+                                                    <DeleteIcon fontSize="small" />
+                                                </IconButton>
+                                            </Card>
+                                        ))}
+                                    </Stack>
+                                )}
+
+                                {/* 上传按钮 */}
+                                {totalImages < 9 && (
+                                    <Button
+                                        component="label"
+                                        variant="outlined"
+                                        startIcon={<UploadIcon />}
+                                        disabled={submitting}
+                                    >
+                                        选择图片
+                                        <input
+                                            type="file"
+                                            hidden
+                                            multiple
+                                            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                                            onChange={handleImageSelect}
+                                        />
+                                    </Button>
+                                )}
+                                <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
+                                    支持 JPG、PNG、GIF、WebP 格式，单张不超过5MB
+                                </Typography>
+                            </Box>
+
                             {/* 商品名称 */}
                             <TextField
                                 fullWidth
