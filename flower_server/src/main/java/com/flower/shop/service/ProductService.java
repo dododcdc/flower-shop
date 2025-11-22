@@ -29,9 +29,9 @@ public interface ProductService extends IService<Product> {
     List<Product> getProductsByCategoryId(Long categoryId);
 
     /**
-     * 获取上架商品列表
+     * 获取上架商品列表（分页）
      */
-    List<Product> getOnlineProducts();
+    IPage<Product> getOnlineProductsPage(int current, int size);
 
     /**
      * 获取推荐商品列表

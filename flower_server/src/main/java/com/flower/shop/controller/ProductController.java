@@ -52,13 +52,15 @@ public class ProductController {
     }
 
     /**
-     * 获取上架商品列表
+     * 获取上架商品列表（分页）
      */
     @GetMapping("/online")
-    public Result<List<Product>> getOnlineProducts() {
+    public Result<IPage<Product>> getOnlineProducts(
+            @RequestParam(defaultValue = "1") @Min(1) Integer current,
+            @RequestParam(defaultValue = "12") @Min(1) Integer size) {
         try {
-            List<Product> products = productService.getOnlineProducts();
-            return Result.success("获取上架商品成功", products);
+            IPage<Product> productPage = productService.getOnlineProductsPage(current, size);
+            return Result.success("获取上架商品成功", productPage);
         } catch (Exception e) {
             log.error("获取上架商品失败", e);
             return Result.error("获取上架商品失败");

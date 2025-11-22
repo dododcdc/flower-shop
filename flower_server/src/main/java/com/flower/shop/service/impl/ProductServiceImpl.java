@@ -38,8 +38,9 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     }
 
     @Override
-    public List<Product> getOnlineProducts() {
-        return productMapper.selectOnlineProducts();
+    public IPage<Product> getOnlineProductsPage(int current, int size) {
+        Page<Product> page = new Page<>(current, size);
+        return productMapper.selectOnlineProductsPage(page);
     }
 
     @Override
