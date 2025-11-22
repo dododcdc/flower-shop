@@ -176,10 +176,14 @@ public class CategoryController {
      */
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public Result<Category> createCategory(@RequestBody @Valid Category category) {
+    public Result<String> createCategory(@RequestBody @Valid Category category) {
         try {
-            Category createdCategory = categoryService.createCategory(category);
-            return Result.success("创建分类成功", createdCategory);
+            boolean success = categoryService.createCategory(category);
+            if (success) {
+                return Result.success("创建分类成功");
+            } else {
+                return Result.error("创建分类失败");
+            }
         } catch (IllegalArgumentException e) {
             return Result.validationError(e.getMessage());
         } catch (Exception e) {
@@ -193,13 +197,17 @@ public class CategoryController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public Result<Category> updateCategory(
+    public Result<String> updateCategory(
             @PathVariable @NotNull Long id,
             @RequestBody @Valid Category category) {
         try {
             category.setId(id);
-            Category updatedCategory = categoryService.updateCategory(category);
-            return Result.success("更新分类成功", updatedCategory);
+            boolean success = categoryService.updateCategory(category);
+            if (success) {
+                return Result.success("更新分类成功");
+            } else {
+                return Result.error("更新分类失败");
+            }
         } catch (IllegalArgumentException e) {
             return Result.validationError(e.getMessage());
         } catch (Exception e) {
@@ -235,15 +243,13 @@ public class CategoryController {
     @PutMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
     public Result<String> toggleCategoryStatus(
-            @PathVariable @NotNull Long id,
-            @RequestParam @NotNull Integer status) {
+            @PathVariable @NotNull Long id) {
         try {
-            boolean result = categoryService.toggleCategoryStatus(id, status);
+            boolean result = categoryService.toggleCategoryStatus(id);
             if (result) {
-                String statusText = status == 1 ? "启用" : "禁用";
-                return Result.success(statusText + "分类成功");
+                return Result.success("切换分类状态成功");
             } else {
-                return Result.error("更新分类状态失败");
+                return Result.error("切换分类状态失败");
             }
         } catch (IllegalArgumentException e) {
             return Result.validationError(e.getMessage());
@@ -295,9 +301,10 @@ public class CategoryController {
     @GetMapping("/check-name")
     public Result<Boolean> checkNameDuplicate(
             @RequestParam @NotNull String name,
+            @RequestParam @NotNull String type,
             @RequestParam(required = false) Long excludeId) {
         try {
-            boolean isDuplicate = categoryService.isNameDuplicate(name.trim(), excludeId);
+            boolean isDuplicate = categoryService.isNameDuplicate(name.trim(), type, excludeId);
             return Result.success("检查完成", isDuplicate);
         } catch (Exception e) {
             log.error("检查分类名称重复失败", e);

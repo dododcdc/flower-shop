@@ -1,0 +1,674 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Grid,
+  Card,
+  CardContent,
+  CardMedia,
+  Typography,
+  TextField,
+  Button,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Chip,
+  IconButton,
+  Pagination,
+  Stack,
+  Avatar,
+  Tooltip,
+} from '@mui/material';
+import {
+  Search as SearchIcon,
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Visibility as ViewIcon,
+  ToggleOn as ToggleOnIcon,
+  ToggleOff as ToggleOffIcon,
+  Star as StarIcon,
+  StarBorder as StarBorderIcon,
+} from '@mui/icons-material';
+import { motion } from 'framer-motion';
+import { z } from 'zod';
+
+import {
+  type Product,
+  type ProductFilters,
+  productSearchSchema,
+  getStockStatusText,
+  getStockStatusColor,
+  hasDiscount,
+  getDiscountPercentage,
+  getProductStatusText,
+  getProductStatusColor,
+  parseImagesJson,
+} from '../../models/product';
+import { productAPI } from '../../api/productAPI';
+
+// Animation variants
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
+
+const ProductList: React.FC = () => {
+  // State for products and pagination
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Pagination state
+  const [pagination, setPagination] = useState({
+    current: 1,
+    size: 12,
+    total: 0,
+    pages: 0,
+  });
+
+  // Search and filter state
+  const [filters, setFilters] = useState<ProductFilters>({
+    current: 1,
+    size: 12,
+    sortBy: 'created_at',
+    sortOrder: 'desc',
+  });
+
+  // Form state
+  const [searchForm, setSearchForm] = useState({
+    keyword: '',
+    categoryId: '',
+    status: '',
+    featured: '',
+    minPrice: '',
+    maxPrice: '',
+    stockStatus: '',
+    sortBy: 'created_at',
+    sortOrder: 'desc',
+  });
+
+  // Load products on component mount and when filters change
+  useEffect(() => {
+    loadProducts();
+  }, [filters]);
+
+  const loadProducts = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await productAPI.getProducts(filters);
+      setProducts(response.records);
+      setPagination({
+        current: response.current,
+        size: response.size,
+        total: response.total,
+        pages: response.pages,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '加载商品失败');
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = () => {
+    const newFilters: ProductFilters = {
+      ...filters,
+      current: 1, // Reset to first page when searching
+      keyword: searchForm.keyword || undefined,
+      categoryId: searchForm.categoryId ? Number(searchForm.categoryId) : undefined,
+      status: searchForm.status ? (searchForm.status === '1' ? 1 : 0) as 0 | 1 : undefined,
+      featured: searchForm.featured ? (searchForm.featured === '1' ? 1 : 0) as 0 | 1 : undefined,
+      minPrice: searchForm.minPrice ? Number(searchForm.minPrice) : undefined,
+      maxPrice: searchForm.maxPrice ? Number(searchForm.maxPrice) : undefined,
+      stockStatus: searchForm.stockStatus as any || undefined,
+      sortBy: searchForm.sortBy as any,
+      sortOrder: searchForm.sortOrder as any,
+    };
+
+    // Validate with Zod schema
+    try {
+      productSearchSchema.parse(newFilters);
+      setFilters(newFilters);
+    } catch (validationError) {
+      if (validationError instanceof z.ZodError) {
+        setError(`搜索参数错误: ${validationError.errors.map(e => e.message).join(', ')}`);
+      }
+    }
+  };
+
+  const handleReset = () => {
+    setSearchForm({
+      keyword: '',
+      categoryId: '',
+      status: '',
+      featured: '',
+      minPrice: '',
+      maxPrice: '',
+      stockStatus: '',
+      sortBy: 'created_at',
+      sortOrder: 'desc',
+    });
+    setFilters({
+      current: 1,
+      size: 12,
+      sortBy: 'created_at',
+      sortOrder: 'desc',
+    });
+  };
+
+  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+    setFilters({ ...filters, current: value });
+  };
+
+  const handleToggleStatus = async (productId: number, currentStatus: 0 | 1) => {
+    try {
+      const newStatus = currentStatus === 1 ? 0 : 1;
+      await productAPI.toggleProductStatus(productId, newStatus);
+      loadProducts(); // Reload to show updated status
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '更新状态失败');
+    }
+  };
+
+  const handleToggleFeatured = async (productId: number, currentFeatured: 0 | 1) => {
+    try {
+      const newFeatured = currentFeatured === 1 ? 0 : 1;
+      await productAPI.setProductFeatured(productId, newFeatured);
+      loadProducts(); // Reload to show updated featured status
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '更新推荐状态失败');
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('zh-CN');
+  };
+
+  const parseImages = (product: Product) => {
+    try {
+      return parseImagesJson(product.images);
+    } catch {
+      return [];
+    }
+  };
+
+  return (
+    <Box sx={{ px: 1, pt: 1 }}>
+      {/* Search and Filters */}
+      <Card sx={{ mb: 2 }}>
+        <CardContent sx={{ py: 2 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600, color: '#1B3A2B' }}>
+            搜索和筛选
+          </Typography>
+
+          <Grid container spacing={1.5}>
+            {/* 第一行：搜索框 + 主要筛选 */}
+            <Grid size={{ xs: 12, md: 4 }}>
+              <TextField
+                fullWidth
+                size="small"
+                label="搜索关键词"
+                value={searchForm.keyword}
+                onChange={(e) => setSearchForm({ ...searchForm, keyword: e.target.value })}
+                placeholder="商品名称、描述或花语"
+                InputProps={{
+                  startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />,
+                }}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>商品分类</InputLabel>
+                <Select
+                  value={searchForm.categoryId}
+                  label="商品分类"
+                  onChange={(e) => setSearchForm({ ...searchForm, categoryId: e.target.value })}
+                >
+                  <MenuItem value="">全部分类</MenuItem>
+                  <MenuItem value="1">玫瑰</MenuItem>
+                  <MenuItem value="2">百合</MenuItem>
+                  <MenuItem value="3">康乃馨</MenuItem>
+                  <MenuItem value="4">向日葵</MenuItem>
+                  <MenuItem value="5">夜来香</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>商品状态</InputLabel>
+                <Select
+                  value={searchForm.status}
+                  label="商品状态"
+                  onChange={(e) => setSearchForm({ ...searchForm, status: e.target.value })}
+                >
+                  <MenuItem value="">全部状态</MenuItem>
+                  <MenuItem value="1">上架</MenuItem>
+                  <MenuItem value="0">下架</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>库存状态</InputLabel>
+                <Select
+                  value={searchForm.stockStatus}
+                  label="库存状态"
+                  onChange={(e) => setSearchForm({ ...searchForm, stockStatus: e.target.value })}
+                >
+                  <MenuItem value="">全部库存</MenuItem>
+                  <MenuItem value="in_stock">库存充足</MenuItem>
+                  <MenuItem value="low_stock">库存不足</MenuItem>
+                  <MenuItem value="out_of_stock">缺货</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            {/* 第二行：价格和排序 + 操作按钮 */}
+            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+              <TextField
+                fullWidth
+                size="small"
+                label="最低价格"
+                type="number"
+                value={searchForm.minPrice}
+                onChange={(e) => setSearchForm({ ...searchForm, minPrice: e.target.value })}
+                inputProps={{ min: 0, step: 0.01 }}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+              <TextField
+                fullWidth
+                size="small"
+                label="最高价格"
+                type="number"
+                value={searchForm.maxPrice}
+                onChange={(e) => setSearchForm({ ...searchForm, maxPrice: e.target.value })}
+                inputProps={{ min: 0, step: 0.01 }}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>排序方式</InputLabel>
+                <Select
+                  value={searchForm.sortBy}
+                  label="排序方式"
+                  onChange={(e) => setSearchForm({ ...searchForm, sortBy: e.target.value })}
+                >
+                  <MenuItem value="created_at">创建时间</MenuItem>
+                  <MenuItem value="price">价格</MenuItem>
+                  <MenuItem value="name">名称</MenuItem>
+                  <MenuItem value="stock_quantity">库存数量</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>排序顺序</InputLabel>
+                <Select
+                  value={searchForm.sortOrder}
+                  label="排序顺序"
+                  onChange={(e) => setSearchForm({ ...searchForm, sortOrder: e.target.value })}
+                >
+                  <MenuItem value="desc">降序</MenuItem>
+                  <MenuItem value="asc">升序</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 8, md: 2 }}>
+              <Stack direction="row" spacing={1} sx={{ height: '100%', alignItems: 'flex-end' }}>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => {
+                    // TODO: 实现添加商品功能
+                  }}
+                  sx={{
+                    background: 'linear-gradient(135deg, #2C5F3C 0%, #1B3A2B 100%)',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #1B3A2B 0%, #2C5F3C 100%)',
+                    },
+                    color: 'white',
+                    fontWeight: 600,
+                    minWidth: 90,
+                    px: 1.5,
+                    fontSize: '0.875rem',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  添加
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={<SearchIcon />}
+                  onClick={handleSearch}
+                  sx={{
+                    background: 'linear-gradient(135deg, #1B3A2B 0%, #2C5F3C 100%)',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #2C5F3C 0%, #1B3A2B 100%)',
+                    },
+                    color: 'white',
+                    fontWeight: 600,
+                    minWidth: 90,
+                    px: 1.5,
+                    fontSize: '0.875rem',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  搜索
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={handleReset}
+                  sx={{
+                    minWidth: 90,
+                    px: 1.5,
+                    fontSize: '0.875rem',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  重置
+                </Button>
+              </Stack>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Error message */}
+      {error && (
+        <Box sx={{ mb: 3 }}>
+          <Typography color="error" variant="body2">
+            {error}
+          </Typography>
+        </Box>
+      )}
+
+      {/* Loading state */}
+      {loading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <Typography>加载中...</Typography>
+        </Box>
+      )}
+
+      {/* Products Grid */}
+      {!loading && (
+        <Grid container spacing={3}>
+          {products.map((product) => {
+            const images = parseImages(product);
+            const stockStatus = getStockStatusText(product);
+            const stockColor = getStockStatusColor(product);
+            const isDiscounted = hasDiscount(product);
+            const discountPercent = getDiscountPercentage(product);
+
+            return (
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={product.id}>
+                <motion.div
+                  variants={cardVariants}
+                  initial="hidden"
+                  animate="visible"
+                  transition={{ duration: 0.3 }}
+                >
+                  <Card
+                    sx={{
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: '0 8px 25px rgba(0, 0, 0, 0.15)',
+                      },
+                    }}
+                  >
+                    {/* Product Image */}
+                    <CardMedia
+                      component="div"
+                      sx={{
+                        height: 200,
+                        backgroundColor: 'grey.100',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        position: 'relative',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {images.length > 0 ? (
+                        <img
+                          src={images[0]}
+                          alt={product.name}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                          }}
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <Avatar
+                          sx={{ width: 80, height: 80, bgcolor: 'grey.300' }}
+                          variant="square"
+                        >
+                          <Typography variant="body2" color="text.secondary">
+                            暂无图片
+                          </Typography>
+                        </Avatar>
+                      )}
+
+                      {/* Discount badge */}
+                      {isDiscounted && (
+                        <Chip
+                          label={`${discountPercent}% OFF`}
+                          color="error"
+                          size="small"
+                          sx={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 8,
+                            fontWeight: 'bold',
+                          }}
+                        />
+                      )}
+
+                      {/* Featured badge */}
+                      {product.featured === 1 && (
+                        <Chip
+                          icon={<StarIcon />}
+                          label="推荐"
+                          color="warning"
+                          size="small"
+                          sx={{
+                            position: 'absolute',
+                            top: 8,
+                            left: 8,
+                            fontWeight: 'bold',
+                          }}
+                        />
+                      )}
+                    </CardMedia>
+
+                    <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                      {/* Product Name */}
+                      <Typography variant="h6" component="h3" sx={{ mb: 1, fontWeight: 600 }}>
+                        {product.name}
+                      </Typography>
+
+                      {/* Product Description */}
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                          mb: 2,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                        }}
+                      >
+                        {product.description || '暂无描述'}
+                      </Typography>
+
+                      {/* Price */}
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="h6" color="primary" fontWeight="bold">
+                          ¥{product.price}
+                        </Typography>
+                        {isDiscounted && (
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ textDecoration: 'line-through' }}
+                          >
+                            ¥{product.originalPrice}
+                          </Typography>
+                        )}
+                      </Box>
+
+                      {/* Stock Status */}
+                      <Box sx={{ mb: 2 }}>
+                        <Chip
+                          label={stockStatus}
+                          color={stockColor}
+                          size="small"
+                          sx={{ mb: 1 }}
+                        />
+                        <Typography variant="body2" color="text.secondary">
+                          库存: {product.stockQuantity} 件
+                        </Typography>
+                      </Box>
+
+                      {/* Product Status */}
+                      <Box sx={{ mb: 2 }}>
+                        <Chip
+                          label={getProductStatusText(product.status)}
+                          color={getProductStatusColor(product.status)}
+                          size="small"
+                        />
+                      </Box>
+
+                      {/* Category */}
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        分类: {product.categoryName || '未分类'}
+                      </Typography>
+
+                      {/* Date */}
+                      <Typography variant="caption" color="text.secondary" sx={{ mb: 2 }}>
+                        创建时间: {formatDate(product.createdAt)}
+                      </Typography>
+
+                      {/* Action Buttons */}
+                      <Box sx={{ mt: 'auto' }}>
+                        <Stack direction="row" spacing={1} justifyContent="space-between">
+                          <Box>
+                            <Tooltip title="查看详情">
+                              <IconButton size="small" color="info">
+                                <ViewIcon />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="编辑">
+                              <IconButton size="small" color="primary">
+                                <EditIcon />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="删除">
+                              <IconButton size="small" color="error">
+                                <DeleteIcon />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                          <Box>
+                            <Tooltip title={product.status === 1 ? '下架' : '上架'}>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleToggleStatus(product.id, product.status)}
+                                color={product.status === 1 ? 'success' : 'default'}
+                              >
+                                {product.status === 1 ? <ToggleOnIcon /> : <ToggleOffIcon />}
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title={product.featured === 1 ? '取消推荐' : '设为推荐'}>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleToggleFeatured(product.id, product.featured)}
+                                color={product.featured === 1 ? 'warning' : 'default'}
+                              >
+                                {product.featured === 1 ? <StarIcon /> : <StarBorderIcon />}
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </Stack>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </Grid>
+            );
+          })}
+
+          {/* Empty state */}
+          {!loading && products.length === 0 && (
+            <Grid size={{ xs: 12 }}>
+              <Box sx={{ textAlign: 'center', py: 8 }}>
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  暂无商品数据
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  请调整搜索条件、添加新商品，或初始化示例数据进行测试
+                </Typography>
+                <Button
+                  variant="outlined"
+                  onClick={async () => {
+                    try {
+                      setLoading(true);
+                      await productAPI.createSampleProducts();
+                      await loadProducts(); // 重新加载数据
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : '初始化数据失败');
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  disabled={loading}
+                  sx={{ minWidth: 150 }}
+                >
+                  {loading ? '正在创建...' : '初始化示例数据'}
+                </Button>
+              </Box>
+            </Grid>
+          )}
+        </Grid>
+      )}
+
+      {/* Pagination */}
+      {!loading && products.length > 0 && pagination.pages > 1 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+          <Pagination
+            count={pagination.pages}
+            page={pagination.current}
+            onChange={handlePageChange}
+            color="primary"
+            showFirstButton
+            showLastButton
+            size="large"
+          />
+        </Box>
+      )}
+    </Box>
+  );
+};
+
+export default ProductList;

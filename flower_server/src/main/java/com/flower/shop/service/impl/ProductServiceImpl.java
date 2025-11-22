@@ -271,66 +271,152 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Override
     @Transactional
     public void createSampleProducts() {
-        log.info("开始创建示例商品数据");
-
-        // 检查是否已有商品
-        long existingCount = count();
-        if (existingCount > 0) {
-            log.info("商品数据已存在，跳过示例数据创建");
-            return;
-        }
+        log.info("开始创建更多示例商品数据");
 
         // 获取分类信息
-        List<com.flower.shop.entity.Category> flowerCategories = categoryService.getTopLevelCategories();
-        List<com.flower.shop.entity.Category> packagingCategories = categoryService.getEnabledCategories()
-                .stream()
-                .filter(cat -> !cat.isTopLevel())
-                .toList();
+        List<com.flower.shop.entity.Category> flowerCategories = categoryService.getFlowerCategories();
+        List<com.flower.shop.entity.Category> packagingCategories = categoryService.getPackagingCategories();
 
-        // 创建示例商品
+        // 删除现有数据重新创建
+        remove(null);
+
+        // 商品名称前缀列表，用于创建多样化商品
+        String[] namePrefixes = {"精品", "豪华", "浪漫", "经典", "雅致", "清新", "温馨", "时尚"};
+        String[] occasions = {"生日", "纪念日", "求婚", "道歉", "感谢", "祝福", "商务", "节日"};
+
+        int productId = 1;
+
+        // 为每个花材和包装组合创建多个变体
         for (com.flower.shop.entity.Category flowerCategory : flowerCategories) {
             for (com.flower.shop.entity.Category packagingCategory : packagingCategories) {
-                // 只创建对应花材的包装商品
-                if (packagingCategory.getParentId() != null &&
-                    packagingCategory.getParentId().equals(flowerCategory.getId())) {
 
-                    createSampleProduct(flowerCategory, packagingCategory);
+                // 创建基础版本
+                createSampleProduct(flowerCategory, packagingCategory, "", "");
+                productId++;
+
+                // 创建不同场合的版本
+                for (int i = 0; i < 2 && productId <= 40; i++) { // 限制最多40个商品
+                    String prefix = namePrefixes[i % namePrefixes.length];
+                    String occasion = occasions[i % occasions.length];
+                    createSampleProduct(flowerCategory, packagingCategory, prefix, occasion);
+                    productId++;
                 }
             }
         }
 
-        log.info("示例商品数据创建完成");
+        log.info("更多示例商品数据创建完成，共{}个商品", productId - 1);
     }
 
     /**
      * 创建单个示例商品
      */
     private void createSampleProduct(com.flower.shop.entity.Category flowerCategory,
-                                   com.flower.shop.entity.Category packagingCategory) {
+                                   com.flower.shop.entity.Category packagingCategory,
+                                   String prefix, String occasion) {
         Product product = new Product();
-        product.setName(flowerCategory.getName() + packagingCategory.getName());
+
+        // 构建商品名称
+        String productName = flowerCategory.getName() + packagingCategory.getName();
+        if (!prefix.isEmpty()) {
+            productName = prefix + productName;
+        }
+        if (!occasion.isEmpty()) {
+            productName += "(" + occasion + ")";
+        }
+        product.setName(productName);
+
         product.setCategoryId(flowerCategory.getId());
-        product.setDescription("精美的" + flowerCategory.getName() + packagingCategory.getName() +
-                             "，适合各种场合赠送");
-        product.setSpecification("11朵");
-        product.setPrice(new BigDecimal(getRandomPrice(flowerCategory.getName(), packagingCategory.getName())));
+
+        // 构建商品描述
+        String description = prefix + "的" + flowerCategory.getName() + packagingCategory.getName();
+        if (!occasion.isEmpty()) {
+            description += "，特别适合" + occasion + "使用";
+        } else {
+            description += "，适合各种场合赠送";
+        }
+        description += "。由新鲜" + flowerCategory.getName() + "精心制作，" +
+                      packagingCategory.getName() + "包装，寓意美好，是表达心意的完美选择。";
+        product.setDescription(description);
+
+        // 根据前缀和场合调整价格
+        double basePrice = getRandomPrice(flowerCategory.getName(), packagingCategory.getName());
+        if (!prefix.isEmpty()) {
+            if (prefix.contains("豪华")) {
+                basePrice *= 1.5;
+            } else if (prefix.contains("精品") || prefix.contains("浪漫")) {
+                basePrice *= 1.3;
+            } else {
+                basePrice *= 1.2;
+            }
+        }
+        product.setPrice(new BigDecimal(basePrice));
         product.setOriginalPrice(product.getPrice().multiply(new BigDecimal("1.2")));
-        product.setFlowerLanguage(flowerCategory.getFlowerMeaning());
-        product.setCareGuide(flowerCategory.getCareInstructions());
+
+        // 根据花材类型设置花语
+        String flowerLanguage = getFlowerLanguage(flowerCategory.getName());
+        product.setFlowerLanguage(flowerLanguage);
+
+        // 根据花材类型设置养护说明
+        String careGuide = getCareGuide(flowerCategory.getName());
+        product.setCareGuide(careGuide);
+
         product.setImages("[\"/images/placeholder.jpg\"]");
         product.setStatus(1);
-        product.setFeatured(1); // 示例商品设为推荐
-        // 设置初始库存
-        product.setStockQuantity(50);
-        product.setLowStockThreshold(5);
+
+        // 随机设置一些商品为推荐
+        product.setFeatured(Math.random() > 0.6 ? 1 : 0);
+
+        // 随机设置库存数量 (20-100之间)
+        product.setStockQuantity(20 + (int)(Math.random() * 80));
+        product.setLowStockThreshold(5 + (int)(Math.random() * 10));
 
         createProduct(product);
     }
 
     /**
+     * 获取花语（根据花材类型）
+     */
+    private String getFlowerLanguage(String flowerName) {
+        switch (flowerName) {
+            case "玫瑰":
+                return "玫瑰象征着爱情、美丽和热情，是表达爱意的经典选择。";
+            case "百合":
+                return "百合寓意纯洁、高雅和百年好合，象征美好的祝愿。";
+            case "夜来香":
+                return "夜来香代表着默默的爱和不朽的情感，夜晚散发迷人香气。";
+            case "康乃馨":
+                return "康乃馨象征着母爱、感恩和温馨，是表达敬意的最佳选择。";
+            case "向日葵":
+                return "向日葵代表着阳光、希望和忠诚，永远追寻光明的方向。";
+            default:
+                return "美丽的花朵，传递着美好祝愿和真挚情感。";
+        }
+    }
+
+    /**
+     * 获取养护说明（根据花材类型）
+     */
+    private String getCareGuide(String flowerName) {
+        switch (flowerName) {
+            case "玫瑰":
+                return "1. 每日换水，保持水位充足；2. 剪去茎部2-3厘米，45度角斜剪；3. 避免阳光直射，放置阴凉处；4. 定期喷雾保湿，保持环境湿润。";
+            case "百合":
+                return "1. 花粉易染色，及时去除花蕊；2. 水位保持在花瓶1/3处；3. 避免与水果同放，防止乙烯影响；4. 定期换水，保持水质清洁。";
+            case "夜来香":
+                return "1. 喜湿润环境，保持土壤微湿；2. 避免强光直射，半阴环境最佳；3. 定期修剪枯叶，促进新芽生长；4. 夜间香味浓郁，保持通风。";
+            case "康乃馨":
+                return "1. 水位不宜过高，花茎1/3即可；2. 避免阳光暴晒和高温环境；3. 定期喷水增加湿度；4. 及时去除凋谢花朵，延长花期。";
+            case "向日葵":
+                return "1. 需充足阳光，每天至少6小时直射；2. 水位要高，花茎2/3浸入水中；3. 茎部较硬，可适当剪短；4. 避免放置在空调直吹处。";
+            default:
+                return "1. 保持水质清洁，定期换水；2. 避免阳光直射，放置阴凉处；3. 适当修剪花茎，延长花期；4. 保持环境通风，避免湿度过高。";
+        }
+    }
+
+    /**
      * 获取随机价格（根据花材和包装类型）
      */
-    private String getRandomPrice(String flowerName, String packagingName) {
+    private double getRandomPrice(String flowerName, String packagingName) {
         // 这里简化处理，实际应该根据不同花材和包装设置不同价格
         double basePrice = 68.0;
 
@@ -357,7 +443,10 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
                 break;
         }
 
-        return String.valueOf(basePrice);
+        // 添加一些随机性
+        basePrice += (Math.random() * 20 - 10); // ±10元随机浮动
+
+        return basePrice;
     }
 
     private int countFeaturedProducts() {

@@ -45,12 +45,12 @@ public interface CategoryService extends IService<Category> {
     /**
      * 创建新分类
      */
-    Category createCategory(Category category);
+    boolean createCategory(Category category);
 
     /**
      * 更新分类信息
      */
-    Category updateCategory(Category category);
+    boolean updateCategory(Category category);
 
     /**
      * 删除分类（检查是否有子分类或关联商品）
@@ -60,7 +60,7 @@ public interface CategoryService extends IService<Category> {
     /**
      * 启用/禁用分类
      */
-    boolean toggleCategoryStatus(Long categoryId, Integer status);
+    boolean toggleCategoryStatus(Long categoryId);
 
     /**
      * 批量更新分类排序
@@ -75,7 +75,7 @@ public interface CategoryService extends IService<Category> {
     /**
      * 检查分类名称是否重复
      */
-    boolean isNameDuplicate(String name, Long excludeId);
+    boolean isNameDuplicate(String name, String type, Long excludeId);
 
     /**
      * 获取分类详情（包含父分类信息）
@@ -116,4 +116,19 @@ public interface CategoryService extends IService<Category> {
      * 根据花材分类获取对应的包装分类
      */
     List<Category> getPackagingByFlowerCategory(Long flowerCategoryId);
+
+    /**
+     * 获取分类总数
+     */
+    int countCategories();
+
+    /**
+     * 获取花材分类数量
+     */
+    int countFlowerCategories();
+
+    /**
+     * 获取包装分类数量
+     */
+    int countPackagingCategories();
 }

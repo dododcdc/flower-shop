@@ -56,13 +56,7 @@ public class Product {
     @TableField("images")
     private String images;
 
-    /**
-     * 商品规格
-     * 如：11朵、19朵、大号、中号、小号等
-     */
-    @TableField("specification")
-    private String specification;
-
+    
     /**
      * 当前售价
      */

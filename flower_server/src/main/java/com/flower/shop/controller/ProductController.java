@@ -57,8 +57,8 @@ public class ProductController {
      */
     @GetMapping("/online")
     public Result<IPage<Product>> getOnlineProducts(
-            @RequestParam(defaultValue = "1") @Min(1) Integer current,
-            @RequestParam(defaultValue = "12") @Min(1) Integer size) {
+            @RequestParam(value = "current", defaultValue = "1") @Min(1) Integer current,
+            @RequestParam(value = "size", defaultValue = "12") @Min(1) Integer size) {
         try {
             IPage<Product> productPage = productService.getOnlineProductsPage(current, size);
             return Result.success("获取上架商品成功", productPage);
