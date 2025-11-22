@@ -261,12 +261,8 @@ const ProductList: React.FC = () => {
     <Box sx={{ px: 1, pt: 1 }}>
       {/* Search and Filters */}
       <Card sx={{ mb: 2 }}>
-        <CardContent sx={{ py: 2 }}>
-          <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600, color: '#1B3A2B' }}>
-            搜索和筛选
-          </Typography>
-
-          <Grid container spacing={1.5}>
+        <CardContent sx={{ py: 1.5, px: 2 }}>
+          <Grid container spacing={1}>
             {/* 第一行：搜索框 + 主要筛选 */}
             <Grid size={{ xs: 12, md: 4 }}>
               <TextField
@@ -277,23 +273,25 @@ const ProductList: React.FC = () => {
                 onChange={(e) => setSearchForm({ ...searchForm, keyword: e.target.value })}
                 placeholder="商品名称、描述或花语"
                 InputProps={{
-                  startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />,
+                  startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 0.5 }} />,
                 }}
+                sx={{ '& .MuiInputBase-input': { py: 0.75, px: 1, fontSize: '0.875rem' } }}
               />
             </Grid>
 
             <Grid size={{ xs: 12, sm: 4, md: 2 }}>
               <FormControl fullWidth size="small">
-                <InputLabel shrink>商品分类</InputLabel>
+                <InputLabel shrink sx={{ '&.Mui-focused': { fontSize: '0.875rem' } }}>商品分类</InputLabel>
                 <Select
                   value={searchForm.categoryId}
                   label="商品分类"
                   displayEmpty
                   onChange={(e) => setSearchForm({ ...searchForm, categoryId: e.target.value })}
+                  sx={{ '& .MuiSelect-select': { py: 0.75, px: 1, fontSize: '0.875rem' } }}
                 >
                   <MenuItem value="">全部</MenuItem>
                   {categories.map((category) => (
-                    <MenuItem key={category.id} value={String(category.id)}>
+                    <MenuItem key={category.id} value={String(category.id)} sx={{ fontSize: '0.875rem' }}>
                       {category.name}
                     </MenuItem>
                   ))}
@@ -303,33 +301,35 @@ const ProductList: React.FC = () => {
 
             <Grid size={{ xs: 12, sm: 4, md: 2 }}>
               <FormControl fullWidth size="small">
-                <InputLabel shrink>上架状态</InputLabel>
+                <InputLabel shrink sx={{ '&.Mui-focused': { fontSize: '0.875rem' } }}>上架状态</InputLabel>
                 <Select
                   value={searchForm.status}
                   label="上架状态"
                   displayEmpty
                   onChange={(e) => setSearchForm({ ...searchForm, status: e.target.value })}
+                  sx={{ '& .MuiSelect-select': { py: 0.75, px: 1, fontSize: '0.875rem' } }}
                 >
                   <MenuItem value="">全部</MenuItem>
-                  <MenuItem value="1">上架</MenuItem>
-                  <MenuItem value="0">下架</MenuItem>
+                  <MenuItem value="1" sx={{ fontSize: '0.875rem' }}>上架</MenuItem>
+                  <MenuItem value="0" sx={{ fontSize: '0.875rem' }}>下架</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
 
             <Grid size={{ xs: 12, sm: 4, md: 2 }}>
               <FormControl fullWidth size="small">
-                <InputLabel shrink>库存状态</InputLabel>
+                <InputLabel shrink sx={{ '&.Mui-focused': { fontSize: '0.875rem' } }}>库存状态</InputLabel>
                 <Select
                   value={searchForm.stockStatus}
                   label="库存状态"
                   displayEmpty
                   onChange={(e) => setSearchForm({ ...searchForm, stockStatus: e.target.value })}
+                  sx={{ '& .MuiSelect-select': { py: 0.75, px: 1, fontSize: '0.875rem' } }}
                 >
                   <MenuItem value="">全部</MenuItem>
-                  <MenuItem value="in_stock">库存充足</MenuItem>
-                  <MenuItem value="low_stock">库存不足</MenuItem>
-                  <MenuItem value="out_of_stock">缺货</MenuItem>
+                  <MenuItem value="in_stock" sx={{ fontSize: '0.875rem' }}>库存充足</MenuItem>
+                  <MenuItem value="low_stock" sx={{ fontSize: '0.875rem' }}>库存不足</MenuItem>
+                  <MenuItem value="out_of_stock" sx={{ fontSize: '0.875rem' }}>缺货</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -346,9 +346,9 @@ const ProductList: React.FC = () => {
                   value={searchForm.minPrice}
                   onChange={(e) => setSearchForm({ ...searchForm, minPrice: e.target.value })}
                   inputProps={{ min: 0, step: 0.01 }}
-                  sx={{ '& .MuiInputLabel-root': { fontSize: '0.875rem' } }}
+                  sx={{ '& .MuiInputBase-input': { py: 0.75, px: 1, fontSize: '0.875rem' } }}
                 />
-                <Box sx={{ mx: 1, color: 'text.secondary', fontWeight: 'bold' }}>-</Box>
+                <Box sx={{ mx: 0.5, color: 'text.secondary', fontWeight: 'bold', fontSize: '0.875rem' }}>-</Box>
                 <TextField
                   fullWidth
                   size="small"
@@ -357,46 +357,48 @@ const ProductList: React.FC = () => {
                   value={searchForm.maxPrice}
                   onChange={(e) => setSearchForm({ ...searchForm, maxPrice: e.target.value })}
                   inputProps={{ min: 0, step: 0.01 }}
-                  sx={{ '& .MuiInputLabel-root': { fontSize: '0.875rem' } }}
+                  sx={{ '& .MuiInputBase-input': { py: 0.75, px: 1, fontSize: '0.875rem' } }}
                 />
               </Box>
             </Grid>
 
             <Grid size={{ xs: 12, sm: 4, md: 2 }}>
               <FormControl fullWidth size="small">
-                <InputLabel>排序方式</InputLabel>
+                <InputLabel sx={{ '&.Mui-focused': { fontSize: '0.875rem' } }}>排序方式</InputLabel>
                 <Select
                   value={searchForm.sortBy}
                   label="排序方式"
                   onChange={(e) => setSearchForm({ ...searchForm, sortBy: e.target.value })}
+                  sx={{ '& .MuiSelect-select': { py: 0.75, px: 1, fontSize: '0.875rem' } }}
                 >
-                  <MenuItem value="created_at">创建时间</MenuItem>
-                  <MenuItem value="price">价格</MenuItem>
-                  <MenuItem value="name">名称</MenuItem>
-                  <MenuItem value="stock_quantity">库存数量</MenuItem>
+                  <MenuItem value="created_at" sx={{ fontSize: '0.875rem' }}>创建时间</MenuItem>
+                  <MenuItem value="price" sx={{ fontSize: '0.875rem' }}>价格</MenuItem>
+                  <MenuItem value="name" sx={{ fontSize: '0.875rem' }}>名称</MenuItem>
+                  <MenuItem value="stock_quantity" sx={{ fontSize: '0.875rem' }}>库存数量</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
 
             <Grid size={{ xs: 12, sm: 4, md: 2 }}>
               <FormControl fullWidth size="small">
-                <InputLabel>排序顺序</InputLabel>
+                <InputLabel sx={{ '&.Mui-focused': { fontSize: '0.875rem' } }}>排序顺序</InputLabel>
                 <Select
                   value={searchForm.sortOrder}
                   label="排序顺序"
                   onChange={(e) => setSearchForm({ ...searchForm, sortOrder: e.target.value })}
+                  sx={{ '& .MuiSelect-select': { py: 0.75, px: 1, fontSize: '0.875rem' } }}
                 >
-                  <MenuItem value="desc">降序</MenuItem>
-                  <MenuItem value="asc">升序</MenuItem>
+                  <MenuItem value="desc" sx={{ fontSize: '0.875rem' }}>降序</MenuItem>
+                  <MenuItem value="asc" sx={{ fontSize: '0.875rem' }}>升序</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
 
             <Grid size={{ xs: 12, sm: 8, md: 3 }}>
-              <Stack direction="row" spacing={1.5} sx={{ height: '100%', alignItems: 'flex-end', justifyContent: 'flex-end' }}>
+              <Stack direction="row" spacing={1} sx={{ height: '100%', alignItems: 'center', justifyContent: 'flex-end' }}>
                 <Button
                   variant="contained"
-                  startIcon={<AddIcon />}
+                  startIcon={<AddIcon sx={{ fontSize: '1rem' }} />}
                   onClick={() => {
                     // TODO: 实现添加商品功能
                   }}
@@ -408,10 +410,10 @@ const ProductList: React.FC = () => {
                     },
                     color: 'white',
                     fontWeight: 600,
-                    height: 40,
-                    px: 2,
-                    fontSize: '0.875rem',
-                    minWidth: 80,
+                    height: 32,
+                    px: 1.5,
+                    fontSize: '0.75rem',
+                    minWidth: 60,
                     borderRadius: 1,
                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                   }}
@@ -420,7 +422,7 @@ const ProductList: React.FC = () => {
                 </Button>
                 <Button
                   variant="contained"
-                  startIcon={<SearchIcon />}
+                  startIcon={<SearchIcon sx={{ fontSize: '1rem' }} />}
                   onClick={handleSearch}
                   sx={{
                     background: 'linear-gradient(135deg, #1B3A2B 0%, #2C5F3C 100%)',
@@ -430,10 +432,10 @@ const ProductList: React.FC = () => {
                     },
                     color: 'white',
                     fontWeight: 600,
-                    height: 40,
-                    px: 2,
-                    fontSize: '0.875rem',
-                    minWidth: 80,
+                    height: 32,
+                    px: 1.5,
+                    fontSize: '0.75rem',
+                    minWidth: 60,
                     borderRadius: 1,
                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                   }}
@@ -444,10 +446,10 @@ const ProductList: React.FC = () => {
                   variant="outlined"
                   onClick={handleReset}
                   sx={{
-                    height: 40,
-                    px: 2,
-                    fontSize: '0.875rem',
-                    minWidth: 80,
+                    height: 32,
+                    px: 1.5,
+                    fontSize: '0.75rem',
+                    minWidth: 60,
                     borderRadius: 1,
                     borderColor: 'grey.300',
                     color: 'text.primary',

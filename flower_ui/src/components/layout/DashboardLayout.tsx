@@ -64,57 +64,36 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
           borderBottom: '1px solid rgba(212, 175, 55, 0.2)',
         }}
       >
-        <Toolbar sx={{ flexDirection: 'column', alignItems: 'stretch', py: 1 }}>
-          {/* Top Row - Logo and Logout */}
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <IconButton
-                size="small"
-                sx={{
-                  mr: 2,
-                  background: 'rgba(212, 175, 55, 0.2)',
-                  color: '#D4AF37',
-                  '&:hover': {
-                    background: 'rgba(212, 175, 55, 0.3)',
-                  }
-                }}
-              >
-                <LocalFloristIcon />
-              </IconButton>
-              <Typography
-                variant="h6"
-                component="div"
-                sx={{
-                  fontWeight: 600,
-                  letterSpacing: 1,
-                  color: '#F8F6F0', // 明亮的珍珠白色
-                }}
-              >
-                花言花语 · 管理后台
-              </Typography>
-            </Box>
-            <Button
-              onClick={handleLogout}
-              component={motion.button}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+        <Toolbar sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.5 }}>
+          {/* Left side - Logo and Title */}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <IconButton
+              size="small"
               sx={{
+                mr: 2,
                 background: 'rgba(212, 175, 55, 0.2)',
-                color: '#F8F6F0', // 同样使用珍珠白色
-                px: 2,
-                py: 1,
-                borderRadius: 1,
+                color: '#D4AF37',
                 '&:hover': {
                   background: 'rgba(212, 175, 55, 0.3)',
                 }
               }}
             >
-              退出登录
-            </Button>
-          </Box>
+              <LocalFloristIcon />
+            </IconButton>
+            <Typography
+              variant="h6"
+              component="div"
+              sx={{
+                fontWeight: 600,
+                letterSpacing: 1,
+                color: '#F8F6F0', // 明亮的珍珠白色
+                mr: 3
+              }}
+            >
+              花言花语 · 管理后台
+            </Typography>
 
-          {/* Navigation Tabs */}
-          <Box sx={{ width: '100%' }}>
+            {/* Navigation Tabs inline with title */}
             <Tabs
               value={location.pathname}
               onChange={handleTabChange}
@@ -122,13 +101,14 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
               scrollButtons="auto"
               textColor="inherit"
               sx={{
+                flex: 1,
                 '& .MuiTabs-indicator': {
                   backgroundColor: '#D4AF37',
                   height: 3,
                 },
                 '& .MuiTab-root': {
                   color: 'rgba(248, 246, 240, 0.7)',
-                  minWidth: 100,
+                  minWidth: 80,
                   textTransform: 'none',
                   fontSize: '0.9rem',
                   fontWeight: 500,
@@ -149,12 +129,32 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                   icon={item.icon}
                   iconPosition="start"
                   sx={{
-                    minHeight: 48,
+                    minHeight: 40,
                   }}
                 />
               ))}
             </Tabs>
           </Box>
+
+          {/* Right side - Logout button */}
+          <Button
+            onClick={handleLogout}
+            component={motion.button}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            sx={{
+              background: 'rgba(212, 175, 55, 0.2)',
+              color: '#F8F6F0', // 同样使用珍珠白色
+              px: 2,
+              py: 0.75,
+              borderRadius: 1,
+              '&:hover': {
+                background: 'rgba(212, 175, 55, 0.3)',
+              }
+            }}
+          >
+            退出登录
+          </Button>
         </Toolbar>
       </AppBar>
       <Box
@@ -164,7 +164,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
         transition={{ duration: 0.6, delay: 0.2 }}
         sx={{
           flex: 1,
-          p: { xs: 2, sm: 3 },
+          p: { xs: 1, sm: 1.5 },
           minHeight: 'calc(100vh - 64px)',
         }}
       >
