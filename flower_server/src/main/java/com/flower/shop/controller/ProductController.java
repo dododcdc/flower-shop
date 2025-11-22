@@ -257,10 +257,6 @@ public class ProductController {
                     String newMainImagePath = imagePaths.get(newImageMainIndex);
                     String oldMain = productImages.getMain();
 
-                    log.info("设置新图片主图: newMainImageIndex={}, newMainImagePath={}, oldMain={}",
-                             newImageMainIndex, newMainImagePath, oldMain);
-                    log.info("处理前的副图数量: {}", productImages.getSubImages().size());
-
                     // 直接设置新主图，不调用setMainImage方法（避免副图重新排列）
                     productImages.setMain(newMainImagePath);
 
@@ -268,9 +264,6 @@ public class ProductController {
                     if (oldMain != null && !oldMain.isEmpty() && !oldMain.equals(newMainImagePath)) {
                         if (!productImages.getSubImages().contains(oldMain)) {
                             productImages.getSubImages().add(0, oldMain);
-                            log.info("添加旧主图到副图开头: {}", oldMain);
-                        } else {
-                            log.info("旧主图已存在于副图中，跳过: {}", oldMain);
                         }
                     }
 
@@ -278,11 +271,8 @@ public class ProductController {
                     for (int i = 0; i < imagePaths.size(); i++) {
                         if (i != newImageMainIndex) {
                             productImages.getSubImages().add(imagePaths.get(i));
-                            log.info("添加新图片到副图: {}", imagePaths.get(i));
                         }
                     }
-
-                    log.info("处理后的副图数量: {}", productImages.getSubImages().size());
                 } else {
                     // 没有指定新图片为主图，全部添加到副图
                     for (String imagePath : imagePaths) {

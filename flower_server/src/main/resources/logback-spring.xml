@@ -39,24 +39,21 @@
     </appender>
 
     <!-- 商品控制器日志记录器 -->
-    <logger name="com.flower.shop.controller.ProductController" level="INFO" additivity="false">
+    <logger name="com.flower.shop.controller.ProductController" level="WARN" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE_ALL"/>
-        <appender-ref ref="FILE_IMAGES"/>
     </logger>
 
     <!-- 商品图片工具类日志记录器 -->
-    <logger name="com.flower.shop.util.ProductImagesUtil" level="INFO" additivity="false">
+    <logger name="com.flower.shop.util.ProductImagesUtil" level="WARN" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE_ALL"/>
-        <appender-ref ref="FILE_IMAGES"/>
     </logger>
 
     <!-- 文件上传工具类日志记录器 -->
-    <logger name="com.flower.shop.util.FileUploadUtil" level="INFO" additivity="false">
+    <logger name="com.flower.shop.util.FileUploadUtil" level="WARN" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE_ALL"/>
-        <appender-ref ref="FILE_IMAGES"/>
     </logger>
 
     <!-- 根日志记录器 -->

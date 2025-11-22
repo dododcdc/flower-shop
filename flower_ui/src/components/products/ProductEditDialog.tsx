@@ -145,12 +145,6 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
             const images = parseProductImages(product.images);
             setProductImages(images);
 
-            // 调试信息
-            console.log('Loaded images:', images);
-            console.log('Main:', images.main);
-            console.log('SubImages:', images.subImages);
-            console.log('Main in subImages:', images.subImages.includes(images.main || ''));
-
             // 设置图片显示顺序：保持后端的原始顺序
             // 后端的逻辑：主图在subImages中可能存在也可能不存在
             // 如果主图不在subImages中，应该先显示主图，再显示副图
@@ -163,7 +157,6 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
                 // 主图在副图中或者没有主图，按副图顺序显示
                 displayOrder = [...images.subImages];
             }
-            console.log('Display order:', displayOrder);
             setImageDisplayOrder(displayOrder);
         } catch (err) {
             setError(err instanceof Error ? err.message : '加载商品失败');
@@ -230,7 +223,6 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
         if (isNewImage) {
             // Extract the index from preview path
             const index = parseInt(imagePath.replace('preview-', ''));
-            console.log(`设置新图片为主图: index=${index}, oldMainIndex=${newImageMainIndex}`);
             setNewImageMainIndex(index);
             // 保持原有主图信息，不清除！让后端处理主图切换
             return;
@@ -454,7 +446,6 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
                                                 // 没有已保存图片且没有手动设置主图时，第一张新图片自动为主图
                                                 shouldbeMain = true;
                                             }
-                                            console.log(`图片 ${index} 主图判断: newImageMainIndex=${newImageMainIndex}, shouldbeMain=${shouldbeMain}`);
                                             allImages.push({
                                                 path: `preview-${index}`,
                                                 isMain: shouldbeMain,
