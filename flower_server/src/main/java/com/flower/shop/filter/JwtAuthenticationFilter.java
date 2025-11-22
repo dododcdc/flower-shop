@@ -48,8 +48,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // 3. 检查Token是否过期
                 if (!JwtUtil.isTokenExpired(token)) {
                     // 4. 创建认证对象
+                    // 直接使用从JWT中获取的角色，它已经是ROLE_格式
                     List<SimpleGrantedAuthority> authorities = List.of(
-                        new SimpleGrantedAuthority("ROLE_" + role.replace("ROLE_", ""))
+                        new SimpleGrantedAuthority(role)
                     );
 
                     UsernamePasswordAuthenticationToken authentication =
