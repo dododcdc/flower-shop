@@ -2,7 +2,6 @@ package com.flower.shop.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.flower.shop.entity.Category;
-import com.flower.shop.mapper.CategoryMapper;
 
 import java.util.List;
 import java.util.Map;
@@ -12,20 +11,14 @@ import java.util.Map;
  *
  * 功能说明：
  * - 分类管理业务逻辑
- * - 层级分类处理
+ * - 按类型查询（FLOWER/PACKAGING）
  * - 分类状态管理
+ * 
+ * 设计说明：
+ * - 扁平化分类结构，不支持树形层级
+ * - 通过type字段区分花材和包装
  */
 public interface CategoryService extends IService<Category> {
-
-    /**
-     * 获取所有顶级分类（花材类型）
-     */
-    List<Category> getTopLevelCategories();
-
-    /**
-     * 获取指定父分类下的子分类（包装类型）
-     */
-    List<Category> getSubCategoriesByParentId(Long parentId);
 
     /**
      * 获取所有启用的分类
@@ -33,14 +26,19 @@ public interface CategoryService extends IService<Category> {
     List<Category> getEnabledCategories();
 
     /**
-     * 获取完整的分类树结构
+     * 根据类型获取分类
+     * 
+     * @param type FLOWER 或 PACKAGING
      */
-    List<Map<String, Object>> getCategoryTree();
+    List<Category> getCategoriesByType(String type);
 
     /**
-     * 获取启用的分类树结构
+     * 根据类型和状态获取分类
+     * 
+     * @param type   FLOWER 或 PACKAGING
+     * @param status 0-禁用，1-启用
      */
-    List<Map<String, Object>> getEnabledCategoryTree();
+    List<Category> getCategoriesByTypeAndStatus(String type, Integer status);
 
     /**
      * 创建新分类
@@ -53,7 +51,7 @@ public interface CategoryService extends IService<Category> {
     boolean updateCategory(Category category);
 
     /**
-     * 删除分类（检查是否有子分类或关联商品）
+     * 删除分类（检查是否有关联商品）
      */
     boolean deleteCategory(Long categoryId);
 
@@ -74,26 +72,22 @@ public interface CategoryService extends IService<Category> {
 
     /**
      * 检查分类名称是否重复
+     * 
+     * @param name      分类名称
+     * @param type      分类类型
+     * @param excludeId 排除的ID（用于更新时检查）
      */
     boolean isNameDuplicate(String name, String type, Long excludeId);
 
     /**
-     * 获取分类详情（包含父分类信息）
-     */
-    Category getCategoryWithDetails(Long categoryId);
-
-    /**
-     * 获取子分类数量
-     */
-    int getSubCategoryCount(Long parentId);
-
-    /**
-     * 判断是否可以删除分类
+     * 判断是否可以删除分类（检查是否有关联商品）
      */
     boolean canDeleteCategory(Long categoryId);
 
     /**
      * 根据状态查询分类
+     * 
+     * @param status 0-禁用，1-启用
      */
     List<Category> getCategoriesByStatus(Integer status);
 
@@ -103,19 +97,14 @@ public interface CategoryService extends IService<Category> {
     void initDefaultCategories();
 
     /**
-     * 获取花材分类列表（顶级分类）
+     * 获取花材分类列表
      */
     List<Category> getFlowerCategories();
 
     /**
-     * 获取包装分类列表（子分类）
+     * 获取包装分类列表
      */
     List<Category> getPackagingCategories();
-
-    /**
-     * 根据花材分类获取对应的包装分类
-     */
-    List<Category> getPackagingByFlowerCategory(Long flowerCategoryId);
 
     /**
      * 获取分类总数

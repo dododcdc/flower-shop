@@ -20,8 +20,12 @@ import java.util.Map;
  *
  * 功能说明：
  * - 分类CRUD接口
- * - 分类树结构查询
+ * - 按类型查询分类（FLOWER/PACKAGING）
  * - 分类状态管理
+ * 
+ * 设计说明：
+ * - 扁平化分类结构，不支持树形层级
+ * - 通过type字段区分花材(FLOWER)和包装(PACKAGING)
  */
 @Slf4j
 @RestController
@@ -34,44 +38,43 @@ public class CategoryController {
     private final CategoryService categoryService;
 
     /**
-     * 获取分类树结构（所有分类）
+     * 获取所有分类列表
      */
-    @GetMapping("/tree")
-    public Result<List<Map<String, Object>>> getCategoryTree() {
+    @GetMapping("/list")
+    public Result<List<Category>> getAllCategories() {
         try {
-            List<Map<String, Object>> categoryTree = categoryService.getCategoryTree();
-            return Result.success("获取分类树成功", categoryTree);
+            List<Category> categories = categoryService.list();
+            return Result.success("获取分类列表成功", categories);
         } catch (Exception e) {
-            log.error("获取分类树失败", e);
-            return Result.error("获取分类树失败");
+            log.error("获取分类列表失败", e);
+            return Result.error("获取分类列表失败");
         }
     }
 
     /**
-     * 获取启用的分类树结构
+     * 获取所有分类列表
      */
-    @GetMapping("/tree/enabled")
-    public Result<List<Map<String, Object>>> getEnabledCategoryTree() {
+    @GetMapping
+    public Result<List<Category>> getCategories(
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) Integer status) {
         try {
-            List<Map<String, Object>> categoryTree = categoryService.getEnabledCategoryTree();
-            return Result.success("获取启用分类树成功", categoryTree);
-        } catch (Exception e) {
-            log.error("获取启用分类树失败", e);
-            return Result.error("获取启用分类树失败");
-        }
-    }
+            List<Category> categories;
 
-    /**
-     * 获取所有顶级分类（花材类型）
-     */
-    @GetMapping("/top-level")
-    public Result<List<Category>> getTopLevelCategories() {
-        try {
-            List<Category> categories = categoryService.getTopLevelCategories();
-            return Result.success("获取顶级分类成功", categories);
+            if (type != null && status != null) {
+                categories = categoryService.getCategoriesByTypeAndStatus(type, status);
+            } else if (type != null) {
+                categories = categoryService.getCategoriesByType(type);
+            } else if (status != null) {
+                categories = categoryService.getCategoriesByStatus(status);
+            } else {
+                categories = categoryService.list();
+            }
+
+            return Result.success("获取分类列表成功", categories);
         } catch (Exception e) {
-            log.error("获取顶级分类失败", e);
-            return Result.error("获取顶级分类失败");
+            log.error("获取分类列表失败", e);
+            return Result.error("获取分类列表失败");
         }
     }
 
@@ -90,30 +93,36 @@ public class CategoryController {
     }
 
     /**
-     * 获取指定父分类下的子分类
+     * 获取包装分类列表
      */
-    @GetMapping("/{parentId}/children")
-    public Result<List<Category>> getSubCategories(@PathVariable @NotNull Long parentId) {
+    @GetMapping("/packaging")
+    public Result<List<Category>> getPackagingCategories() {
         try {
-            List<Category> categories = categoryService.getSubCategoriesByParentId(parentId);
-            return Result.success("获取子分类成功", categories);
-        } catch (Exception e) {
-            log.error("获取子分类失败", e);
-            return Result.error("获取子分类失败");
-        }
-    }
-
-    /**
-     * 根据花材分类获取包装分类
-     */
-    @GetMapping("/{flowerCategoryId}/packaging")
-    public Result<List<Category>> getPackagingByFlowerCategory(@PathVariable @NotNull Long flowerCategoryId) {
-        try {
-            List<Category> categories = categoryService.getPackagingByFlowerCategory(flowerCategoryId);
+            List<Category> categories = categoryService.getPackagingCategories();
             return Result.success("获取包装分类成功", categories);
         } catch (Exception e) {
             log.error("获取包装分类失败", e);
             return Result.error("获取包装分类失败");
+        }
+    }
+
+    /**
+     * 获取启用的分类列表
+     */
+    @GetMapping("/enabled")
+    public Result<List<Category>> getEnabledCategories(
+            @RequestParam(required = false) String type) {
+        try {
+            List<Category> categories;
+            if (type != null) {
+                categories = categoryService.getCategoriesByTypeAndStatus(type, 1);
+            } else {
+                categories = categoryService.getEnabledCategories();
+            }
+            return Result.success("获取启用分类成功", categories);
+        } catch (Exception e) {
+            log.error("获取启用分类失败", e);
+            return Result.error("获取启用分类失败");
         }
     }
 
@@ -126,13 +135,18 @@ public class CategoryController {
             @RequestParam(defaultValue = "1") @Min(1) Integer current,
             @RequestParam(defaultValue = "10") @Min(1) Integer size,
             @RequestParam(required = false) String name,
+            @RequestParam(required = false) String type,
             @RequestParam(required = false) Integer status) {
         try {
-            // 这里简化处理，实际应该使用分页查询
             List<Category> categories;
+
             if (name != null && !name.trim().isEmpty()) {
                 Category category = categoryService.getByName(name.trim());
                 categories = category != null ? List.of(category) : List.of();
+            } else if (type != null && status != null) {
+                categories = categoryService.getCategoriesByTypeAndStatus(type, status);
+            } else if (type != null) {
+                categories = categoryService.getCategoriesByType(type);
             } else if (status != null) {
                 categories = categoryService.getCategoriesByStatus(status);
             } else {
@@ -140,12 +154,11 @@ public class CategoryController {
             }
 
             Map<String, Object> result = Map.of(
-                "records", categories,
-                "total", categories.size(),
-                "current", current,
-                "size", size,
-                "pages", (categories.size() + size - 1) / size
-            );
+                    "records", categories,
+                    "total", categories.size(),
+                    "current", current,
+                    "size", size,
+                    "pages", (categories.size() + size - 1) / size);
 
             return Result.success("获取分类列表成功", result);
         } catch (Exception e) {
@@ -160,7 +173,7 @@ public class CategoryController {
     @GetMapping("/{id}")
     public Result<Category> getCategoryById(@PathVariable @NotNull Long id) {
         try {
-            Category category = categoryService.getCategoryWithDetails(id);
+            Category category = categoryService.getById(id);
             if (category == null) {
                 return Result.error("分类不存在");
             }
@@ -242,8 +255,7 @@ public class CategoryController {
      */
     @PutMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
-    public Result<String> toggleCategoryStatus(
-            @PathVariable @NotNull Long id) {
+    public Result<String> toggleCategoryStatus(@PathVariable @NotNull Long id) {
         try {
             boolean result = categoryService.toggleCategoryStatus(id);
             if (result) {
@@ -319,16 +331,16 @@ public class CategoryController {
     @PreAuthorize("hasRole('ADMIN')")
     public Result<Map<String, Object>> getCategoryStatistics() {
         try {
-            List<Category> allCategories = categoryService.list();
-            List<Category> enabledCategories = categoryService.getEnabledCategories();
-            List<Category> topLevelCategories = categoryService.getTopLevelCategories();
+            int totalCategories = categoryService.countCategories();
+            int flowerCategories = categoryService.countFlowerCategories();
+            int packagingCategories = categoryService.countPackagingCategories();
+            int enabledCategories = categoryService.getEnabledCategories().size();
 
             Map<String, Object> statistics = Map.of(
-                "totalCategories", allCategories.size(),
-                "enabledCategories", enabledCategories.size(),
-                "topLevelCategories", topLevelCategories.size(),
-                "subCategories", allCategories.size() - topLevelCategories.size()
-            );
+                    "totalCategories", totalCategories,
+                    "enabledCategories", enabledCategories,
+                    "flowerCategories", flowerCategories,
+                    "packagingCategories", packagingCategories);
 
             return Result.success("获取分类统计成功", statistics);
         } catch (Exception e) {
@@ -349,34 +361,6 @@ public class CategoryController {
         } catch (Exception e) {
             log.error("初始化默认分类失败", e);
             return Result.error("初始化默认分类失败");
-        }
-    }
-
-    /**
-     * 获取包装分类列表
-     */
-    @GetMapping("/packaging")
-    public Result<List<Category>> getPackagingCategories() {
-        try {
-            List<Category> categories = categoryService.getPackagingCategories();
-            return Result.success("获取包装分类成功", categories);
-        } catch (Exception e) {
-            log.error("获取包装分类失败", e);
-            return Result.error("获取包装分类失败");
-        }
-    }
-
-    /**
-     * 获取启用的分类列表
-     */
-    @GetMapping("/enabled")
-    public Result<List<Category>> getEnabledCategories() {
-        try {
-            List<Category> categories = categoryService.getEnabledCategories();
-            return Result.success("获取启用分类成功", categories);
-        } catch (Exception e) {
-            log.error("获取启用分类失败", e);
-            return Result.error("获取启用分类失败");
         }
     }
 }

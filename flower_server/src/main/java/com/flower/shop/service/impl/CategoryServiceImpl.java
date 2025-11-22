@@ -10,11 +10,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 商品分类服务实现类
+ * 
+ * 设计说明：
+ * - 扁平化分类结构，不支持树形层级
+ * - 通过type字段区分花材(FLOWER)和包装(PACKAGING)
  */
 @Slf4j
 @Service
@@ -22,34 +26,6 @@ import java.util.stream.Collectors;
 public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> implements CategoryService {
 
     private final CategoryMapper categoryMapper;
-
-    @Override
-    public List<Category> getFlowerCategories() {
-        return lambdaQuery()
-                .eq(Category::getType, "FLOWER")
-                .eq(Category::getStatus, 1)
-                .orderByAsc(Category::getSortOrder)
-                .list();
-    }
-
-    @Override
-    public List<Category> getPackagingCategories() {
-        return lambdaQuery()
-                .eq(Category::getType, "PACKAGING")
-                .eq(Category::getStatus, 1)
-                .orderByAsc(Category::getSortOrder)
-                .list();
-    }
-
-    @Override
-    public List<Category> getTopLevelCategories() {
-        return getFlowerCategories(); // 花材分类就是顶级分类
-    }
-
-    @Override
-    public List<Category> getSubCategoriesByParentId(Long parentId) {
-        return getPackagingCategories(); // 包装分类就是子分类
-    }
 
     @Override
     public List<Category> getEnabledCategories() {
@@ -61,63 +37,39 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
     }
 
     @Override
-    public List<Map<String, Object>> getCategoryTree() {
-        List<Category> allCategories = getEnabledCategories();
-        return buildCategoryTree(allCategories);
+    public List<Category> getCategoriesByType(String type) {
+        return lambdaQuery()
+                .eq(Category::getType, type)
+                .orderByAsc(Category::getSortOrder)
+                .list();
     }
 
     @Override
-    public List<Map<String, Object>> getEnabledCategoryTree() {
-        return getCategoryTree(); // 已经过滤了启用的分类
+    public List<Category> getCategoriesByTypeAndStatus(String type, Integer status) {
+        return lambdaQuery()
+                .eq(Category::getType, type)
+                .eq(Category::getStatus, status)
+                .orderByAsc(Category::getSortOrder)
+                .list();
     }
 
-    /**
-     * 构建分类树结构（基于type字段）
-     */
-    private List<Map<String, Object>> buildCategoryTree(List<Category> categories) {
-        // 分离花材和包装类型
-        List<Category> flowerCategories = categories.stream()
-                .filter(category -> "FLOWER".equals(category.getType()))
-                .sorted(Comparator.comparing(Category::getSortOrder))
-                .collect(Collectors.toList());
+    @Override
+    public List<Category> getFlowerCategories() {
+        return getCategoriesByTypeAndStatus("FLOWER", 1);
+    }
 
-        List<Category> packagingCategories = categories.stream()
-                .filter(category -> "PACKAGING".equals(category.getType()))
-                .sorted(Comparator.comparing(Category::getSortOrder))
-                .collect(Collectors.toList());
+    @Override
+    public List<Category> getPackagingCategories() {
+        return getCategoriesByTypeAndStatus("PACKAGING", 1);
+    }
 
-        // 构建树结构
-        List<Map<String, Object>> tree = new ArrayList<>();
-
-        // 为每个花材分类创建节点，并将包装分类作为子分类
-        for (Category flowerCategory : flowerCategories) {
-            Map<String, Object> treeNode = new HashMap<>();
-            treeNode.put("id", flowerCategory.getId());
-            treeNode.put("name", flowerCategory.getName());
-            treeNode.put("type", flowerCategory.getType());
-            treeNode.put("status", flowerCategory.getStatus());
-            treeNode.put("sortOrder", flowerCategory.getSortOrder());
-            treeNode.put("createdAt", flowerCategory.getCreatedAt());
-
-            // 添加所有包装分类作为子分类
-            List<Map<String, Object>> children = packagingCategories.stream()
-                    .map(packagingCategory -> {
-                        Map<String, Object> childNode = new HashMap<>();
-                        childNode.put("id", packagingCategory.getId());
-                        childNode.put("name", packagingCategory.getName());
-                        childNode.put("type", packagingCategory.getType());
-                        childNode.put("status", packagingCategory.getStatus());
-                        childNode.put("sortOrder", packagingCategory.getSortOrder());
-                        childNode.put("createdAt", packagingCategory.getCreatedAt());
-                        return childNode;
-                    })
-                    .collect(Collectors.toList());
-            treeNode.put("children", children);
-
-            tree.add(treeNode);
-        }
-
-        return tree;
+    @Override
+    public List<Category> getCategoriesByStatus(Integer status) {
+        return lambdaQuery()
+                .eq(Category::getStatus, status)
+                .orderByAsc(Category::getType)
+                .orderByAsc(Category::getSortOrder)
+                .list();
     }
 
     @Override
@@ -132,14 +84,27 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
             throw new IllegalArgumentException("分类类型不能为空");
         }
 
+        if (category.getCode() == null || category.getCode().trim().isEmpty()) {
+            throw new IllegalArgumentException("分类编码不能为空");
+        }
+
         // 检查分类名称是否重复
-        boolean exists = lambdaQuery()
+        boolean nameExists = lambdaQuery()
                 .eq(Category::getName, category.getName())
                 .eq(Category::getType, category.getType())
                 .exists();
 
-        if (exists) {
+        if (nameExists) {
             throw new IllegalArgumentException("同类型下分类名称已存在");
+        }
+
+        // 检查分类编码是否重复
+        boolean codeExists = lambdaQuery()
+                .eq(Category::getCode, category.getCode())
+                .exists();
+
+        if (codeExists) {
+            throw new IllegalArgumentException("分类编码已存在");
         }
 
         // 设置默认值
@@ -175,6 +140,18 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
             }
         }
 
+        // 如果修改了编码，检查是否重复
+        if (category.getCode() != null && !existingCategory.getCode().equals(category.getCode())) {
+            boolean exists = lambdaQuery()
+                    .eq(Category::getCode, category.getCode())
+                    .ne(Category::getId, category.getId())
+                    .exists();
+
+            if (exists) {
+                throw new IllegalArgumentException("分类编码已存在");
+            }
+        }
+
         return updateById(category);
     }
 
@@ -187,8 +164,10 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
             throw new IllegalArgumentException("分类不存在");
         }
 
-        // 检查是否有关联的商品（这里简化处理）
-        // 实际业务中需要检查products表中是否有关联的商品
+        // 检查是否可以删除
+        if (!canDeleteCategory(categoryId)) {
+            throw new IllegalArgumentException("该分类下有关联商品，无法删除");
+        }
 
         return removeById(categoryId);
     }
@@ -205,6 +184,56 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         category.setStatus(newStatus);
 
         return updateById(category);
+    }
+
+    @Override
+    @Transactional
+    public boolean updateCategorySort(List<Map<String, Object>> sortData) {
+        try {
+            for (Map<String, Object> item : sortData) {
+                Long id = Long.valueOf(item.get("id").toString());
+                Integer sortOrder = Integer.valueOf(item.get("sortOrder").toString());
+
+                Category category = getById(id);
+                if (category != null) {
+                    category.setSortOrder(sortOrder);
+                    updateById(category);
+                }
+            }
+            return true;
+        } catch (Exception e) {
+            log.error("更新分类排序失败", e);
+            return false;
+        }
+    }
+
+    @Override
+    public Category getByName(String name) {
+        return lambdaQuery()
+                .eq(Category::getName, name)
+                .one();
+    }
+
+    @Override
+    public boolean isNameDuplicate(String name, String type, Long excludeId) {
+        LambdaQueryWrapper<Category> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Category::getName, name)
+                .eq(Category::getType, type);
+
+        if (excludeId != null) {
+            queryWrapper.ne(Category::getId, excludeId);
+        }
+
+        return count(queryWrapper) > 0;
+    }
+
+    @Override
+    public boolean canDeleteCategory(Long categoryId) {
+        // 检查是否有关联的商品
+        // 这里需要注入 ProductMapper 或 ProductService 来检查
+        // 简化实现，暂时返回 true
+        // TODO: 实现真正的检查逻辑
+        return true;
     }
 
     @Override
@@ -227,16 +256,31 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
     }
 
     @Override
-    public boolean isNameDuplicate(String name, String type, Long excludeId) {
-        LambdaQueryWrapper<Category> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Category::getName, name)
-                .eq(Category::getType, type);
-
-        if (excludeId != null) {
-            queryWrapper.ne(Category::getId, excludeId);
+    @Transactional
+    public void initDefaultCategories() {
+        // 检查是否已有数据
+        if (count() > 0) {
+            log.info("分类数据已存在，跳过初始化");
+            return;
         }
 
-        return count(queryWrapper) > 0;
+        // 初始化花材分类
+        List<Category> flowerCategories = List.of(
+                Category.builder().name("玫瑰").code("ROSE").type("FLOWER").sortOrder(1).status(1).build(),
+                Category.builder().name("百合").code("LILY").type("FLOWER").sortOrder(2).status(1).build(),
+                Category.builder().name("夜来香").code("TUBEROSE").type("FLOWER").sortOrder(3).status(1).build(),
+                Category.builder().name("康乃馨").code("CARNATION").type("FLOWER").sortOrder(4).status(1).build(),
+                Category.builder().name("向日葵").code("SUNFLOWER").type("FLOWER").sortOrder(5).status(1).build());
+
+        // 初始化包装分类
+        List<Category> packagingCategories = List.of(
+                Category.builder().name("花束").code("BOUQUET").type("PACKAGING").sortOrder(1).status(1).build(),
+                Category.builder().name("花篮").code("BASKET").type("PACKAGING").sortOrder(2).status(1).build());
+
+        saveBatch(flowerCategories);
+        saveBatch(packagingCategories);
+
+        log.info("默认分类数据初始化成功");
     }
 
     /**
@@ -250,51 +294,5 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
                 .one();
 
         return lastCategory != null ? lastCategory.getSortOrder() + 1 : 1;
-    }
-
-    @Override
-    public List<Category> getPackagingByFlowerCategory(Long flowerCategoryId) {
-        return getPackagingCategories(); // 简化实现，返回所有包装分类
-    }
-
-    @Override
-    public Category getByName(String name) {
-        return lambdaQuery()
-                .eq(Category::getName, name)
-                .one();
-    }
-
-    @Override
-    public boolean updateCategorySort(List<Map<String, Object>> sortData) {
-        // 简化实现，直接返回true
-        return true;
-    }
-
-    @Override
-    public Category getCategoryWithDetails(Long categoryId) {
-        return getById(categoryId);
-    }
-
-    @Override
-    public int getSubCategoryCount(Long parentId) {
-        return countPackagingCategories(); // 简化实现
-    }
-
-    @Override
-    public boolean canDeleteCategory(Long categoryId) {
-        return true; // 简化实现
-    }
-
-    @Override
-    public List<Category> getCategoriesByStatus(Integer status) {
-        return lambdaQuery()
-                .eq(Category::getStatus, status)
-                .orderByAsc(Category::getSortOrder)
-                .list();
-    }
-
-    @Override
-    public void initDefaultCategories() {
-        // 简化实现，可以留空或添加默认分类逻辑
     }
 }

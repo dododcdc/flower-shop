@@ -10,8 +10,8 @@ import { z } from 'zod';
 export const productSearchSchema = z.object({
   keyword: z.string().optional(),
   categoryId: z.number().positive().optional(),
-  status: z.enum([0, 1]).optional(),
-  featured: z.enum([0, 1]).optional(),
+  status: z.union([z.literal(0), z.literal(1)]).optional(),
+  featured: z.union([z.literal(0), z.literal(1)]).optional(),
   minPrice: z.number().min(0).optional(),
   maxPrice: z.number().min(0).optional(),
   stockStatus: z.enum(['in_stock', 'low_stock', 'out_of_stock']).optional(),
@@ -31,8 +31,8 @@ export const productFormSchema = z.object({
   careGuide: z.string().optional(),
   categoryId: z.number().positive('请选择商品分类'),
   specification: z.string().optional(),
-  status: z.enum([0, 1]).default(1),
-  featured: z.enum([0, 1]).default(0),
+  status: z.union([z.literal(0), z.literal(1)]).default(1),
+  featured: z.union([z.literal(0), z.literal(1)]).default(0),
   stockQuantity: z.number().min(0, '库存数量不能小于0').default(0),
   lowStockThreshold: z.number().min(0, '库存预警阈值不能小于0').default(5),
 }).refine(
@@ -109,13 +109,13 @@ export const getStockStatusText = (product: Product): string => {
   }
 };
 
-export const getStockStatusColor = (product: Product): 'success' | 'warning' | 'error' => {
+export const getStockStatusColor = (product: Product): 'success' | 'warning' | 'error' | 'default' => {
   const status = getStockStatus(product);
   switch (status) {
     case 'in_stock': return 'success';
     case 'low_stock': return 'warning';
     case 'out_of_stock': return 'error';
-    default: return 'default';
+    default: return 'error'; // Fallback to error or handle appropriately, but 'default' is not in type
   }
 };
 

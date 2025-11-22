@@ -46,6 +46,7 @@ import {
   parseImagesJson,
 } from '../../models/product';
 import { productAPI } from '../../api/productAPI';
+import { categoryAPI, type Category } from '../../api/categoryAPI';
 
 // Animation variants
 const cardVariants = {
@@ -56,13 +57,14 @@ const cardVariants = {
 const ProductList: React.FC = () => {
   // State for products and pagination
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Pagination state
   const [pagination, setPagination] = useState({
     current: 1,
-    size: 12,
+    size: 8,
     total: 0,
     pages: 0,
   });
@@ -70,7 +72,7 @@ const ProductList: React.FC = () => {
   // Search and filter state
   const [filters, setFilters] = useState<ProductFilters>({
     current: 1,
-    size: 12,
+    size: 8,
     sortBy: 'created_at',
     sortOrder: 'desc',
   });
@@ -90,15 +92,27 @@ const ProductList: React.FC = () => {
 
   // Load products on component mount and when filters change
   useEffect(() => {
+    loadCategories();
     loadProducts();
   }, [filters]);
+
+  const loadCategories = async () => {
+    try {
+      const data = await categoryAPI.getAllCategories();
+      setCategories(data);
+    } catch (err) {
+      console.error('Failed to load categories', err);
+    }
+  };
 
   const loadProducts = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await productAPI.getProducts(filters);
+      // 统一使用 search 接口，简化逻辑并确保所有筛选条件生效
+      const response = await productAPI.searchProducts(filters);
+
       setProducts(response.records);
       setPagination({
         current: response.current,
@@ -235,31 +249,33 @@ const ProductList: React.FC = () => {
 
             <Grid size={{ xs: 12, sm: 4, md: 2 }}>
               <FormControl fullWidth size="small">
-                <InputLabel>商品分类</InputLabel>
+                <InputLabel shrink>商品分类</InputLabel>
                 <Select
                   value={searchForm.categoryId}
                   label="商品分类"
+                  displayEmpty
                   onChange={(e) => setSearchForm({ ...searchForm, categoryId: e.target.value })}
                 >
-                  <MenuItem value="">全部分类</MenuItem>
-                  <MenuItem value="1">玫瑰</MenuItem>
-                  <MenuItem value="2">百合</MenuItem>
-                  <MenuItem value="3">康乃馨</MenuItem>
-                  <MenuItem value="4">向日葵</MenuItem>
-                  <MenuItem value="5">夜来香</MenuItem>
+                  <MenuItem value="">全部</MenuItem>
+                  {categories.map((category) => (
+                    <MenuItem key={category.id} value={String(category.id)}>
+                      {category.name}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>
 
             <Grid size={{ xs: 12, sm: 4, md: 2 }}>
               <FormControl fullWidth size="small">
-                <InputLabel>商品状态</InputLabel>
+                <InputLabel shrink>上架状态</InputLabel>
                 <Select
                   value={searchForm.status}
-                  label="商品状态"
+                  label="上架状态"
+                  displayEmpty
                   onChange={(e) => setSearchForm({ ...searchForm, status: e.target.value })}
                 >
-                  <MenuItem value="">全部状态</MenuItem>
+                  <MenuItem value="">全部</MenuItem>
                   <MenuItem value="1">上架</MenuItem>
                   <MenuItem value="0">下架</MenuItem>
                 </Select>
@@ -268,13 +284,14 @@ const ProductList: React.FC = () => {
 
             <Grid size={{ xs: 12, sm: 4, md: 2 }}>
               <FormControl fullWidth size="small">
-                <InputLabel>库存状态</InputLabel>
+                <InputLabel shrink>库存状态</InputLabel>
                 <Select
                   value={searchForm.stockStatus}
                   label="库存状态"
+                  displayEmpty
                   onChange={(e) => setSearchForm({ ...searchForm, stockStatus: e.target.value })}
                 >
-                  <MenuItem value="">全部库存</MenuItem>
+                  <MenuItem value="">全部</MenuItem>
                   <MenuItem value="in_stock">库存充足</MenuItem>
                   <MenuItem value="low_stock">库存不足</MenuItem>
                   <MenuItem value="out_of_stock">缺货</MenuItem>
@@ -282,43 +299,32 @@ const ProductList: React.FC = () => {
               </FormControl>
             </Grid>
 
-            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-              <FormControl fullWidth size="small">
-                <InputLabel>创建时间</InputLabel>
-                <Select
-                  value={searchForm.sortBy === 'created_at' ? 'created_at' : ''}
-                  label="创建时间"
-                  onChange={(e) => setSearchForm({ ...searchForm, sortBy: e.target.value === 'created_at' ? 'created_at' : searchForm.sortBy, sortOrder: e.target.value === 'created_at' ? 'desc' : searchForm.sortOrder })}
-                >
-                  <MenuItem value="">不限制</MenuItem>
-                  <MenuItem value="created_at">最新创建</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
 
             {/* 第二行：价格和排序 + 操作按钮 */}
-            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-              <TextField
-                fullWidth
-                size="small"
-                label="最低价格"
-                type="number"
-                value={searchForm.minPrice}
-                onChange={(e) => setSearchForm({ ...searchForm, minPrice: e.target.value })}
-                inputProps={{ min: 0, step: 0.01 }}
-              />
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-              <TextField
-                fullWidth
-                size="small"
-                label="最高价格"
-                type="number"
-                value={searchForm.maxPrice}
-                onChange={(e) => setSearchForm({ ...searchForm, maxPrice: e.target.value })}
-                inputProps={{ min: 0, step: 0.01 }}
-              />
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="最低价"
+                  type="number"
+                  value={searchForm.minPrice}
+                  onChange={(e) => setSearchForm({ ...searchForm, minPrice: e.target.value })}
+                  inputProps={{ min: 0, step: 0.01 }}
+                  sx={{ '& .MuiInputLabel-root': { fontSize: '0.875rem' } }}
+                />
+                <Box sx={{ mx: 1, color: 'text.secondary', fontWeight: 'bold' }}>-</Box>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="最高价"
+                  type="number"
+                  value={searchForm.maxPrice}
+                  onChange={(e) => setSearchForm({ ...searchForm, maxPrice: e.target.value })}
+                  inputProps={{ min: 0, step: 0.01 }}
+                  sx={{ '& .MuiInputLabel-root': { fontSize: '0.875rem' } }}
+                />
+              </Box>
             </Grid>
 
             <Grid size={{ xs: 12, sm: 4, md: 2 }}>
@@ -672,24 +678,6 @@ const ProductList: React.FC = () => {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                   请调整搜索条件、添加新商品，或初始化示例数据进行测试
                 </Typography>
-                <Button
-                  variant="outlined"
-                  onClick={async () => {
-                    try {
-                      setLoading(true);
-                      await productAPI.createSampleProducts();
-                      await loadProducts(); // 重新加载数据
-                    } catch (err) {
-                      setError(err instanceof Error ? err.message : '初始化数据失败');
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                  disabled={loading}
-                  sx={{ minWidth: 150 }}
-                >
-                  {loading ? '正在创建...' : '初始化示例数据'}
-                </Button>
               </Box>
             </Grid>
           )}
@@ -707,6 +695,24 @@ const ProductList: React.FC = () => {
             showFirstButton
             showLastButton
             size="large"
+            sx={{
+              '& .MuiPaginationItem-root': {
+                color: 'white', // 未选中页码改为白色
+                fontWeight: 500,
+                '&:hover': {
+                  backgroundColor: '#FFF9C4', // 浅浅的鸡蛋黄 (Pale Yellow)
+                  color: '#333', // Hover 时文字变深色，保证对比度
+                },
+                '&.Mui-selected': {
+                  fontWeight: 'bold',
+                  backgroundColor: 'primary.main',
+                  color: 'white',
+                  '&:hover': {
+                    backgroundColor: 'primary.dark',
+                  },
+                },
+              },
+            }}
           />
         </Box>
       )}

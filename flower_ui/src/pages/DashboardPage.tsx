@@ -27,7 +27,7 @@ const DashboardPage: React.FC = () => {
             backgroundClip: 'text',
           }}
         >
-          花语心声管理后台
+          花言花语管理后台
         </Typography>
         <Typography variant="h6" color="text.secondary" sx={{ mb: 4 }}>
           欢迎回到优雅花园管理中心

@@ -19,7 +19,7 @@ const LoginPage: React.FC = () => {
         justifyContent: 'center',
       }}
     >
-      {/* Decorative Background Elements */}
+      {/* Dynamic Floating Flowers Background */}
       <Box
         sx={{
           position: 'absolute',
@@ -27,46 +27,64 @@ const LoginPage: React.FC = () => {
           left: 0,
           right: 0,
           bottom: 0,
-          opacity: 0.1,
-          backgroundImage: `
-            radial-gradient(circle at 25% 25%, ${theme.palette.primary.main} 0%, transparent 50%),
-            radial-gradient(circle at 75% 75%, ${theme.palette.primary.light} 0%, transparent 50%),
-            radial-gradient(circle at 50% 10%, ${theme.palette.secondary.light} 0%, transparent 40%)
-          `,
-          animation: 'float 20s ease-in-out infinite',
+          overflow: 'hidden',
+          zIndex: 0,
         }}
-      />
+      >
+        {[...Array(60)].map((_, i) => {
+          // 30% chance of being a large flower
+          const isLarge = Math.random() < 0.3;
+          const size = isLarge
+            ? Math.random() * 60 + 60 + 'px' // Large: 60px - 120px
+            : Math.random() * 20 + 15 + 'px'; // Small: 15px - 35px
 
-      {/* Golden Particles Effect */}
+          return (
+            <Box
+              key={i}
+              component={motion.div}
+              initial={{
+                x: Math.random() * 100 + 'vw',
+                y: Math.random() * 120 + 'vh',
+                opacity: 0,
+                scale: 0.5,
+                rotate: 0
+              }}
+              animate={{
+                y: [null, Math.random() * -120 + 'vh'],
+                opacity: [0, isLarge ? 0.6 : 0.8, isLarge ? 0.6 : 0.8, 0], // Large flowers slightly more transparent
+                rotate: 360,
+              }}
+              transition={{
+                duration: Math.random() * 30 + 20,
+                repeat: Infinity,
+                ease: "linear",
+                delay: Math.random() * 10
+              }}
+              sx={{
+                position: 'absolute',
+                fontSize: size,
+                filter: isLarge ? 'blur(2px)' : 'blur(0.5px)', // Blur large flowers more for depth
+                userSelect: 'none',
+                zIndex: isLarge ? 0 : 1, // Large flowers in background
+              }}
+            >
+              {['🌹', '🌺', '🌸', '🌼', '🌻', '🌷', '🪷', '🏵️', '💐', '🥀'][Math.floor(Math.random() * 10)]}
+            </Box>
+          );
+        })}
+      </Box>
+
+      {/* Gradient Overlay to ensure text readability */}
       <Box
-        component={motion.div}
-        animate={{
-          opacity: [0.3, 0.7, 0.3],
-        }}
-        transition={{
-          duration: 3,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
         sx={{
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          background: `
-            radial-gradient(circle at 10% 20%, ${theme.palette.primary.main} 1px, transparent 1px),
-            radial-gradient(circle at 20% 40%, ${theme.palette.primary.light} 1px, transparent 1px),
-            radial-gradient(circle at 30% 60%, ${theme.palette.primary.main} 1px, transparent 1px),
-            radial-gradient(circle at 40% 30%, ${theme.palette.primary.light} 1px, transparent 1px),
-            radial-gradient(circle at 50% 80%, ${theme.palette.primary.main} 1px, transparent 1px),
-            radial-gradient(circle at 60% 10%, ${theme.palette.primary.light} 1px, transparent 1px),
-            radial-gradient(circle at 70% 50%, ${theme.palette.primary.main} 1px, transparent 1px),
-            radial-gradient(circle at 80% 90%, ${theme.palette.primary.light} 1px, transparent 1px),
-            radial-gradient(circle at 90% 25%, ${theme.palette.primary.main} 1px, transparent 1px)
-          `,
-          backgroundSize: '100px 100px',
-          animation: 'sparkle 15s linear infinite',
+          background: `linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.1) 100%)`,
+          backdropFilter: 'blur(3px)',
+          zIndex: 0,
         }}
       />
 

@@ -42,7 +42,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       // 忽略清理错误
     }
     // 跳转到登录页
-    navigate('/login', { replace: true });
+    navigate('/admin/login', { replace: true });
   };
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => {
@@ -90,7 +90,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                   color: '#F8F6F0', // 明亮的珍珠白色
                 }}
               >
-                花语心声 · 管理后台
+                花言花语 · 管理后台
               </Typography>
             </Box>
             <Button

@@ -11,7 +11,7 @@ import DashboardLayout from './components/layout/DashboardLayout';
 const App: React.FC = () => {
   return (
     <Routes>
-      <Route path="/login" element={<LoginPage />} />
+      <Route path="/admin/login" element={<LoginPage />} />
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <DashboardLayout>
@@ -40,7 +40,7 @@ const App: React.FC = () => {
           </DashboardLayout>
         </ProtectedRoute>
       } />
-      <Route path="*" element={<Navigate to="/login" />} />
+      <Route path="*" element={<Navigate to="/admin/login" />} />
     </Routes>
   );
 };

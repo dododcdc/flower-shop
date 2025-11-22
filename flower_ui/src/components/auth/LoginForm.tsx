@@ -12,8 +12,8 @@ import FlowerLogo from '../common/FlowerLogo';
 import FlowerPattern from '../common/FlowerPattern';
 
 const LoginForm: React.FC = () => {
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin123');
+  const [username, setUsername] = useState('floweradmin');
+  const [password, setPassword] = useState('flower123');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -100,7 +100,7 @@ const LoginForm: React.FC = () => {
               lineHeight: 1.2,
             }}
           >
-            花语心声
+            花言花语
           </Typography>
           <Typography
             variant="h6"
@@ -260,7 +260,7 @@ const LoginForm: React.FC = () => {
               opacity: 0.7,
             }}
           >
-            © 2024 花语心声 - 传递美好，绽放生活
+            © 2024 花言花语 - 传递美好，绽放生活
           </Typography>
         </Box>
       </CardContent>

@@ -51,66 +51,66 @@
         WHERE 1=1
 
         <!-- 关键词搜索：商品名称、描述、花语 -->
-        <if test="keyword != null and keyword != ''">
+        <if test="request.keyword != null and request.keyword != ''">
             AND (
-                p.name LIKE CONCAT('%', #{keyword}, '%')
-                OR p.description LIKE CONCAT('%', #{keyword}, '%')
-                OR p.flower_language LIKE CONCAT('%', #{keyword}, '%')
+                p.name LIKE CONCAT('%', #{request.keyword}, '%')
+                OR p.description LIKE CONCAT('%', #{request.keyword}, '%')
+                OR p.flower_language LIKE CONCAT('%', #{request.keyword}, '%')
             )
         </if>
 
         <!-- 分类筛选 -->
-        <if test="categoryId != null">
-            AND p.category_id = #{categoryId}
+        <if test="request.categoryId != null">
+            AND p.category_id = #{request.categoryId}
         </if>
 
         <!-- 商品状态筛选 -->
-        <if test="status != null">
-            AND p.status = #{status}
+        <if test="request.status != null">
+            AND p.status = #{request.status}
         </if>
 
         <!-- 推荐商品筛选 -->
-        <if test="featured != null">
-            AND p.featured = #{featured}
+        <if test="request.featured != null">
+            AND p.featured = #{request.featured}
         </if>
 
         <!-- 价格区间筛选 -->
-        <if test="minPrice != null">
-            AND p.price &gt;= #{minPrice}
+        <if test="request.minPrice != null">
+            AND p.price &gt;= #{request.minPrice}
         </if>
-        <if test="maxPrice != null">
-            AND p.price &lt;= #{maxPrice}
+        <if test="request.maxPrice != null">
+            AND p.price &lt;= #{request.maxPrice}
         </if>
 
         <!-- 库存状态筛选 -->
-        <if test="stockStatus == 'in_stock'">
+        <if test="request.stockStatus == 'in_stock'">
             AND p.stock_quantity > 0
             AND p.stock_quantity > p.low_stock_threshold
         </if>
-        <if test="stockStatus == 'low_stock'">
+        <if test="request.stockStatus == 'low_stock'">
             AND p.stock_quantity > 0
             AND p.stock_quantity &lt;= p.low_stock_threshold
         </if>
-        <if test="stockStatus == 'out_of_stock'">
+        <if test="request.stockStatus == 'out_of_stock'">
             AND p.stock_quantity &lt;= 0
         </if>
 
         <!-- 排序 -->
         <choose>
-            <when test="sortBy == 'price'">
+            <when test="request.sortBy == 'price'">
                 ORDER BY p.price
-                <if test="sortOrder == 'asc'">ASC</if>
-                <if test="sortOrder == 'desc'">DESC</if>
+                <if test="request.sortOrder == 'asc'">ASC</if>
+                <if test="request.sortOrder == 'desc'">DESC</if>
             </when>
-            <when test="sortBy == 'name'">
+            <when test="request.sortBy == 'name'">
                 ORDER BY p.name
-                <if test="sortOrder == 'asc'">ASC</if>
-                <if test="sortOrder == 'desc'">DESC</if>
+                <if test="request.sortOrder == 'asc'">ASC</if>
+                <if test="request.sortOrder == 'desc'">DESC</if>
             </when>
-            <when test="sortBy == 'stock_quantity'">
+            <when test="request.sortBy == 'stock_quantity'">
                 ORDER BY p.stock_quantity
-                <if test="sortOrder == 'asc'">ASC</if>
-                <if test="sortOrder == 'desc'">DESC</if>
+                <if test="request.sortOrder == 'asc'">ASC</if>
+                <if test="request.sortOrder == 'desc'">DESC</if>
             </when>
             <otherwise>
                 ORDER BY p.created_at DESC
