@@ -123,7 +123,7 @@ public class ProductController {
      * 按分类查询商品
      */
     @GetMapping("/category/{categoryId}")
-    public Result<List<Product>> getProductsByCategory(@PathVariable @NotNull Long categoryId) {
+    public Result<List<Product>> getProductsByCategory(@PathVariable("categoryId") @NotNull Long categoryId) {
         try {
             List<Product> products = productService.getProductsByCategoryId(categoryId);
             return Result.success("获取分类商品成功", products);
@@ -133,7 +133,6 @@ public class ProductController {
         }
     }
 
-    
     /**
      * 按价格区间查询商品
      */
@@ -154,7 +153,7 @@ public class ProductController {
      * 根据ID获取商品详情
      */
     @GetMapping("/{id}")
-    public Result<Product> getProductById(@PathVariable @NotNull Long id) {
+    public Result<Product> getProductById(@PathVariable("id") @NotNull Long id) {
         try {
             Product product = productService.getProductWithDetails(id);
             if (product == null) {
@@ -193,7 +192,7 @@ public class ProductController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public Result<Product> updateProduct(
-            @PathVariable @NotNull Long id,
+            @PathVariable("id") @NotNull Long id,
             @RequestBody @Valid Product product) {
         try {
             product.setId(id);
@@ -212,7 +211,7 @@ public class ProductController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public Result<String> deleteProduct(@PathVariable @NotNull Long id) {
+    public Result<String> deleteProduct(@PathVariable("id") @NotNull Long id) {
         try {
             boolean result = productService.deleteProduct(id);
             if (result) {
@@ -234,7 +233,7 @@ public class ProductController {
     @PutMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
     public Result<String> toggleProductStatus(
-            @PathVariable @NotNull Long id,
+            @PathVariable("id") @NotNull Long id,
             @RequestParam @NotNull Integer status) {
         try {
             boolean result = productService.toggleProductStatus(id, status);
@@ -258,7 +257,7 @@ public class ProductController {
     @PutMapping("/{id}/featured")
     @PreAuthorize("hasRole('ADMIN')")
     public Result<String> setFeaturedProduct(
-            @PathVariable @NotNull Long id,
+            @PathVariable("id") @NotNull Long id,
             @RequestParam @NotNull Integer featured) {
         try {
             Product product = productService.getById(id);
@@ -319,7 +318,6 @@ public class ProductController {
         }
     }
 
-    
     /**
      * 获取推荐商品详情
      */
@@ -341,7 +339,7 @@ public class ProductController {
      */
     @GetMapping("/{id}/stock-check")
     public Result<Boolean> checkStockAvailable(
-            @PathVariable @NotNull Long id,
+            @PathVariable("id") @NotNull Long id,
             @RequestParam @NotNull @Min(1) Integer quantity) {
         try {
             Product product = productService.getById(id);
@@ -350,7 +348,7 @@ public class ProductController {
             }
 
             boolean isAvailable = product.getStockQuantity() != null &&
-                                product.getStockQuantity() >= quantity;
+                    product.getStockQuantity() >= quantity;
             return Result.success("库存检查完成", isAvailable);
         } catch (Exception e) {
             log.error("检查商品库存失败", e);
@@ -426,7 +424,7 @@ public class ProductController {
      */
     @GetMapping("/{id}/related")
     public Result<List<Product>> getRelatedProducts(
-            @PathVariable @NotNull Long id,
+            @PathVariable("id") @NotNull Long id,
             @RequestParam(defaultValue = "5") @Min(1) Integer limit) {
         try {
             Product product = productService.getById(id);
@@ -435,13 +433,13 @@ public class ProductController {
             }
 
             List<Product> relatedProducts = productService.getRecommendedProducts(
-                product.getCategoryId(), limit);
+                    product.getCategoryId(), limit);
 
             // 排除当前商品
             List<Product> filteredProducts = relatedProducts.stream()
-                .filter(p -> !p.getId().equals(id))
-                .limit(limit)
-                .toList();
+                    .filter(p -> !p.getId().equals(id))
+                    .limit(limit)
+                    .toList();
 
             return Result.success("获取相关商品成功", filteredProducts);
         } catch (Exception e) {

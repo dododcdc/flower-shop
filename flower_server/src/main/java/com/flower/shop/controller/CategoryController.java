@@ -171,7 +171,7 @@ public class CategoryController {
      * 根据ID获取分类详情
      */
     @GetMapping("/{id}")
-    public Result<Category> getCategoryById(@PathVariable @NotNull Long id) {
+    public Result<Category> getCategoryById(@PathVariable("id") @NotNull Long id) {
         try {
             Category category = categoryService.getById(id);
             if (category == null) {
@@ -211,7 +211,7 @@ public class CategoryController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public Result<String> updateCategory(
-            @PathVariable @NotNull Long id,
+            @PathVariable("id") @NotNull Long id,
             @RequestBody @Valid Category category) {
         try {
             category.setId(id);
@@ -234,7 +234,7 @@ public class CategoryController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public Result<String> deleteCategory(@PathVariable @NotNull Long id) {
+    public Result<String> deleteCategory(@PathVariable("id") @NotNull Long id) {
         try {
             boolean result = categoryService.deleteCategory(id);
             if (result) {
@@ -255,7 +255,7 @@ public class CategoryController {
      */
     @PutMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
-    public Result<String> toggleCategoryStatus(@PathVariable @NotNull Long id) {
+    public Result<String> toggleCategoryStatus(@PathVariable("id") @NotNull Long id) {
         try {
             boolean result = categoryService.toggleCategoryStatus(id);
             if (result) {

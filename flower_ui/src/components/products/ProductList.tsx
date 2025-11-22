@@ -47,6 +47,7 @@ import {
 } from '../../models/product';
 import { productAPI } from '../../api/productAPI';
 import { categoryAPI, type Category } from '../../api/categoryAPI';
+import ProductEditDialog from './ProductEditDialog';
 
 // Animation variants
 const cardVariants = {
@@ -89,6 +90,10 @@ const ProductList: React.FC = () => {
     sortBy: 'created_at',
     sortOrder: 'desc',
   });
+
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingProductId, setEditingProductId] = useState<number | null>(null);
 
   // Load products on component mount and when filters change
   useEffect(() => {
@@ -188,6 +193,15 @@ const ProductList: React.FC = () => {
 
   const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
     setFilters({ ...filters, current: value });
+  };
+
+  const handleEdit = (productId: number) => {
+    setEditingProductId(productId);
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSuccess = () => {
+    loadProducts(); // Reload products after successful edit
   };
 
   const handleToggleStatus = async (productId: number, currentStatus: 0 | 1) => {
@@ -629,7 +643,11 @@ const ProductList: React.FC = () => {
                               </IconButton>
                             </Tooltip>
                             <Tooltip title="编辑">
-                              <IconButton size="small" color="primary">
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => handleEdit(product.id)}
+                              >
                                 <EditIcon />
                               </IconButton>
                             </Tooltip>
@@ -716,6 +734,14 @@ const ProductList: React.FC = () => {
           />
         </Box>
       )}
+
+      {/* Edit Dialog */}
+      <ProductEditDialog
+        open={editDialogOpen}
+        productId={editingProductId}
+        onClose={() => setEditDialogOpen(false)}
+        onSuccess={handleEditSuccess}
+      />
     </Box>
   );
 };
