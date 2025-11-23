@@ -355,7 +355,6 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
                     newImageMainIndex: newImageMainIndex,
                 };
 
-                // @ts-ignore - 忽略类型检查，因为我们传的是构造好的特殊对象
                 await productAPI.updateProductWithImagesState(
                     productId,
                     completeProductData,
