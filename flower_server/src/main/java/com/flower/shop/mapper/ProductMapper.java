@@ -149,6 +149,20 @@ public interface ProductMapper extends BaseMapper<Product> {
     String selectMainImageByProductId(@Param("productId") Long productId);
 
     /**
+     * 批量查询商品的主图路径
+     */
+    @Select("<script>" +
+            "SELECT product_id, image_path FROM product_images " +
+            "WHERE product_id IN " +
+            "<foreach collection='productIds' item='productId' open='(' separator=',' close=')'>" +
+            "#{productId}" +
+            "</foreach>" +
+            " AND image_type = 1 " +
+            "ORDER BY product_id, sort_order ASC, id ASC" +
+            "</script>")
+    List<MainImageInfo> selectMainImageByProductIds(@Param("productIds") List<Long> productIds);
+
+    /**
      * 查询商品的所有图片详情（包含完整信息）
      */
     @Select("SELECT id, image_path, image_type, sort_order FROM product_images " +
@@ -164,5 +178,14 @@ public interface ProductMapper extends BaseMapper<Product> {
         private String imagePath;
         private Integer imageType;
         private Integer sortOrder;
+    }
+
+    /**
+     * 批量查询主图信息的内部类
+     */
+    @Data
+    class MainImageInfo {
+        private Long productId;
+        private String imagePath;
     }
 }

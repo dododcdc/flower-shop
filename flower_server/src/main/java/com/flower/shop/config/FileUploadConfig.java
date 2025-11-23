@@ -26,4 +26,9 @@ public class FileUploadConfig {
      * 最大文件大小（字符串格式，如 "5MB"）
      */
     private String maxFileSize = "5MB";
+
+    /**
+     * 图片访问基础URL
+     */
+    private String baseUrl = "http://localhost:8080/api";
 }

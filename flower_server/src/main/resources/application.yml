@@ -99,3 +99,5 @@ flower-shop:
     max-file-size: 5MB
     allowed-types: jpg,jpeg,png,gif,webp
     upload-path: /Users/wenbin/Projects/flower_shop/flower_server/uploads/
+    # 图片访问基础URL
+    base-url: http://localhost:8080/api
