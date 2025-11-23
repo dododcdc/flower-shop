@@ -61,8 +61,8 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
         name: '',
         categoryId: 0,
         description: '',
-        price: 0,
-        originalPrice: 0,
+        price: undefined,
+        originalPrice: undefined,
         stockQuantity: 0,
         lowStockThreshold: 5,
         status: 1,
@@ -103,8 +103,8 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
             name: '',
             categoryId: 0,
             description: '',
-            price: 0,
-            originalPrice: 0,
+            price: undefined,
+            originalPrice: undefined,
             stockQuantity: 0,
             lowStockThreshold: 5,
             status: 1,
@@ -294,15 +294,14 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!productId) return;
 
         // 验证
-        if (!formData.name || !formData.categoryId || !formData.price) {
+        if (!formData.name || !formData.categoryId || formData.price === undefined) {
             setError('请填写所有必填字段');
             return;
         }
         if (getActiveImageCount() === 0) {
-            setError('请至少保留一张商品图片');
+            setError('请至少上传一张商品图片');
             return;
         }
 
@@ -310,75 +309,84 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
         setError(null);
 
         try {
-            // --- 准备提交数据 ---
-
-            // 1. 待删除的已有图片路径
-            const imagesToDelete = imageList
-                .filter(item => item.isExisting && item.isDeleted)
-                .map(item => item.url); // 对于已有图片，url就是path
-
-            // 2. 待上传的新文件
             const newFiles = imageList
                 .filter(item => !item.isExisting && !item.isDeleted && item.file)
                 .map(item => item.file!);
 
-            // 3. 构建 product.images JSON 结构 (仅包含保留的已有图片)
-            // 后端逻辑：先处理删除，再处理上传。所以这里我们只传"保留下来的已有图片"
-            // 新图片由后端上传后自动追加/插入
-            const keptExistingImages = imageList
-                .filter(item => item.isExisting && !item.isDeleted);
-
-            // 确定主图
-            // 如果当前主图是"已有图片"，直接设置
-            // 如果当前主图是"新图片"，需要计算它在 newFiles 中的索引
-            let finalMainPath: string | undefined = undefined;
+            // 确定主图索引（对于新图片）
             let newImageMainIndex: number | null = null;
-
             const mainItem = imageList.find(item => item.id === mainImageId);
 
-            if (mainItem) {
-                if (mainItem.isExisting) {
-                    finalMainPath = mainItem.url;
-                } else {
-                    // 是新图片，找到它在 newFiles 里的下标
-                    // 注意：newFiles 的顺序必须和 imageList 中新图片的顺序一致
-                    // 我们的 filter 逻辑保持了顺序
-                    const newFilesIds = imageList
-                        .filter(item => !item.isExisting && !item.isDeleted)
-                        .map(item => item.id);
-                    const index = newFilesIds.indexOf(mainItem.id);
-                    if (index !== -1) {
-                        newImageMainIndex = index;
-                    }
+            if (mainItem && !mainItem.isExisting) {
+                const newFilesIds = imageList
+                    .filter(item => !item.isExisting && !item.isDeleted)
+                    .map(item => item.id);
+                const index = newFilesIds.indexOf(mainItem.id);
+                if (index !== -1) {
+                    newImageMainIndex = index;
                 }
             }
 
-            // 构建传给后端的 images 结构 (只包含已有图片)
-            const imagesStruct = {
-                main: finalMainPath, // 如果是新图片，这里是 undefined，后端会忽略
-                subImages: keptExistingImages
-                    .filter(item => item.url !== finalMainPath) // 排除已设为主图的
-                    .map(item => item.url)
-            };
+            // 根据是否有productId判断是创建还是编辑
+            if (productId) {
+                // 编辑模式：更新现有商品
+                const imagesToDelete = imageList
+                    .filter(item => item.isExisting && item.isDeleted)
+                    .map(item => item.url);
 
-            const completeProductData = {
-                ...formData,
-                images: imagesStruct, // 传递当前保留的已有图片结构
-                newImageMainIndex: newImageMainIndex, // 告诉后端哪个新文件是主图
-            };
+                const keptExistingImages = imageList
+                    .filter(item => item.isExisting && !item.isDeleted);
 
-            // @ts-ignore - 忽略类型检查，因为我们传的是构造好的特殊对象
-            await productAPI.updateProductWithImagesState(
-                productId,
-                completeProductData,
-                newFiles,
-                imagesToDelete
-            );
+                let finalMainPath: string | undefined = undefined;
+                if (mainItem && mainItem.isExisting) {
+                    finalMainPath = mainItem.url;
+                }
+
+                const imagesStruct = {
+                    main: finalMainPath,
+                    subImages: keptExistingImages
+                        .filter(item => item.url !== finalMainPath)
+                        .map(item => item.url)
+                };
+
+                const completeProductData = {
+                    ...formData,
+                    images: imagesStruct,
+                    newImageMainIndex: newImageMainIndex,
+                };
+
+                // @ts-ignore - 忽略类型检查，因为我们传的是构造好的特殊对象
+                await productAPI.updateProductWithImagesState(
+                    productId,
+                    completeProductData,
+                    newFiles,
+                    imagesToDelete
+                );
+            } else {
+                // 创建模式：创建新商品
+                const newProductData = {
+                    name: formData.name,
+                    categoryId: formData.categoryId,
+                    description: formData.description || '',
+                    price: formData.price,
+                    originalPrice: formData.originalPrice,
+                    stockQuantity: formData.stockQuantity,
+                    lowStockThreshold: formData.lowStockThreshold,
+                    status: formData.status || 1,
+                    featured: formData.featured || 0,
+                    flowerLanguage: formData.flowerLanguage || '',
+                    careGuide: formData.careGuide || '',
+                    images: newFiles, // 符合 ProductFormData schema 的 images 字段
+                };
+
+                await productAPI.createProduct(newProductData, newImageMainIndex || undefined);
+            }
 
             onSuccess();
             onClose();
         } catch (err) {
-            setError(err instanceof Error ? err.message : '更新商品失败');
+            const errorMessage = productId ? '更新商品失败' : '创建商品失败';
+            setError(err instanceof Error ? err.message : errorMessage);
         } finally {
             setSubmitting(false);
         }
@@ -394,7 +402,7 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
         <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
             <DialogTitle>
                 <Typography variant="h5" component="div" fontWeight="bold">
-                    编辑商品
+                    {productId ? '编辑商品' : '添加商品'}
                 </Typography>
             </DialogTitle>
 
@@ -572,10 +580,17 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
                                     required
                                     type="number"
                                     label="售价"
-                                    value={formData.price}
-                                    onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                                    value={formData.price === undefined || formData.price === 0 ? '' : formData.price}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setFormData({
+                                            ...formData,
+                                            price: value ? Number(value) : undefined
+                                        });
+                                    }}
                                     disabled={submitting}
                                     inputProps={{ min: 0, step: 0.01 }}
+                                    placeholder="请输入售价"
                                 />
                             </Stack>
 
@@ -584,30 +599,51 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
                                     fullWidth
                                     type="number"
                                     label="原价（选填）"
-                                    value={formData.originalPrice || ''}
-                                    onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value ? Number(e.target.value) : undefined })}
+                                    value={formData.originalPrice === undefined || formData.originalPrice === 0 ? '' : formData.originalPrice}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setFormData({
+                                            ...formData,
+                                            originalPrice: value ? Number(value) : undefined
+                                        });
+                                    }}
                                     disabled={submitting}
                                     inputProps={{ min: 0, step: 0.01 }}
+                                    placeholder="可选"
                                 />
 
                                 <TextField
                                     fullWidth
                                     type="number"
                                     label="库存数量"
-                                    value={formData.stockQuantity}
-                                    onChange={(e) => setFormData({ ...formData, stockQuantity: Number(e.target.value) })}
+                                    value={formData.stockQuantity === 0 ? '' : formData.stockQuantity}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setFormData({
+                                            ...formData,
+                                            stockQuantity: value ? Number(value) : 0
+                                        });
+                                    }}
                                     disabled={submitting}
                                     inputProps={{ min: 0 }}
+                                    placeholder="0"
                                 />
 
                                 <TextField
                                     fullWidth
                                     type="number"
                                     label="库存预警阈值"
-                                    value={formData.lowStockThreshold}
-                                    onChange={(e) => setFormData({ ...formData, lowStockThreshold: Number(e.target.value) })}
+                                    value={formData.lowStockThreshold === 0 ? '' : formData.lowStockThreshold}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setFormData({
+                                            ...formData,
+                                            lowStockThreshold: value ? Number(value) : 0
+                                        });
+                                    }}
                                     disabled={submitting}
                                     inputProps={{ min: 0 }}
+                                    placeholder="0"
                                 />
                             </Stack>
 
@@ -679,7 +715,7 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
                     disabled={loading || submitting}
                     startIcon={submitting && <CircularProgress size={20} />}
                 >
-                    {submitting ? '保存中...' : '保存'}
+                    {submitting ? (productId ? '更新中...' : '创建中...') : (productId ? '更新' : '创建')}
                 </Button>
             </DialogActions>
         </Dialog>

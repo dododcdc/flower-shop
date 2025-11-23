@@ -77,7 +77,10 @@ export const getProductById = async (id: number): Promise<Product> => {
 /**
  * Create new product
  */
-export const createProduct = async (formData: ProductFormData): Promise<Product> => {
+export const createProduct = async (
+  formData: ProductFormData,
+  mainImageIndex?: number
+): Promise<Product> => {
   // Validate form data with Zod
   const validatedData = validateProductForm(formData);
   if (!validatedData.success) {
@@ -87,18 +90,23 @@ export const createProduct = async (formData: ProductFormData): Promise<Product>
   // Create FormData for multipart request (images)
   const formDataToSend = new FormData();
 
-  // Add all fields except images
-  Object.entries(validatedData.data).forEach(([key, value]) => {
-    if (key !== 'images') {
-      formDataToSend.append(key, String(value));
-    }
-  });
+  // Create product data object (without images)
+  const productData = { ...validatedData.data };
+  delete productData.images;
+
+  // Add product as JSON string
+  formDataToSend.append('product', JSON.stringify(productData));
 
   // Add images
   if (validatedData.data.images && validatedData.data.images.length > 0) {
-    validatedData.data.images.forEach((file, index) => {
-      formDataToSend.append(`images[${index}]`, file);
+    validatedData.data.images.forEach((file) => {
+      formDataToSend.append('images', file); // 使用相同的名'images'，Spring会自动收集为数组
     });
+  }
+
+  // Add main image index if specified
+  if (mainImageIndex !== undefined && mainImageIndex >= 0) {
+    formDataToSend.append('newImageMainIndex', String(mainImageIndex));
   }
 
   const response = await axiosClient.post<ApiResponse<Product>>(ENDPOINTS.PRODUCTS, formDataToSend, {
@@ -375,7 +383,7 @@ export const productAPI = {
   getProducts: (filters?: ProductFilters) => getProducts(filters).catch(handleAPIError),
   searchProducts: (filters: ProductFilters) => searchProducts(filters).catch(handleAPIError),
   getProductById: (id: number) => getProductById(id).catch(handleAPIError),
-  createProduct: (formData: ProductFormData) => createProduct(formData).catch(handleAPIError),
+  createProduct: (formData: ProductFormData, mainImageIndex?: number) => createProduct(formData, mainImageIndex).catch(handleAPIError),
   updateProduct: (id: number, formData: ProductFormData) => updateProduct(id, formData).catch(handleAPIError),
   deleteProduct: (id: number) => deleteProduct(id).catch(handleAPIError),
   toggleProductStatus: (id: number, status: 0 | 1) => toggleProductStatus(id, status).catch(handleAPIError),

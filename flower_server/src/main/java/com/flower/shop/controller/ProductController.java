@@ -177,12 +177,58 @@ public class ProductController {
     }
 
     /**
-     * 创建新商品
+     * 创建新商品（仅JSON，不含图片）
      */
-    @PostMapping
+    @PostMapping(consumes = { "application/json" })
     @PreAuthorize("hasRole('ADMIN')")
     public Result<Product> createProduct(@RequestBody @Valid Product product) {
         try {
+            Product createdProduct = productService.createProduct(product);
+            return Result.success("创建商品成功", createdProduct);
+        } catch (IllegalArgumentException e) {
+            return Result.validationError(e.getMessage());
+        } catch (Exception e) {
+            log.error("创建商品失败", e);
+            return Result.error("创建商品失败");
+        }
+    }
+
+    /**
+     * 创建新商品（支持图片上传）
+     */
+    @PostMapping(consumes = { "multipart/form-data" }, produces = { "application/json" })
+    @PreAuthorize("hasRole('ADMIN')")
+    public Result<Product> createProductWithImages(
+            @RequestPart("product") String productJson,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images,
+            @RequestParam(value = "newImageMainIndex", required = false) Integer newImageMainIndex) {
+        try {
+            // 解析JSON字符串为Product对象
+            Product product = JSON.parseObject(productJson, Product.class);
+
+            // 处理图片上传
+            if (images != null && !images.isEmpty()) {
+                List<String> imagePaths = FileUploadUtil.uploadFiles(images, fileUploadConfig.getUploadPath());
+
+                // 设置图片结构
+                ProductImagesUtil.ProductImages productImages = new ProductImagesUtil.ProductImages();
+
+                // 根据主图索引设置主图
+                int mainIndex = (newImageMainIndex != null && newImageMainIndex >= 0 && newImageMainIndex < imagePaths.size())
+                    ? newImageMainIndex : 0;
+
+                productImages.setMain(imagePaths.get(mainIndex));
+
+                // 添加副图（除了主图之外的图片）
+                for (int i = 0; i < imagePaths.size(); i++) {
+                    if (i != mainIndex) {
+                        productImages.getSubImages().add(imagePaths.get(i));
+                    }
+                }
+
+                product.setImages(productImages.toJson());
+            }
+
             Product createdProduct = productService.createProduct(product);
             return Result.success("创建商品成功", createdProduct);
         } catch (IllegalArgumentException e) {

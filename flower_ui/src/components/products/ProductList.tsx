@@ -18,6 +18,10 @@ import {
   Stack,
   Avatar,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -94,6 +98,11 @@ const ProductList: React.FC = () => {
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
+
+  // Delete dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
+  const [deletingProductName, setDeletingProductName] = useState<string>('');
 
   // Load products on component mount and when filters change
   useEffect(() => {
@@ -222,6 +231,32 @@ const ProductList: React.FC = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : '更新推荐状态失败');
     }
+  };
+
+  const handleDeleteClick = (productId: number, productName: string) => {
+    setDeletingProductId(productId);
+    setDeletingProductName(productName);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingProductId) return;
+
+    try {
+      await productAPI.deleteProduct(deletingProductId);
+      loadProducts(); // Reload products after successful deletion
+      setDeleteDialogOpen(false);
+      setDeletingProductId(null);
+      setDeletingProductName('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '删除商品失败');
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setDeletingProductId(null);
+    setDeletingProductName('');
   };
 
   const formatDate = (dateString: string) => {
@@ -400,7 +435,8 @@ const ProductList: React.FC = () => {
                   variant="contained"
                   startIcon={<AddIcon sx={{ fontSize: '1rem' }} />}
                   onClick={() => {
-                    // TODO: 实现添加商品功能
+                    setEditingProductId(null);
+                    setEditDialogOpen(true);
                   }}
                   sx={{
                     background: 'linear-gradient(135deg, #2C5F3C 0%, #1B3A2B 100%)',
@@ -671,7 +707,11 @@ const ProductList: React.FC = () => {
                               </IconButton>
                             </Tooltip>
                             <Tooltip title="删除">
-                              <IconButton size="small" color="error">
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleDeleteClick(product.id, product.name)}
+                              >
                                 <DeleteIcon />
                               </IconButton>
                             </Tooltip>
@@ -761,6 +801,36 @@ const ProductList: React.FC = () => {
         onClose={() => setEditDialogOpen(false)}
         onSuccess={handleEditSuccess}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>确认删除商品</DialogTitle>
+        <DialogContent>
+          <Typography>
+            确定要删除商品 "{deletingProductName}" 吗？
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            此操作不可撤销，删除后将无法恢复。
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel}>
+            取消
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+          >
+            删除
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

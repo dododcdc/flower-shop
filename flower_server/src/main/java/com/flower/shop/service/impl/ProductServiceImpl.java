@@ -9,6 +9,9 @@ import com.flower.shop.entity.Product;
 import com.flower.shop.mapper.ProductMapper;
 import com.flower.shop.service.ProductService;
 import com.flower.shop.service.CategoryService;
+import com.flower.shop.config.FileUploadConfig;
+import com.flower.shop.util.FileUploadUtil;
+import com.flower.shop.util.ProductImagesUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,6 +30,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     private final ProductMapper productMapper;
     private final CategoryService categoryService;
+    private final FileUploadConfig fileUploadConfig;
 
     @Override
     public IPage<Product> getProductPage(int current, int size) {
@@ -133,6 +137,33 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
         // 检查是否有未完成的订单（这里简化处理）
         // 实际业务中需要检查订单状态
+
+        // 删除商品相关的图片文件
+        if (product.getImages() != null && !product.getImages().trim().isEmpty()) {
+            try {
+                // 解析图片路径
+                ProductImagesUtil.ProductImages productImages =
+                    ProductImagesUtil.ProductImages.fromJson(product.getImages());
+
+                // 获取所有图片路径
+                List<String> imagePaths = new ArrayList<>();
+                if (productImages.getMain() != null) {
+                    imagePaths.add(productImages.getMain());
+                }
+                if (productImages.getSubImages() != null) {
+                    imagePaths.addAll(productImages.getSubImages());
+                }
+
+                // 删除物理文件
+                if (!imagePaths.isEmpty()) {
+                    FileUploadUtil.deleteFiles(imagePaths, fileUploadConfig.getUploadPath());
+                    log.info("已删除商品 {} 的 {} 个图片文件", productId, imagePaths.size());
+                }
+            } catch (Exception e) {
+                log.warn("删除商品图片文件失败，商品ID: {}, 错误: {}", productId, e.getMessage());
+                // 图片删除失败不影响商品删除操作
+            }
+        }
 
         // 逻辑删除商品
         boolean result = removeById(productId);
