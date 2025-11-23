@@ -265,29 +265,28 @@ const ProductList: React.FC = () => {
 
   const parseImages = (product: Product) => {
     try {
-      // Get main image first
-      const mainImage = getMainProductImage(product.images);
-      if (!mainImage) {
-        return [];
+      // 使用新的主图路径字段
+      if (product.mainImagePath) {
+        // Convert main image path to URL that browsers can load
+        let imageUrl = product.mainImagePath;
+
+        // If already a URL (starts with http), return as‑is
+        if (!/^https?:/i.test(imageUrl)) {
+          // If it's a relative path starting with /uploads/, convert to full API URL
+          if (imageUrl.startsWith('/uploads/')) {
+            imageUrl = `http://localhost:8080/api${imageUrl}`;
+          }
+          // Legacy absolute file system path support (convert to API URL)
+          else if (imageUrl.startsWith('/Users/wenbin/Projects/flower_shop/flower_server/uploads')) {
+            const relativePath = imageUrl.replace('/Users/wenbin/Projects/flower_shop/flower_server', '');
+            imageUrl = `http://localhost:8080/api${relativePath}`;
+          }
+        }
+
+        return [imageUrl];
       }
 
-      // Convert main image path to URL that browsers can load
-      let imageUrl = mainImage;
-
-      // If already a URL (starts with http), return as‑is
-      if (!/^https?:/i.test(imageUrl)) {
-        // If it's a relative path starting with /uploads/, convert to full API URL
-        if (imageUrl.startsWith('/uploads/')) {
-          imageUrl = `http://localhost:8080/api${imageUrl}`;
-        }
-        // Legacy absolute file system path support (convert to API URL)
-        else if (imageUrl.startsWith('/Users/wenbin/Projects/flower_shop/flower_server/uploads')) {
-          const relativePath = imageUrl.replace('/Users/wenbin/Projects/flower_shop/flower_server', '');
-          imageUrl = `http://localhost:8080/api${relativePath}`;
-        }
-      }
-
-      return [imageUrl];
+      return [];
     } catch {
       return [];
     }

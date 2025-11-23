@@ -52,7 +52,7 @@ export const getProductById = async (id: number): Promise<Product> => {
 };
 
 /**
- * Create new product
+ * Create new product (必须包含图片)
  */
 export const createProduct = async (
   formData: ProductFormData,
@@ -62,6 +62,11 @@ export const createProduct = async (
   const validatedData = validateProductForm(formData);
   if (!validatedData.success) {
     throw new Error(`表单验证失败: ${Object.values(validatedData.errors || {}).join(', ')}`);
+  }
+
+  // 检查是否提供了图片
+  if (!validatedData.data.images || validatedData.data.images.length === 0) {
+    throw new Error('创建商品必须至少上传一张图片');
   }
 
   // Create FormData for multipart request (images)
@@ -74,17 +79,16 @@ export const createProduct = async (
   // Add product as JSON string
   formDataToSend.append('product', JSON.stringify(productData));
 
-  // Add images
-  if (validatedData.data.images && validatedData.data.images.length > 0) {
-    validatedData.data.images.forEach((file) => {
-      formDataToSend.append('images', file); // 使用相同的名'images'，Spring会自动收集为数组
-    });
-  }
+  // Add images (required parameter now)
+  validatedData.data.images.forEach((file) => {
+    formDataToSend.append('images', file); // 使用相同的名'images'，Spring会自动收集为数组
+  });
 
-  // Add main image index if specified
-  if (mainImageIndex !== undefined && mainImageIndex >= 0) {
-    formDataToSend.append('newImageMainIndex', String(mainImageIndex));
+  // Add main image index (必需参数)
+  if (mainImageIndex === undefined || mainImageIndex < 0) {
+    throw new Error('创建商品必须指定主图索引');
   }
+  formDataToSend.append('mainImageIndex', String(mainImageIndex));
 
   const response = await axiosClient.post<ApiResponse<Product>>(ENDPOINTS.PRODUCTS, formDataToSend, {
     headers: {
@@ -96,29 +100,46 @@ export const createProduct = async (
 };
 
 /**
- * Update product with images state (用于编辑时更新图片状态)
+ * Update product with images (支持新的图片管理系统)
  */
-export const updateProductWithImagesState = async (id: number, productData: any, imageFiles?: File[], imagesToDelete?: string[]): Promise<Product> => {
+export const updateProductWithImagesState = async (
+  id: number,
+  productData: any,
+  updateRequest: {
+    existingImages?: Array<{
+      id: number;
+      imagePath: string;
+      imageType: number;    // 1-主图, 2-副图
+      sortOrder: number;
+      isDeleted: boolean;
+    }>;
+    newImages?: Array<{
+      imageType: number;    // 1-主图, 2-副图
+      sortOrder: number;
+    }>;
+    imageFiles?: File[];
+  }
+): Promise<Product> => {
   const formDataToSend = new FormData();
 
   // Add product data as JSON string
   formDataToSend.append('product', JSON.stringify(productData));
 
+  // Add existing images info if provided
+  if (updateRequest.existingImages && updateRequest.existingImages.length > 0) {
+    formDataToSend.append('existingImages', JSON.stringify(updateRequest.existingImages));
+  }
+
+  // Add new images info if provided
+  if (updateRequest.newImages && updateRequest.newImages.length > 0) {
+    formDataToSend.append('newImages', JSON.stringify(updateRequest.newImages));
+  }
+
   // Add image files if provided
-  if (imageFiles && imageFiles.length > 0) {
-    imageFiles.forEach((file: File) => {
-      formDataToSend.append('images', file);
+  if (updateRequest.imageFiles && updateRequest.imageFiles.length > 0) {
+    updateRequest.imageFiles.forEach((file: File, index: number) => {
+      formDataToSend.append('imageFiles', file);
     });
-  }
-
-  // Add images to delete if provided
-  if (imagesToDelete && imagesToDelete.length > 0) {
-    formDataToSend.append('imagesToDelete', JSON.stringify(imagesToDelete));
-  }
-
-  // Add new image main index if provided
-  if (productData.newImageMainIndex !== null && productData.newImageMainIndex !== undefined) {
-    formDataToSend.append('newImageMainIndex', productData.newImageMainIndex.toString());
   }
 
   const response = await axiosClient.put<ApiResponse<Product>>(`${ENDPOINTS.PRODUCTS}/${id}`, formDataToSend, {

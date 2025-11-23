@@ -139,36 +139,26 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
                 careGuide: product.careGuide || '',
             });
 
-            // 解析现有图片并转换为统一格式
-            const images = parseProductImages(product.images);
+            // 解析现有图片并转换为统一格式（使用新的图片数据结构）
             const newImageList: ImageItem[] = [];
 
-            // 处理主图
-            if (images.main) {
-                newImageList.push({
-                    id: images.main,
-                    url: images.main,
-                    isExisting: true,
-                    isDeleted: false
-                });
-            }
-
-            // 处理副图 (去重：如果主图也在副图中，跳过)
-            images.subImages.forEach(imgUrl => {
-                if (imgUrl !== images.main) {
+            // 使用新的图片详情数据结构
+            if (product.images && product.images.length > 0) {
+                product.images.forEach((imageDetail) => {
                     newImageList.push({
-                        id: imgUrl,
-                        url: imgUrl,
+                        id: imageDetail.id.toString(), // 使用数据库ID
+                        url: imageDetail.imageUrl || imageDetail.imagePath, // 使用完整URL
                         isExisting: true,
                         isDeleted: false
                     });
-                }
-            });
+                });
+            }
 
             setImageList(newImageList);
-            // 初始化主图指针
-            if (images.main) {
-                setMainImageId(images.main);
+            // 初始化主图指针（找到主图）
+            const mainImage = product.images?.find(img => img.imageType === 1);
+            if (mainImage) {
+                setMainImageId(mainImage.id.toString());
             } else if (newImageList.length > 0) {
                 setMainImageId(newImageList[0].id);
             }
@@ -199,9 +189,47 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
             return;
         }
 
-        const newItems: ImageItem[] = [];
+        // 检查重复图片（新文件之间）
+        const newFileHash = new Map<string, File>();
+        const duplicateNewFiles: string[] = [];
 
         fileArray.forEach(file => {
+            const fileKey = `${file.name}_${file.size}_${file.lastModified}`;
+            if (newFileHash.has(fileKey)) {
+                duplicateNewFiles.push(file.name);
+            } else {
+                newFileHash.set(fileKey, file);
+            }
+        });
+
+        if (duplicateNewFiles.length > 0) {
+            setError(`本次选择了重复的图片：${duplicateNewFiles.join(', ')}`);
+            return;
+        }
+
+        // 检查与现有图片的重复
+        const existingFiles = imageList.filter(img => !img.isDeleted && img.file);
+        const duplicateExistingFiles: string[] = [];
+
+        newFileHash.forEach((file, fileKey) => {
+            existingFiles.forEach(existingImg => {
+                if (existingImg.file) {
+                    const existingKey = `${existingImg.file.name}_${existingImg.file.size}_${existingImg.file.lastModified}`;
+                    if (fileKey === existingKey) {
+                        duplicateExistingFiles.push(file.name);
+                    }
+                }
+            });
+        });
+
+        if (duplicateExistingFiles.length > 0) {
+            setError(`以下图片已经添加过了：${duplicateExistingFiles.join(', ')}`);
+            return;
+        }
+
+        const newItems: ImageItem[] = [];
+
+        newFileHash.forEach(file => {
             // 简单验证
             if (file.size > 5 * 1024 * 1024) {
                 setError(`文件 ${file.name} 超过5MB`);
@@ -314,7 +342,7 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
                 .map(item => item.file!);
 
             // 确定主图索引（对于新图片）
-            let newImageMainIndex: number | null = null;
+            let newImageMainIndex: number = 0; // 默认第一张图为主图
             const mainItem = imageList.find(item => item.id === mainImageId);
 
             if (mainItem && !mainItem.isExisting) {
@@ -326,40 +354,52 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
                     newImageMainIndex = index;
                 }
             }
+            // 创建商品时如果没有选择主图，默认第一张图为主图
 
             // 根据是否有productId判断是创建还是编辑
             if (productId) {
-                // 编辑模式：更新现有商品
-                const imagesToDelete = imageList
-                    .filter(item => item.isExisting && item.isDeleted)
-                    .map(item => item.url);
+                // 编辑模式：更新现有商品 - 使用新的API结构
+                const existingImages = imageList
+                    .filter(item => item.isExisting)
+                    .map((item, index) => {
+                        // 判断是否为主图
+                        const isMainImage = item.id === mainImageId;
+                        return {
+                            id: parseInt(item.id), // 从URL中提取数据库ID或使用item中的其他标识
+                            imagePath: item.url,
+                            imageType: isMainImage ? 1 : 2, // 1-主图, 2-副图
+                            sortOrder: index,
+                            isDeleted: item.isDeleted || false
+                        };
+                    });
 
-                const keptExistingImages = imageList
-                    .filter(item => item.isExisting && !item.isDeleted);
+                const newImages = imageList
+                    .filter(item => !item.isExisting && !item.isDeleted)
+                    .map((item, index) => {
+                        const isMainImage = item.id === mainImageId;
+                        return {
+                            imageType: isMainImage ? 1 : 2, // 1-主图, 2-副图
+                            sortOrder: index
+                        };
+                    });
 
-                let finalMainPath: string | undefined = undefined;
-                if (mainItem && mainItem.isExisting) {
-                    finalMainPath = mainItem.url;
-                }
-
-                const imagesStruct = {
-                    main: finalMainPath,
-                    subImages: keptExistingImages
-                        .filter(item => item.url !== finalMainPath)
-                        .map(item => item.url)
-                };
+                const newImageFiles = imageList
+                    .filter(item => !item.isExisting && !item.isDeleted && item.file)
+                    .map(item => item.file!);
 
                 const completeProductData = {
                     ...formData,
-                    images: imagesStruct,
-                    newImageMainIndex: newImageMainIndex,
+                    // 移除旧的images结构，后端不再需要
                 };
 
                 await productAPI.updateProductWithImagesState(
                     productId,
                     completeProductData,
-                    newFiles,
-                    imagesToDelete
+                    {
+                        existingImages,
+                        newImages,
+                        imageFiles: newImageFiles
+                    }
                 );
             } else {
                 // 创建模式：创建新商品
@@ -378,7 +418,7 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
                     images: newFiles, // 符合 ProductFormData schema 的 images 字段
                 };
 
-                await productAPI.createProduct(newProductData, newImageMainIndex || undefined);
+                await productAPI.createProduct(newProductData, newImageMainIndex);
             }
 
             onSuccess();
@@ -543,7 +583,7 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
                                     )}
                                 </Stack>
                                 <Typography variant="caption" color="text.secondary">
-                                    支持 JPG、PNG、GIF、WebP，单张不超过5MB。点击图片可设为主图。
+                                    支持 JPG、PNG、GIF、WebP，单张不超过5MB。不允许上传重复图片。点击图片可设为主图。
                                 </Typography>
                             </Box>
 

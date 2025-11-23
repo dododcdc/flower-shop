@@ -49,12 +49,15 @@ public class Product {
     @TableField("description")
     private String description;
 
-    /**
-     * 商品图片列表（JSON格式存储多个图片URL）
-     * 数据库字段为：images (JSON类型)
-     */
-    @TableField("images")
-    private String images;
+    // 图片相关字段 - 仅用于查询结果返回，不存储在数据库
+    @TableField(exist = false)
+    private java.util.List<String> imageList;          // 所有图片路径列表
+
+    @TableField(exist = false)
+    private String mainImagePath;                     // 主图路径
+
+    @TableField(exist = false)
+    private java.util.List<ProductImageDetail> images; // 详细图片信息（包含id等）
 
     
     /**
@@ -236,5 +239,17 @@ public class Product {
             this.stockQuantity = stockQuantity + quantity;
             updateStockStatus();
         }
+    }
+
+    /**
+     * 图片详情内部类 - 用于返回给前端的图片信息
+     */
+    @Data
+    public static class ProductImageDetail {
+        private Long id;              // product_images表主键
+        private String imagePath;      // 图片路径
+        private Integer imageType;    // 图片类型: 1-主图, 2-副图
+        private Integer sortOrder;    // 排序
+        private String imageUrl;       // 完整的图片URL
     }
 }

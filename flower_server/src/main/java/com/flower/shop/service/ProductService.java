@@ -131,15 +131,6 @@ public interface ProductService extends IService<Product> {
      */
     boolean validateProduct(Product product);
 
-    /**
-     * 处理商品图片URLs
-     */
-    List<String> parseImageUrls(String imageUrlsJson);
-
-    /**
-     * 序列化图片URLs
-     */
-    String serializeImageUrls(List<String> imageUrls);
 
     /**
      * 获取推荐商品详情
@@ -152,7 +143,51 @@ public interface ProductService extends IService<Product> {
     List<Product> getLowStockProducts();
 
     /**
+     * 创建商品并保存图片信息
+     */
+    Product createProductWithImages(Product product, List<String> imagePaths, Integer mainImageIndex);
+
+    /**
+     * 更新商品并处理图片信息
+     */
+    Product updateProductWithImages(ProductUpdateRequest request);
+
+    /**
      * 获取商品关联信息（分类、库存等）
      */
     Product getProductWithRelations(Long productId);
+
+    // ==================== 图片管理支持类 ====================
+
+    /**
+     * 商品更新请求类
+     */
+    @lombok.Data
+    class ProductUpdateRequest {
+        private Product product;
+        private java.util.List<ExistingImageInfo> existingImages;
+        private java.util.List<NewImageInfo> newImages;
+    }
+
+    /**
+     * 现有图片信息类
+     */
+    @lombok.Data
+    class ExistingImageInfo {
+        private Long id;
+        private String imagePath;
+        private Integer imageType;    // 1-主图, 2-副图
+        private Integer sortOrder;
+        private Boolean isDeleted;    // 是否标记删除
+    }
+
+    /**
+     * 新图片信息类
+     */
+    @lombok.Data
+    class NewImageInfo {
+        private org.springframework.web.multipart.MultipartFile imageFile;
+        private Integer imageType;    // 1-主图, 2-副图
+        private Integer sortOrder;
+    }
 }

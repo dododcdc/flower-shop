@@ -9,18 +9,16 @@
         <result property="description" column="description"/>
         <result property="price" column="price"/>
         <result property="originalPrice" column="original_price"/>
-        <result property="images" column="images"/>
         <result property="flowerLanguage" column="flower_language"/>
         <result property="careGuide" column="care_guide"/>
         <result property="categoryId" column="category_id"/>
-        <result property="specification" column="specification"/>
         <result property="status" column="status"/>
         <result property="featured" column="featured"/>
         <result property="stockQuantity" column="stock_quantity"/>
         <result property="lowStockThreshold" column="low_stock_threshold"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
-                <!-- 分类名称（关联查询结果） -->
+        <!-- 分类名称（关联查询结果） -->
         <result property="categoryName" column="category_name"/>
     </resultMap>
 

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.flower.shop.dto.ProductSearchRequest;
 import com.flower.shop.entity.Product;
+import lombok.Data;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -140,4 +141,28 @@ public interface ProductMapper extends BaseMapper<Product> {
      * 多条件动态搜索商品（分页）
      */
     IPage<Product> searchProductsAdvanced(Page<Product> page, @Param("request") ProductSearchRequest request);
+
+    /**
+     * 查询商品的主图路径
+     */
+    @Select("SELECT image_path FROM product_images WHERE product_id = #{productId} AND image_type = 1 ORDER BY sort_order ASC, id ASC LIMIT 1")
+    String selectMainImageByProductId(@Param("productId") Long productId);
+
+    /**
+     * 查询商品的所有图片详情（包含完整信息）
+     */
+    @Select("SELECT id, image_path, image_type, sort_order FROM product_images " +
+            "WHERE product_id = #{productId} ORDER BY sort_order ASC, id ASC")
+    List<ProductImageInfo> selectProductImagesWithDetails(@Param("productId") Long productId);
+
+    /**
+     * 查询商品的图片详情内部类
+     */
+    @Data
+    class ProductImageInfo {
+        private Long id;
+        private String imagePath;
+        private Integer imageType;
+        private Integer sortOrder;
+    }
 }

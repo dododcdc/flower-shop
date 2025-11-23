@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.flower.shop.mapper.ProductImageMapper">
+
+    <resultMap id="ProductImageResultMap" type="com.flower.shop.entity.ProductImage">
+        <id column="id" property="id"/>
+        <result column="product_id" property="productId"/>
+        <result column="image_path" property="imagePath"/>
+        <result column="image_type" property="imageType"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="selectByProductId" resultMap="ProductImageResultMap">
+        SELECT id, product_id, image_path, image_type, sort_order, created_at, updated_at
+        FROM product_images
+        WHERE product_id = #{productId}
+        ORDER BY image_type ASC, sort_order ASC, id ASC
+    </select>
+
+    <select id="selectMainImage" resultMap="ProductImageResultMap">
+        SELECT id, product_id, image_path, image_type, sort_order, created_at, updated_at
+        FROM product_images
+        WHERE product_id = #{productId} AND image_type = 1
+        LIMIT 1
+    </select>
+
+    <delete id="deleteByProductId">
+        DELETE FROM product_images WHERE product_id = #{productId}
+    </delete>
+
+    <update id="setMainImage">
+        UPDATE product_images
+        SET image_type = CASE 
+            WHEN image_path = #{imagePath} THEN 1
+            ELSE 2
+        END
+        WHERE product_id = #{productId}
+    </update>
+
+</mapper>

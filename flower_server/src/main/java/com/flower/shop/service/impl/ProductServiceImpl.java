@@ -11,7 +11,9 @@ import com.flower.shop.service.ProductService;
 import com.flower.shop.service.CategoryService;
 import com.flower.shop.config.FileUploadConfig;
 import com.flower.shop.util.FileUploadUtil;
-import com.flower.shop.util.ProductImagesUtil;
+import com.flower.shop.mapper.ProductImageMapper;
+import com.flower.shop.entity.ProductImage;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * 商品服务实现类
@@ -32,15 +37,41 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     private final CategoryService categoryService;
     private final FileUploadConfig fileUploadConfig;
 
+    private final ProductImageMapper productImageMapper;
+
     @Override
     public IPage<Product> getProductPage(int current, int size) {
         Page<Product> page = new Page<>(current, size);
-        return productMapper.selectProductsWithDetails(page);
+        IPage<Product> productPage = productMapper.selectProductsWithDetails(page);
+
+        // 为每个商品设置主图信息
+        List<Product> products = productPage.getRecords();
+        if (products != null && !products.isEmpty()) {
+            for (Product product : products) {
+                String mainImagePath = productMapper.selectMainImageByProductId(product.getId());
+                if (mainImagePath != null) {
+                    product.setMainImagePath(mainImagePath);
+                }
+            }
+        }
+
+        return productPage;
     }
 
     @Override
     public List<Product> getProductsByCategoryId(Long categoryId) {
-        return productMapper.selectProductsByCategoryId(categoryId);
+        List<Product> products = productMapper.selectProductsByCategoryId(categoryId);
+
+        if (products != null && !products.isEmpty()) {
+            for (Product product : products) {
+                String mainImagePath = productMapper.selectMainImageByProductId(product.getId());
+                if (mainImagePath != null) {
+                    product.setMainImagePath(mainImagePath);
+                }
+            }
+        }
+
+        return products;
     }
 
     @Override
@@ -73,7 +104,21 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     @Override
     public IPage<Product> searchProductsAdvanced(ProductSearchRequest request) {
         Page<Product> page = new Page<>(request.getCurrent(), request.getSize());
-        return productMapper.searchProductsAdvanced(page, request);
+        IPage<Product> productPage = productMapper.searchProductsAdvanced(page, request);
+
+        // 为每个商品设置主图信息
+        List<Product> products = productPage.getRecords();
+        if (products != null && !products.isEmpty()) {
+            for (Product product : products) {
+                // 只查询主图（通过image_type=1查询）
+                String mainImagePath = productMapper.selectMainImageByProductId(product.getId());
+                if (mainImagePath != null) {
+                    product.setMainImagePath(mainImagePath);
+                }
+            }
+        }
+
+        return productPage;
     }
 
     
@@ -128,6 +173,115 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     @Override
     @Transactional
+    public Product createProductWithImages(Product product, List<String> imagePaths, Integer mainImageIndex) {
+        // 首先创建商品基本信息
+        Product createdProduct = this.createProduct(product);
+
+        if (imagePaths != null && !imagePaths.isEmpty()) {
+            // 保存图片信息
+            for (int i = 0; i < imagePaths.size(); i++) {
+                ProductImage productImage = new ProductImage();
+                productImage.setProductId(createdProduct.getId());
+                productImage.setImagePath(imagePaths.get(i));
+
+                // 验证主图索引（数组索引）
+                if (mainImageIndex == null) {
+                    throw new IllegalArgumentException("创建商品必须指定主图索引");
+                }
+                if (mainImageIndex < 0 || mainImageIndex >= imagePaths.size()) {
+                    throw new IllegalArgumentException("主图索引无效：" + mainImageIndex + "，图片总数：" + imagePaths.size());
+                }
+
+                // 设置图片类型：根据传入的主图索引
+                if (i == mainImageIndex) {
+                    productImage.setImageType(1); // 主图
+                } else {
+                    productImage.setImageType(2); // 副图
+                }
+
+                productImage.setSortOrder(i); // 根据列表顺序排序
+                productImageMapper.insert(productImage);
+            }
+        }
+
+        log.info("创建商品并保存图片成功：{}", createdProduct.getName());
+        // 重新查询并返回完整信息
+        return getProductWithDetails(createdProduct.getId());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Product updateProductWithImages(ProductService.ProductUpdateRequest request) {
+        try {
+            Long productId = request.getProduct().getId();
+
+            // 1. 更新商品基本信息
+            Product product = request.getProduct();
+            updateById(product);
+
+            // 2. 验证主图唯一性
+            validateMainImageUniqueness(request);
+
+            // 3. 处理现有图片
+            List<String> imagePathsToDelete = new ArrayList<>();
+            if (request.getExistingImages() != null) {
+                for (ProductService.ExistingImageInfo existingImg : request.getExistingImages()) {
+                    if (existingImg.getIsDeleted()) {
+                        // 标记待删除的物理文件路径
+                        imagePathsToDelete.add(existingImg.getImagePath());
+                        // 删除数据库记录
+                        productImageMapper.deleteById(existingImg.getId());
+                    } else {
+                        // 更新图片信息
+                        ProductImage updateImg = new ProductImage();
+                        updateImg.setId(existingImg.getId());
+                        updateImg.setImageType(existingImg.getImageType());
+                        updateImg.setSortOrder(existingImg.getSortOrder());
+                        productImageMapper.updateById(updateImg);
+                    }
+                }
+            }
+
+            // 4. 处理新增图片
+            if (request.getNewImages() != null) {
+                for (ProductService.NewImageInfo newImg : request.getNewImages()) {
+                    // 上传文件
+                    String imagePath = FileUploadUtil.uploadFile(newImg.getImageFile(), fileUploadConfig.getUploadPath());
+
+                    // 插入数据库记录
+                    ProductImage productImage = new ProductImage();
+                    productImage.setProductId(productId);
+                    productImage.setImagePath(imagePath);
+                    productImage.setImageType(newImg.getImageType());
+                    productImage.setSortOrder(newImg.getSortOrder());
+                    productImageMapper.insert(productImage);
+                }
+            }
+
+            // 5. 确保只有一个主图
+            ensureSingleMainImage(productId);
+
+            // 6. 清理已删除的物理文件（在事务成功后执行）
+            TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        deletePhysicalFiles(imagePathsToDelete);
+                    }
+                }
+            );
+
+            log.info("更新商品并处理图片成功：{}", product.getName());
+            return getProductWithDetails(productId);
+
+        } catch (Exception e) {
+            log.error("更新商品失败，事务回滚", e);
+            throw new RuntimeException("更新商品失败: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Transactional
     public boolean deleteProduct(Long productId) {
         // 检查商品是否存在
         Product product = getById(productId);
@@ -138,34 +292,28 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         // 检查是否有未完成的订单（这里简化处理）
         // 实际业务中需要检查订单状态
 
-        // 删除商品相关的图片文件
-        if (product.getImages() != null && !product.getImages().trim().isEmpty()) {
-            try {
-                // 解析图片路径
-                ProductImagesUtil.ProductImages productImages =
-                    ProductImagesUtil.ProductImages.fromJson(product.getImages());
+        // 删除商品相关的图片记录和物理文件
+        try {
+            // 获取商品的所有图片路径
+            List<ProductImage> productImages = productImageMapper.selectByProductId(productId);
+            List<String> imagePaths = productImages.stream()
+                .map(ProductImage::getImagePath)
+                .collect(Collectors.toList());
 
-                // 获取所有图片路径
-                List<String> imagePaths = new ArrayList<>();
-                if (productImages.getMain() != null) {
-                    imagePaths.add(productImages.getMain());
-                }
-                if (productImages.getSubImages() != null) {
-                    imagePaths.addAll(productImages.getSubImages());
-                }
+            // 删除图片记录
+            productImageMapper.deleteByProductId(productId);
 
-                // 删除物理文件
-                if (!imagePaths.isEmpty()) {
-                    FileUploadUtil.deleteFiles(imagePaths, fileUploadConfig.getUploadPath());
-                    log.info("已删除商品 {} 的 {} 个图片文件", productId, imagePaths.size());
-                }
-            } catch (Exception e) {
-                log.warn("删除商品图片文件失败，商品ID: {}, 错误: {}", productId, e.getMessage());
-                // 图片删除失败不影响商品删除操作
+            // 删除物理文件
+            if (!imagePaths.isEmpty()) {
+                FileUploadUtil.deleteFiles(imagePaths, fileUploadConfig.getUploadPath());
+                log.info("已删除商品 {} 的 {} 个图片文件", productId, imagePaths.size());
             }
+        } catch (Exception e) {
+            log.warn("删除商品图片文件失败，商品ID: {}, 错误: {}", productId, e.getMessage());
+            // 图片删除失败不影响商品删除操作
         }
 
-        // 逻辑删除商品
+        // 删除商品
         boolean result = removeById(productId);
         if (result) {
             log.info("删除商品成功：{}", productId);
@@ -225,7 +373,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     @Override
     public Product getProductWithDetails(Long productId) {
-        // 这里简化处理，实际应该使用包含关联信息的查询
+        // 获取商品基本信息
         Product product = getById(productId);
         if (product == null) {
             return null;
@@ -237,7 +385,40 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             // 简化处理
         }
 
-        // 库存信息已经直接在product对象中，无需额外设置
+        // 获取商品图片信息
+        List<ProductMapper.ProductImageInfo> productImageInfos = productMapper.selectProductImagesWithDetails(productId);
+        if (productImageInfos != null && !productImageInfos.isEmpty()) {
+            // 提取图片路径列表
+            List<String> imagePaths = productImageInfos.stream()
+                .map(ProductMapper.ProductImageInfo::getImagePath)
+                .collect(Collectors.toList());
+
+            product.setImageList(imagePaths);
+
+            // 创建详细的图片信息
+            List<Product.ProductImageDetail> imageDetails = productImageInfos.stream()
+                .map(info -> {
+                    Product.ProductImageDetail detail = new Product.ProductImageDetail();
+                    detail.setId(info.getId());
+                    detail.setImagePath(info.getImagePath());
+                    detail.setImageType(info.getImageType());
+                    detail.setSortOrder(info.getSortOrder());
+                    detail.setImageUrl("http://localhost:8080/api" + info.getImagePath());
+                    return detail;
+                })
+                .collect(Collectors.toList());
+
+            product.setImages(imageDetails);
+
+            // 获取主图
+            ProductImage mainImage = productImageMapper.selectMainImage(productId);
+            if (mainImage != null) {
+                product.setMainImagePath(mainImage.getImagePath());
+            } else if (!imagePaths.isEmpty()) {
+                // 如果没有标记为主图的图片，使用第一张图片作为主图
+                product.setMainImagePath(imagePaths.get(0));
+            }
+        }
 
         return product;
     }
@@ -391,7 +572,6 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         String careGuide = getCareGuide(flowerCategory.getName());
         product.setCareGuide(careGuide);
 
-        product.setImages("[\"/images/placeholder.jpg\"]");
         product.setStatus(1);
 
         // 随机设置一些商品为推荐
@@ -506,30 +686,6 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         return true;
     }
 
-    @Override
-    public List<String> parseImageUrls(String imageUrlsJson) {
-        if (imageUrlsJson == null || imageUrlsJson.trim().isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        try {
-            // 这里应该使用JSON解析库，简化处理
-            return Arrays.asList(imageUrlsJson.replaceAll("[\\[\\]\"]", "").split(","));
-        } catch (Exception e) {
-            log.error("解析图片URLs失败：{}", imageUrlsJson, e);
-            return new ArrayList<>();
-        }
-    }
-
-    @Override
-    public String serializeImageUrls(List<String> imageUrls) {
-        if (imageUrls == null || imageUrls.isEmpty()) {
-            return "[]";
-        }
-
-        // 这里应该使用JSON序列化库，简化处理
-        return imageUrls.toString();
-    }
 
     @Override
     public List<Product> getRecommendedProducts(Long categoryId, Integer limit) {
@@ -548,4 +704,64 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     public Product getProductWithRelations(Long productId) {
         return getProductWithDetails(productId);
     }
+
+    // ==================== 图片管理支持类 ====================
+
+    /**
+     * 验证主图唯一性
+     */
+    private void validateMainImageUniqueness(ProductService.ProductUpdateRequest request) {
+        long mainImageCount = 0;
+
+        // 统计现有图片中的主图数量
+        if (request.getExistingImages() != null) {
+            mainImageCount += request.getExistingImages().stream()
+                .filter(img -> !img.getIsDeleted() && img.getImageType() == 1)
+                .count();
+        }
+
+        // 统计新图片中的主图数量
+        if (request.getNewImages() != null) {
+            mainImageCount += request.getNewImages().stream()
+                .filter(img -> img.getImageType() == 1)
+                .count();
+        }
+
+        if (mainImageCount > 1) {
+            throw new IllegalArgumentException("一个商品只能有一个主图");
+        }
+    }
+
+    /**
+     * 验证只有一个主图（仅验证，不自动修复）
+     */
+    private void ensureSingleMainImage(Long productId) {
+        List<ProductImage> mainImages = productImageMapper.selectList(
+            new LambdaQueryWrapper<ProductImage>()
+                .eq(ProductImage::getProductId, productId)
+                .eq(ProductImage::getImageType, 1)
+        );
+
+        if (mainImages.size() > 1) {
+            throw new IllegalArgumentException("一个商品只能有一个主图，当前存在 " + mainImages.size() + " 个主图");
+        }
+    }
+
+    /**
+     * 删除物理文件
+     */
+    private void deletePhysicalFiles(List<String> imagePaths) {
+        if (imagePaths != null && !imagePaths.isEmpty()) {
+            for (String imagePath : imagePaths) {
+                try {
+                    FileUploadUtil.deleteFile(imagePath, fileUploadConfig.getUploadPath());
+                    log.info("已删除图片文件: {}", imagePath);
+                } catch (Exception e) {
+                    log.warn("删除图片文件失败: {}", imagePath, e);
+                }
+            }
+        }
+    }
+
+    // 这些支持类已移到ProductService接口中
 }
