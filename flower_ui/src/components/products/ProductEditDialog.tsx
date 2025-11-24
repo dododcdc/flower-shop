@@ -27,7 +27,7 @@ import {
     Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { type Product, parseProductImages } from '../../models/product';
-import { productAPI } from '../../api/productAPI';
+import { useProduct, useUpdateProduct, useCreateProduct } from '../../hooks/useProducts';
 import { categoryAPI, type Category } from '../../api/categoryAPI';
 
 interface ProductEditDialogProps {
@@ -52,7 +52,11 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
     onClose,
     onSuccess,
 }) => {
-    const [loading, setLoading] = useState(false);
+    // React Query hooks
+    const { data: product, isLoading: productLoading, error: productError } = useProduct(productId);
+    const updateProduct = useUpdateProduct();
+    const createProduct = useCreateProduct();
+
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -89,14 +93,55 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
         loadCategories();
     }, []);
 
-    // 加载商品数据
+    // 加载商品数据 - 使用 React Query 自动处理
     useEffect(() => {
-        if (open && productId) {
-            loadProduct();
+        if (product && productId) {
+            // 编辑模式：加载商品数据
+            setFormData({
+                name: product.name,
+                categoryId: product.categoryId,
+                description: product.description,
+                price: product.price,
+                originalPrice: product.originalPrice,
+                stockQuantity: product.stockQuantity,
+                lowStockThreshold: product.lowStockThreshold,
+                status: product.status,
+                featured: product.featured,
+                flowerLanguage: product.flowerLanguage || '',
+                careGuide: product.careGuide || '',
+            });
+
+            // 解析现有图片并转换为统一格式
+            const newImageList: ImageItem[] = [];
+
+            if (product.images && product.images.length > 0) {
+                product.images.forEach((imageDetail) => {
+                    newImageList.push({
+                        id: imageDetail.id.toString(),
+                        url: imageDetail.imageUrl || imageDetail.imagePath,
+                        isExisting: true,
+                        isDeleted: false
+                    });
+                });
+            }
+
+            setImageList(newImageList);
+            // 初始化主图指针（找到主图）
+            const mainImage = product.images?.find(img => img.imageType === 1);
+            if (mainImage) {
+                setMainImageId(mainImage.id.toString());
+            } else if (newImageList.length > 0) {
+                setMainImageId(newImageList[0].id);
+            }
+            setPrevMainImageId(null);
+        } else if (!productId && open) {
+            // 添加模式：重置表单为空
+            resetForm();
         } else if (!open) {
+            // 对话框关闭时也重置
             resetForm();
         }
-    }, [open, productId]);
+    }, [product, productId, open]);
 
     const resetForm = () => {
         setFormData({
@@ -116,59 +161,6 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
         setMainImageId(null);
         setPrevMainImageId(null);
         setError(null);
-    };
-
-    const loadProduct = async () => {
-        if (!productId) return;
-
-        setLoading(true);
-        setError(null);
-        try {
-            const product = await productAPI.getProductById(productId);
-            setFormData({
-                name: product.name,
-                categoryId: product.categoryId,
-                description: product.description,
-                price: product.price,
-                originalPrice: product.originalPrice,
-                stockQuantity: product.stockQuantity,
-                lowStockThreshold: product.lowStockThreshold,
-                status: product.status,
-                featured: product.featured,
-                flowerLanguage: product.flowerLanguage || '',
-                careGuide: product.careGuide || '',
-            });
-
-            // 解析现有图片并转换为统一格式（使用新的图片数据结构）
-            const newImageList: ImageItem[] = [];
-
-            // 使用新的图片详情数据结构
-            if (product.images && product.images.length > 0) {
-                product.images.forEach((imageDetail) => {
-                    newImageList.push({
-                        id: imageDetail.id.toString(), // 使用数据库ID
-                        url: imageDetail.imageUrl || imageDetail.imagePath, // 使用完整URL
-                        isExisting: true,
-                        isDeleted: false
-                    });
-                });
-            }
-
-            setImageList(newImageList);
-            // 初始化主图指针（找到主图）
-            const mainImage = product.images?.find(img => img.imageType === 1);
-            if (mainImage) {
-                setMainImageId(mainImage.id.toString());
-            } else if (newImageList.length > 0) {
-                setMainImageId(newImageList[0].id);
-            }
-            setPrevMainImageId(null); // 初始加载没有"上一任"
-
-        } catch (err) {
-            setError(err instanceof Error ? err.message : '加载商品失败');
-        } finally {
-            setLoading(false);
-        }
     };
 
     // 获取当前有效图片数量（未删除的）
@@ -358,16 +350,15 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
 
             // 根据是否有productId判断是创建还是编辑
             if (productId) {
-                // 编辑模式：更新现有商品 - 使用新的API结构
+                // 编辑模式：更新现有商品
                 const existingImages = imageList
                     .filter(item => item.isExisting)
                     .map((item, index) => {
-                        // 判断是否为主图
                         const isMainImage = item.id === mainImageId;
                         return {
-                            id: parseInt(item.id), // 从URL中提取数据库ID或使用item中的其他标识
+                            id: parseInt(item.id),
                             imagePath: item.url,
-                            imageType: isMainImage ? 1 : 2, // 1-主图, 2-副图
+                            imageType: isMainImage ? 1 : 2,
                             sortOrder: index,
                             isDeleted: item.isDeleted || false
                         };
@@ -378,7 +369,7 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
                     .map((item, index) => {
                         const isMainImage = item.id === mainImageId;
                         return {
-                            imageType: isMainImage ? 1 : 2, // 1-主图, 2-副图
+                            imageType: isMainImage ? 1 : 2,
                             sortOrder: index
                         };
                     });
@@ -389,18 +380,17 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
 
                 const completeProductData = {
                     ...formData,
-                    // 移除旧的images结构，后端不再需要
                 };
 
-                await productAPI.updateProductWithImagesState(
-                    productId,
-                    completeProductData,
-                    {
+                await updateProduct.mutateAsync({
+                    id: productId,
+                    productData: completeProductData,
+                    updateRequest: {
                         existingImages,
                         newImages,
                         imageFiles: newImageFiles
                     }
-                );
+                });
             } else {
                 // 创建模式：创建新商品
                 const newProductData = {
@@ -415,10 +405,13 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
                     featured: formData.featured || 0,
                     flowerLanguage: formData.flowerLanguage || '',
                     careGuide: formData.careGuide || '',
-                    images: newFiles, // 符合 ProductFormData schema 的 images 字段
+                    images: newFiles,
                 };
 
-                await productAPI.createProduct(newProductData, newImageMainIndex);
+                await createProduct.mutateAsync({
+                    formData: newProductData,
+                    mainImageIndex: newImageMainIndex
+                });
             }
 
             onSuccess();
@@ -446,15 +439,18 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
             </DialogTitle>
 
             <DialogContent dividers>
-                {loading ? (
+                {productLoading ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
                         <CircularProgress />
                     </Box>
                 ) : (
                     <Box component="form" onSubmit={handleSubmit}>
-                        {error && (
-                            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-                                {error}
+                        {(error || productError) && (
+                            <Alert severity="error" sx={{ mb: 2 }} onClose={() => {
+                                setError(null);
+                                // productError 会通过 React Query 自动处理
+                            }}>
+                                {error || (productError instanceof Error ? productError.message : '加载商品失败')}
                             </Alert>
                         )}
 
@@ -751,10 +747,12 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
                 <Button
                     variant="contained"
                     onClick={handleSubmit}
-                    disabled={loading || submitting}
-                    startIcon={submitting && <CircularProgress size={20} />}
+                    disabled={productLoading || submitting || updateProduct.isPending || createProduct.isPending}
+                    startIcon={(submitting || updateProduct.isPending || createProduct.isPending) && <CircularProgress size={20} />}
                 >
-                    {submitting ? (productId ? '更新中...' : '创建中...') : (productId ? '更新' : '创建')}
+                    {(submitting || updateProduct.isPending || createProduct.isPending)
+                        ? (productId ? '更新中...' : '创建中...')
+                        : (productId ? '更新' : '创建')}
                 </Button>
             </DialogActions>
         </Dialog>

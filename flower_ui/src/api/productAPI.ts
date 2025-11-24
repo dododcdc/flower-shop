@@ -9,9 +9,12 @@ import {
   type ProductFormData,
   type ProductFilters,
   type ProductApiResponse,
+  type ProductUpdateData,
   productSearchSchema,
   validateProductForm,
 } from '../models/product';
+import { withRetry, createRetryConfig } from '../utils/requestRetry';
+import { logger } from '../utils/logger';
 
 // API Endpoints
 const ENDPOINTS = {
@@ -46,10 +49,21 @@ export const searchProducts = async (filters: ProductFilters): Promise<ProductAp
 /**
  * Get product by ID
  */
-export const getProductById = async (id: number): Promise<Product> => {
-  const response = await axiosClient.get<ApiResponse<Product>>(`${ENDPOINTS.PRODUCTS}/${id}`);
-  return response.data.data;
-};
+export const getProductById = withRetry(
+  async (id: number): Promise<Product> => {
+    logger.debug(`Fetching product by ID: ${id}`);
+    const response = await axiosClient.get<ApiResponse<Product>>(`${ENDPOINTS.PRODUCTS}/${id}`);
+    const productData = response.data.data;
+
+    // 调试信息
+    console.log(`📦️ PRODUCT FETCH: id=${id}, images=${productData.images?.length || 0}, imageList=${productData.imageList?.length || 0}`);
+    logger.debug(`Product ${id} fetched, images count:`, productData.images?.length || 0);
+    logger.debug(`Product ${id} imageList count:`, productData.imageList?.length || 0);
+
+    return productData;
+  },
+  createRetryConfig({ maxRetries: 2 })
+);
 
 /**
  * Create new product (必须包含图片)
@@ -104,7 +118,7 @@ export const createProduct = async (
  */
 export const updateProductWithImagesState = async (
   id: number,
-  productData: any,
+  productData: ProductUpdateData,
   updateRequest: {
     existingImages?: Array<{
       id: number;
@@ -156,6 +170,7 @@ export const updateProductWithImagesState = async (
  */
 export const deleteProduct = async (id: number): Promise<string> => {
   const response = await axiosClient.delete<ApiResponse<string>>(`${ENDPOINTS.PRODUCTS}/${id}`);
+
   return response.data.message;
 };
 
@@ -166,6 +181,7 @@ export const toggleProductStatus = async (id: number, status: 0 | 1): Promise<st
   const response = await axiosClient.put<ApiResponse<string>>(`${ENDPOINTS.PRODUCTS}/${id}/status`, null, {
     params: { status },
   });
+
   return response.data.message;
 };
 
@@ -176,6 +192,7 @@ export const setProductFeatured = async (id: number, featured: 0 | 1): Promise<s
   const response = await axiosClient.put<ApiResponse<string>>(`${ENDPOINTS.PRODUCTS}/${id}/featured`, null, {
     params: { featured },
   });
+
   return response.data.message;
 };
 
@@ -187,7 +204,20 @@ export const productAPI = {
   deleteProduct: (id: number) => deleteProduct(id),
   toggleProductStatus: (id: number, status: 0 | 1) => toggleProductStatus(id, status),
   setProductFeatured: (id: number, featured: 0 | 1) => setProductFeatured(id, featured),
-  updateProductWithImagesState: (id: number, productData: any, imageFiles?: File[], imagesToDelete?: string[]) => updateProductWithImagesState(id, productData, imageFiles, imagesToDelete),
+  updateProductWithImagesState: (id: number, productData: ProductUpdateData, updateRequest: {
+    existingImages?: Array<{
+      id: number;
+      imagePath: string;
+      imageType: number;
+      sortOrder: number;
+      isDeleted: boolean;
+    }>;
+    newImages?: Array<{
+      imageType: number;
+      sortOrder: number;
+    }>;
+    imageFiles?: File[];
+  }) => updateProductWithImagesState(id, productData, updateRequest),
 };
 
 export default productAPI;
