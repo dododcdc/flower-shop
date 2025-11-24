@@ -138,9 +138,14 @@ public interface ProductMapper extends BaseMapper<Product> {
     List<Product> selectBatchIds(@Param("productIds") List<Long> productIds);
 
     /**
-     * 多条件动态搜索商品（分页）
+     * 多条件动态搜索商品（分页）- 优化版本，包含主图信息
      */
     IPage<Product> searchProductsAdvanced(Page<Product> page, @Param("request") ProductSearchRequest request);
+
+    /**
+     * 优化的商品搜索查询，一次性获取主图信息
+     */
+    IPage<Product> searchProductsWithMainImage(Page<Product> page, @Param("request") ProductSearchRequest request);
 
     /**
      * 查询商品的主图路径

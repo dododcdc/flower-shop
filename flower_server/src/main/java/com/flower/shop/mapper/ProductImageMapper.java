@@ -41,4 +41,11 @@ public interface ProductImageMapper extends BaseMapper<ProductImage> {
      * @return 更新记录数
      */
     int setMainImage(@Param("productId") Long productId, @Param("imagePath") String imagePath);
+
+    /**
+     * 获取商品的所有主图（用于验证主图唯一性）
+     * @param productId 商品ID
+     * @return 主图列表
+     */
+    List<ProductImage> selectMainImages(@Param("productId") Long productId);
 }

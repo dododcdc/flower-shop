@@ -32,11 +32,18 @@
 
     <update id="setMainImage">
         UPDATE product_images
-        SET image_type = CASE 
+        SET image_type = CASE
             WHEN image_path = #{imagePath} THEN 1
             ELSE 2
         END
         WHERE product_id = #{productId}
     </update>
+
+    <select id="selectMainImages" resultMap="ProductImageResultMap">
+        SELECT id, product_id, image_path, image_type, sort_order, created_at, updated_at
+        FROM product_images
+        WHERE product_id = #{productId} AND image_type = 1
+        ORDER BY sort_order ASC, id ASC
+    </select>
 
 </mapper>
