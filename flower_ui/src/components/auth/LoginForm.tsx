@@ -8,6 +8,7 @@ import Box from '@mui/material/Box';
 import { motion } from 'framer-motion';
 import { login } from '../../api/authAPI';
 import type { LoginRequest } from '../../models/auth';
+import { STORAGE_KEYS } from '../../constants';
 import FlowerLogo from '../common/FlowerLogo';
 import FlowerPattern from '../common/FlowerPattern';
 
@@ -22,9 +23,9 @@ const LoginForm: React.FC = () => {
     setError(null);
     setLoading(true);
     try {
-      const res = await login({ username, password } as LoginRequest);
+      const res = await login({ username, password });
       if (res?.token) {
-        localStorage.setItem('flower_token', res.token);
+        // Token is already stored in authAPI.login function
         window.location.href = '/dashboard';
       } else {
         setError('用户名或密码错误，请重试');

@@ -1,4 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
+import { STORAGE_KEYS } from '../constants';
+import { ApiErrorHandler } from '../utils/errorHandler';
+import { logger } from '../utils/logger';
 
 // Centralized Axios instance for the frontend MVP
 // Direct connection to backend server (port 8080)
@@ -10,13 +13,17 @@ const instance: AxiosInstance = axios.create({
   },
 });
 
-// Add request interceptor to include auth token
+// Add request interceptor to include auth token and timing
 instance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // 添加请求开始时间（用于性能监控）
+    config.metadata = { startTime: Date.now() };
+
     return config;
   },
   (error) => {
@@ -24,17 +31,49 @@ instance.interceptors.request.use(
   }
 );
 
-// Add response interceptor to handle auth errors
+// Add response interceptor to handle auth errors and统一错误处理
 instance.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // 记录结束时间
+    if (response.config.metadata) {
+      response.config.metadata.endTime = Date.now();
+    }
+
+    // 记录成功请求（仅在开发环境）
+    if (import.meta.env.DEV) {
+      logger.debug(`API success: ${response.config.method?.toUpperCase()} ${response.config.url}`, {
+        status: response.status,
+        duration: response.config.metadata?.endTime
+          ? response.config.metadata.endTime - response.config.metadata.startTime
+          : undefined
+      });
+    }
+    return response;
+  },
   (error) => {
+    // 记录错误请求
+    if (import.meta.env.DEV) {
+      logger.error(`API error: ${error.config?.method?.toUpperCase()} ${error.config?.url}`, error);
+    }
+
+    // 处理认证错误
     if (error.response?.status === 401) {
       // Clear token and redirect to login
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      localStorage.removeItem(STORAGE_KEYS.TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.USER);
+      window.location.href = '/admin/login';
+      return Promise.reject(error);
     }
-    return Promise.reject(error);
+
+    // 统一错误处理
+    const apiError = ApiErrorHandler.handleError(error);
+
+    // 创建更友好的错误对象
+    const enhancedError = new Error(ApiErrorHandler.getUserFriendlyMessage(apiError));
+    enhancedError.name = 'ApiError';
+    (enhancedError as any).apiError = apiError;
+
+    return Promise.reject(enhancedError);
   }
 );
 

@@ -1,0 +1,21 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="flowerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E91E63;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF6B9D;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- 简化的花朵轮廓 -->
+  <g transform="translate(16,16)">
+    <!-- 五片花瓣形成花朵 -->
+    <circle cx="0" cy="-6" r="4" fill="url(#flowerGradient)" opacity="0.9"/>
+    <circle cx="5.7" cy="-1.9" r="4" fill="url(#flowerGradient)" opacity="0.9"/>
+    <circle cx="3.5" cy="4.8" r="4" fill="url(#flowerGradient)" opacity="0.9"/>
+    <circle cx="-3.5" cy="4.8" r="4" fill="url(#flowerGradient)" opacity="0.9"/>
+    <circle cx="-5.7" cy="-1.9" r="4" fill="url(#flowerGradient)" opacity="0.9"/>
+
+    <!-- 花心 -->
+    <circle cx="0" cy="0" r="3" fill="#FFC107" opacity="0.8"/>
+  </g>
+</svg>

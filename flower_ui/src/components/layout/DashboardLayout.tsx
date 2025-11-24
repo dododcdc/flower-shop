@@ -14,7 +14,8 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import ShoppingBasketIcon from '@mui/icons-material/ShoppingBasket';
 import DeliveryDiningIcon from '@mui/icons-material/DeliveryDining';
-import api from '../../api/axiosClient';
+import api, { AxiosInstance } from '../../api/axiosClient';
+import { STORAGE_KEYS } from '../../constants';
 
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
@@ -30,13 +31,15 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   const handleLogout = () => {
     // 清除本地存储的 token
-    localStorage.removeItem('flower_token');
+    localStorage.removeItem(STORAGE_KEYS.TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.USER);
+
     // 移除 axios 默认 Authorization 头
     try {
-      // @ts-ignore
-      if (api?.defaults?.headers?.common?.Authorization) {
+      const axiosInstance = api as AxiosInstance;
+      if (axiosInstance.defaults?.headers?.common?.Authorization) {
         // 删除该头部，避免后续请求携带旧 token
-        delete (api as any).defaults.headers.common['Authorization'];
+        delete axiosInstance.defaults.headers.common['Authorization'];
       }
     } catch (e) {
       // 忽略清理错误
