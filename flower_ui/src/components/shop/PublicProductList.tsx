@@ -1,0 +1,645 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Grid,
+  Card,
+  CardContent,
+  CardMedia,
+  Typography,
+  TextField,
+  Button,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Chip,
+  IconButton,
+  Pagination,
+  useTheme,
+} from '@mui/material';
+import {
+  Search as SearchIcon,
+  Visibility as ViewIcon,
+  ShoppingCart as CartIcon,
+  LocalFlorist,
+} from '@mui/icons-material';
+import { motion } from 'framer-motion';
+
+import {
+  type Product,
+  type ProductFilters,
+  productSearchSchema,
+  getStockStatusText,
+  getStockStatusColor,
+  hasDiscount,
+  getDiscountPercentage,
+  getMainProductImage,
+} from '../../models/product';
+import { productAPI } from '../../api/productAPI';
+import { categoryAPI, type Category } from '../../api/categoryAPI';
+
+// Animation variants
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
+
+interface PublicProductListProps {
+  onAddToCart?: (product: Product, quantity: number) => void;
+  onViewDetails?: (product: Product) => void;
+}
+
+const PublicProductList: React.FC<PublicProductListProps> = ({
+  onAddToCart,
+  onViewDetails
+}) => {
+  const theme = useTheme();
+
+  // State for products and pagination
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Pagination state
+  const [pagination, setPagination] = useState({
+    current: 1,
+    size: 12,
+    total: 0,
+    pages: 0,
+  });
+
+  // Search and filter state
+  const [filters, setFilters] = useState<ProductFilters>({
+    current: 1,
+    size: 12,
+    status: 1, // 只显示上架商品
+    sortBy: 'created_at',
+    sortOrder: 'desc',
+  });
+
+  // Search form state
+  const [searchForm, setSearchForm] = useState({
+    keyword: '',
+    categoryId: '',
+    minPrice: '',
+    maxPrice: '',
+    sortBy: 'created_at-desc',
+    sortOrder: 'desc',
+  });
+
+  // Load products
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      const productData = await productAPI.searchProducts(filters);
+
+      if (productData && productData.records) {
+        setProducts(productData.records || []);
+        setPagination(prev => ({
+          ...prev,
+          current: filters.current,
+          total: productData.total || 0,
+          pages: Math.ceil((productData.total || 0) / filters.size),
+        }));
+      }
+    } catch (err) {
+      console.error('加载商品失败:', err);
+      setError('加载商品失败，请稍后重试');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load categories
+  const loadCategories = async () => {
+    try {
+      const categoriesData = await categoryAPI.getAllCategories();
+      setCategories(categoriesData);
+    } catch (err) {
+      console.error('加载分类失败:', err);
+    }
+  };
+
+  useEffect(() => {
+    loadProducts();
+    loadCategories();
+  }, [filters]);
+
+  const handleSearch = () => {
+    // 解析复合排序字段（如 "created_at-desc" -> sortBy: "created_at", sortOrder: "desc"）
+    let sortBy: string = 'created_at';
+    let sortOrder: string = 'desc';
+
+    if (searchForm.sortBy && searchForm.sortBy.includes('-')) {
+      const [sortField, sortDirection] = searchForm.sortBy.split('-');
+      sortBy = sortField;
+      sortOrder = sortDirection;
+    } else {
+      sortBy = searchForm.sortBy || 'created_at';
+      sortOrder = searchForm.sortOrder || 'desc';
+    }
+
+    const searchFilters: ProductFilters = {
+      ...filters,
+      current: 1,
+      keyword: searchForm.keyword || undefined,
+      categoryId: searchForm.categoryId ? Number(searchForm.categoryId) : undefined,
+      minPrice: searchForm.minPrice ? Number(searchForm.minPrice) : undefined,
+      maxPrice: searchForm.maxPrice ? Number(searchForm.maxPrice) : undefined,
+      sortBy,
+      sortOrder,
+    };
+
+    setFilters(searchFilters);
+  };
+
+  const handleReset = () => {
+    setSearchForm({
+      keyword: '',
+      categoryId: '',
+      minPrice: '',
+      maxPrice: '',
+      sortBy: 'created_at-desc',
+      sortOrder: 'desc',
+    });
+    setFilters({
+      current: 1,
+      size: 12,
+      status: 1,
+      sortBy: 'created_at',
+      sortOrder: 'desc',
+    });
+  };
+
+  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+    setFilters({ ...filters, current: value });
+  };
+
+  const handleAddToCart = (product: Product) => {
+    if (onAddToCart) {
+      onAddToCart(product, 1); // 默认添加1个
+    }
+  };
+
+  const handleViewDetails = (product: Product) => {
+    if (onViewDetails) {
+      onViewDetails(product);
+    }
+  };
+
+  const parseImages = (product: Product) => {
+    try {
+      if (product.mainImagePath) {
+        let imageUrl = product.mainImagePath;
+        if (!/^https?:/i.test(imageUrl)) {
+          if (imageUrl.startsWith('/uploads/')) {
+            imageUrl = `http://localhost:8080/api${imageUrl}`;
+          }
+        }
+        return [imageUrl];
+      }
+      return [];
+    } catch (error) {
+      console.error('Error parsing images:', error);
+      return [];
+    }
+  };
+
+  return (
+    <Box>
+      {/* Search and Filter Section */}
+      <Box sx={{ mb: 4, p: 3, bgcolor: 'white', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+        <Grid container spacing={3} alignItems="center">
+          <Grid size={{ xs: 12, md: 4 }}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="搜索商品名称..."
+              value={searchForm.keyword}
+              onChange={(e) => setSearchForm({ ...searchForm, keyword: e.target.value })}
+              InputProps={{
+                startAdornment: <SearchIcon sx={{ mr: 1, color: '#D4AF37' }} />,
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 1,
+                  '&:hover fieldset': {
+                    borderColor: '#D4AF37',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#D4AF37',
+                  },
+                },
+              }}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel sx={{ fontSize: '14px' }}>商品分类</InputLabel>
+              <Select
+                value={searchForm.categoryId}
+                label="商品分类"
+                onChange={(e) => setSearchForm({ ...searchForm, categoryId: e.target.value })}
+                sx={{ fontSize: '14px' }}
+              >
+                <MenuItem value="">全部分类</MenuItem>
+                {categories.map((category) => (
+                  <MenuItem key={category.id} value={category.id.toString()} sx={{ fontSize: '14px' }}>
+                    {category.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel sx={{ fontSize: '14px' }}>排序方式</InputLabel>
+              <Select
+                value={searchForm.sortBy}
+                label="排序方式"
+                onChange={(e) => setSearchForm({ ...searchForm, sortBy: e.target.value })}
+                sx={{ fontSize: '14px' }}
+              >
+                <MenuItem value="created_at-desc" sx={{ fontSize: '14px' }}>最新上架</MenuItem>
+                <MenuItem value="price-asc" sx={{ fontSize: '14px' }}>价格从低到高</MenuItem>
+                <MenuItem value="price-desc" sx={{ fontSize: '14px' }}>价格从高到低</MenuItem>
+                <MenuItem value="sales-desc" sx={{ fontSize: '14px' }}>按销量排序</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel sx={{ fontSize: '14px' }}>排序顺序</InputLabel>
+              <Select
+                value={searchForm.sortOrder}
+                label="排序顺序"
+                onChange={(e) => setSearchForm({ ...searchForm, sortOrder: e.target.value })}
+                sx={{ fontSize: '14px' }}
+              >
+                <MenuItem value="desc" sx={{ fontSize: '14px' }}>降序</MenuItem>
+                <MenuItem value="asc" sx={{ fontSize: '14px' }}>升序</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 2 }}>
+            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+              <Button
+                variant="contained"
+                startIcon={<SearchIcon />}
+                onClick={handleSearch}
+                size="small"
+                sx={{
+                  background: 'linear-gradient(135deg, #D4AF37 0%, #B8941F 100%)',
+                  color: '#1B3A2B',
+                  fontWeight: 600,
+                  minWidth: 90,
+                  height: 36,
+                  fontSize: '14px',
+                  whiteSpace: 'nowrap',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #B8941F 0%, #D4AF37 100%)',
+                  },
+                }}
+              >
+                搜索
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={handleReset}
+                size="small"
+                sx={{
+                  borderColor: '#D4AF37',
+                  color: '#1B3A2B',
+                  fontWeight: 600,
+                  minWidth: 90,
+                  height: 36,
+                  fontSize: '14px',
+                  whiteSpace: 'nowrap',
+                  '&:hover': {
+                    borderColor: '#1B3A2B',
+                    bgcolor: 'rgba(212, 175, 55, 0.1)',
+                  },
+                }}
+              >
+                重置
+              </Button>
+            </Box>
+          </Grid>
+        </Grid>
+      </Box>
+
+      {/* Loading state */}
+      {loading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <Typography>加载中...</Typography>
+        </Box>
+      )}
+
+      {/* Error state */}
+      {error && (
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <Typography variant="h6" color="error" gutterBottom>
+            {error}
+          </Typography>
+          <Button variant="contained" onClick={loadProducts}>
+            重新加载
+          </Button>
+        </Box>
+      )}
+
+      {/* Products Grid */}
+      {!loading && !error && (
+        <Grid container spacing={3}>
+          {products.map((product, index) => {
+            const images = parseImages(product);
+            const isDiscounted = hasDiscount(product);
+            const discountPercent = getDiscountPercentage(product);
+
+            return (
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={product.id}>
+                <motion.div
+                  initial="hidden"
+                  animate="visible"
+                  variants={cardVariants}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                >
+                  <Card
+                    sx={{
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      transition: 'all 0.3s ease',
+                      borderRadius: 2,
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+                      },
+                    }}
+                  >
+                    {/* Product Image */}
+                    <CardMedia
+                      component="div"
+                      sx={{
+                        height: 200,
+                        backgroundColor: 'grey.100',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        position: 'relative',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {images.length > 0 ? (
+                        <img
+                          src={images[0]}
+                          alt={product.name}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                          }}
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <Box sx={{ textAlign: 'center', p: 2 }}>
+                          <LocalFlorist sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
+                          <Typography variant="body2" color="text.secondary">
+                            暂无图片
+                          </Typography>
+                        </Box>
+                      )}
+
+                      {/* Discount badge */}
+                      {isDiscounted && (
+                        <Chip
+                          label={`${discountPercent}% OFF`}
+                          size="small"
+                          sx={{
+                            position: 'absolute',
+                            top: 8,
+                            left: 8,
+                            bgcolor: '#D4AF37',
+                            color: '#1B3A2B',
+                            fontWeight: 'bold',
+                          }}
+                        />
+                      )}
+
+                      {/* Featured badge */}
+                      {product.featured === 1 && (
+                        <Chip
+                          label="推荐"
+                          size="small"
+                          color="primary"
+                          sx={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 8,
+                            fontWeight: 'bold',
+                          }}
+                        />
+                      )}
+                    </CardMedia>
+
+                    <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 2 }}>
+                      {/* Category */}
+                      <Chip
+                        label={product.categoryName || '精选花艺'}
+                        size="small"
+                        sx={{
+                          bgcolor: 'rgba(212, 175, 55, 0.1)',
+                          color: '#D4AF37',
+                          mb: 1,
+                          alignSelf: 'flex-start',
+                          fontSize: '12px',
+                          height: 24,
+                        }}
+                      />
+
+                      {/* Product Name */}
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          fontSize: '18px',
+                          fontWeight: 'bold',
+                          color: '#1B3A2B',
+                          mb: 1,
+                          lineHeight: 1.2,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 1,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {product.name}
+                      </Typography>
+
+                      {/* Description */}
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                          fontSize: '14px',
+                          mb: 2,
+                          lineHeight: 1.4,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          flexGrow: 1,
+                        }}
+                      >
+                        {product.description || '精选花材，精心搭配'}
+                      </Typography>
+
+                      {/* Price */}
+                      <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            fontSize: '20px',
+                            color: '#D4AF37',
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          ¥{product.price.toFixed(2)}
+                        </Typography>
+                        {isDiscounted && product.originalPrice && (
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ textDecoration: 'line-through', fontSize: '14px' }}
+                          >
+                            ¥{product.originalPrice.toFixed(2)}
+                          </Typography>
+                        )}
+                      </Box>
+
+                      {/* Stock Status */}
+                      <Box sx={{ mb: 2 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: getStockStatusColor(product.stockQuantity, product.lowStockThreshold),
+                            fontSize: '13px',
+                            fontWeight: 500,
+                          }}
+                        >
+                          {getStockStatusText(product.stockQuantity, product.lowStockThreshold)}
+                        </Typography>
+                      </Box>
+
+                      {/* Action Buttons */}
+                      <Box sx={{ display: 'flex', gap: 1, mt: 'auto' }}>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<ViewIcon />}
+                          onClick={() => handleViewDetails(product)}
+                          sx={{
+                            flex: 1,
+                            height: 40,
+                            fontSize: '13px',
+                            fontWeight: 500,
+                            borderColor: '#D4AF37',
+                            color: '#1B3A2B',
+                            minWidth: 100,
+                            whiteSpace: 'nowrap',
+                            textOverflow: 'ellipsis',
+                            '&:hover': {
+                              borderColor: '#1B3A2B',
+                              bgcolor: 'rgba(212, 175, 55, 0.1)',
+                            },
+                          }}
+                        >
+                          查看详情
+                        </Button>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          startIcon={<CartIcon />}
+                          onClick={() => handleAddToCart(product)}
+                          disabled={product.stockQuantity === 0}
+                          sx={{
+                            flex: 1,
+                            height: 40,
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            bgcolor: '#D4AF37',
+                            color: '#1B3A2B',
+                            minWidth: 110,
+                            whiteSpace: 'nowrap',
+                            textOverflow: 'ellipsis',
+                            '&:hover': {
+                              bgcolor: '#B8941F',
+                            },
+                            '&:disabled': {
+                              bgcolor: 'rgba(0, 0, 0, 0.12)',
+                              color: 'rgba(0, 0, 0, 0.26)',
+                            },
+                          }}
+                        >
+                          加入购物车
+                        </Button>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </Grid>
+            );
+          })}
+
+          {/* Empty state */}
+          {!loading && products.length === 0 && (
+            <Grid size={12}>
+              <Box sx={{ textAlign: 'center', py: 8 }}>
+                <LocalFlorist sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  暂无相关商品
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  请调整搜索条件或浏览其他分类
+                </Typography>
+              </Box>
+            </Grid>
+          )}
+        </Grid>
+      )}
+
+      {/* Pagination */}
+      {!loading && !error && products.length > 0 && pagination.pages > 1 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+          <Pagination
+            count={pagination.pages}
+            page={pagination.current}
+            onChange={handlePageChange}
+            sx={{
+              '& .MuiPaginationItem-root': {
+                color: '#1B3A2B',
+                '&.Mui-selected': {
+                  bgcolor: '#D4AF37',
+                  color: '#1B3A2B',
+                },
+                '&:hover': {
+                  bgcolor: 'rgba(212, 175, 55, 0.1)',
+                },
+              },
+            }}
+            showFirstButton
+            showLastButton
+          />
+        </Box>
+      )}
+    </Box>
+  );
+};
+
+export default PublicProductList;

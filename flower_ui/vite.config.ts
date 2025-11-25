@@ -12,7 +12,8 @@ export default defineConfig({
         changeOrigin: true,
         secure: false
       }
-    }
+    },
+    allowedHosts: ['wenbin.dododcdc.com']
   },
   optimizeDeps: {
     include: ['@mui/material', '@mui/icons-material', 'framer-motion']

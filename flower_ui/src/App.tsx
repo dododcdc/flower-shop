@@ -15,6 +15,10 @@ const ProductManagementPage = lazy(() => import('./pages/ProductManagementPage')
 const OrderManagementPage = lazy(() => import('./pages/OrderManagementPage'));
 const DeliveryManagementPage = lazy(() => import('./pages/DeliveryManagementPage'));
 
+// 游客端页面组件
+const ShopPage = lazy(() => import('./pages/shop/ShopPage'));
+const ProductDetailPage = lazy(() => import('./pages/shop/ProductDetailPage'));
+
 // 加载指示器组件
 const LoadingSpinner = () => (
   <Box
@@ -33,6 +37,20 @@ const App: React.FC = () => {
       <QueryClientProvider client={queryClient}>
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
+            {/* 游客端公开路由 */}
+            <Route path="/" element={<Navigate to="/shop" replace />} />
+            <Route path="/shop" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <ShopPage />
+              </Suspense>
+            } />
+            <Route path="/shop/product/:id" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <ProductDetailPage />
+              </Suspense>
+            } />
+
+            {/* 管理端路由 */}
             <Route path="/admin/login" element={<LoginPage />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
@@ -70,6 +88,8 @@ const App: React.FC = () => {
                 </DashboardLayout>
               </ProtectedRoute>
             } />
+
+            {/* 404页面 */}
             <Route path="/404" element={
               <ErrorBoundary fallback={
                 <div style={{
@@ -95,7 +115,6 @@ const App: React.FC = () => {
                 </div>
               </ErrorBoundary>
             } />
-            <Route path="/" element={<Navigate to="/admin/login" replace />} />
             <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>
         </Suspense>
