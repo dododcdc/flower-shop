@@ -21,28 +21,32 @@ Database (MySQL 8.0)
 ### 前端开发 (flower_ui/)
 ```bash
 # 安装依赖
-npm install
+cd ~/Projects/flower_shop/flower_ui && npm install
 
 # 启动开发服务器
-npm run dev
+
+cd ~/Projects/flower_shop/flower_ui && npm run dev
+
 
 # 构建生产版本
-npm run build
+
+cd ~/Projects/flower_shop/flower_ui && npm run build
+
 
 # 预览构建结果
-npm run preview
+cd ~/Projects/flower_shop/flower_ui && npm run preview
 ```
 
 ### 后端开发 (flower_server/)
 ```bash
 # 编译项目
-mvn compile
+cd ~/Projects/flower_shop/flower_server && mvn compile
 
 # 运行测试
-mvn test
+cd ~/Projects/flower_shop/flower_server && mvn test
 
 # 打包项目
-mvn clean package
+cd ~/Projects/flower_shop/flower_server && mvn clean package
 
 # 运行应用
 java -jar target/flower-shop-1.0.0.jar

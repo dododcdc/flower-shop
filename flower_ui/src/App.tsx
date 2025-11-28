@@ -19,6 +19,9 @@ const DeliveryManagementPage = lazy(() => import('./pages/DeliveryManagementPage
 const ShopPage = lazy(() => import('./pages/shop/ShopPage'));
 const ProductDetailPage = lazy(() => import('./pages/shop/ProductDetailPage'));
 
+// Toast通知组件
+const ToastRenderer = lazy(() => import('./components/shop/ToastRenderer'));
+
 // 加载指示器组件
 const LoadingSpinner = () => (
   <Box
@@ -118,6 +121,8 @@ const App: React.FC = () => {
             <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>
         </Suspense>
+        {/* 全局Toast通知 */}
+        <ToastRenderer />
         {/* React Query DevTools - 仅在开发环境显示 */}
         {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
       </QueryClientProvider>

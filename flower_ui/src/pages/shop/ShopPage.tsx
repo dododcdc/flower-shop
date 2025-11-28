@@ -1,20 +1,19 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Typography, Container, Box } from '@mui/material';
 import { motion } from 'framer-motion';
 import ShopLayout from '../../components/shop/ShopLayout';
 import PublicProductList from '../../components/shop/PublicProductList';
 import { Product } from '../../models/product';
 import { useNavigate } from 'react-router-dom';
+import { useCartStore } from '../../store/cartStore';
 
 const ShopPage: React.FC = () => {
   const navigate = useNavigate();
-  const [cartCount, setCartCount] = useState(0);
+  const { addItem } = useCartStore();
 
   // 添加到购物车
   const handleAddToCart = (product: Product, quantity: number) => {
-    console.log('添加到购物车:', { product, quantity });
-    setCartCount(prev => prev + quantity);
-    // TODO: 实现购物车功能
+    return addItem(product, quantity);
   };
 
   // 查看商品详情

@@ -44,8 +44,10 @@ const cardVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
+import { useSnackbar } from 'notistack';
+
 interface PublicProductListProps {
-  onAddToCart?: (product: Product, quantity: number) => void;
+  onAddToCart?: (product: Product, quantity: number) => { success: boolean; message?: string };
   onViewDetails?: (product: Product) => void;
 }
 
@@ -54,6 +56,7 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
   onViewDetails
 }) => {
   const theme = useTheme();
+  const { enqueueSnackbar } = useSnackbar();
 
   // State for products and pagination
   const [products, setProducts] = useState<Product[]>([]);
@@ -147,8 +150,8 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
       categoryId: searchForm.categoryId ? Number(searchForm.categoryId) : undefined,
       minPrice: searchForm.minPrice ? Number(searchForm.minPrice) : undefined,
       maxPrice: searchForm.maxPrice ? Number(searchForm.maxPrice) : undefined,
-      sortBy,
-      sortOrder,
+      sortBy: sortBy as any,
+      sortOrder: sortOrder as any,
     };
 
     setFilters(searchFilters);
@@ -176,9 +179,78 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
     setFilters({ ...filters, current: value });
   };
 
-  const handleAddToCart = (product: Product) => {
+  const flyToCart = (startEl: HTMLElement, imageSrc: string) => {
+    const cartBtn = document.getElementById('cart-icon-btn');
+    if (!cartBtn) return;
+
+    const startRect = startEl.getBoundingClientRect();
+    const endRect = cartBtn.getBoundingClientRect();
+
+    // 动画配置
+    const duration = 1.2; // 动画时长(秒)。想要更慢就改大这个数字，例如 1.5
+
+    const flyer = document.createElement('img');
+    flyer.src = imageSrc;
+    flyer.style.position = 'fixed';
+    flyer.style.left = `${startRect.left}px`;
+    flyer.style.top = `${startRect.top}px`;
+    flyer.style.width = '50px';
+    flyer.style.height = '50px';
+    flyer.style.borderRadius = '50%';
+    flyer.style.objectFit = 'cover';
+    flyer.style.zIndex = '9999';
+    flyer.style.pointerEvents = 'none';
+    // 使用变量设置动画时间
+    flyer.style.transition = `all ${duration}s cubic-bezier(0.2, 0.8, 0.2, 1)`;
+    flyer.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+
+    document.body.appendChild(flyer);
+
+    // Force reflow
+    flyer.getBoundingClientRect();
+
+    requestAnimationFrame(() => {
+      flyer.style.left = `${endRect.left + endRect.width / 2 - 10}px`;
+      flyer.style.top = `${endRect.top + endRect.height / 2 - 10}px`;
+      flyer.style.width = '20px';
+      flyer.style.height = '20px';
+      flyer.style.opacity = '0';
+      flyer.style.transform = 'scale(0.5)';
+    });
+
+    // 清理时间也要跟随动画时间
+    setTimeout(() => {
+      if (document.body.contains(flyer)) {
+        document.body.removeChild(flyer);
+      }
+    }, duration * 1000);
+  };
+
+  const handleAddToCart = (e: React.MouseEvent<HTMLButtonElement>, product: Product) => {
+    e.stopPropagation();
+
     if (onAddToCart) {
-      onAddToCart(product, 1); // 默认添加1个
+      const result = onAddToCart(product, 1); // 默认添加1个
+
+      if (result && result.success) {
+        // Success: Show animation and success toast
+        enqueueSnackbar('已加入购物车', {
+          variant: 'success',
+          autoHideDuration: 2000,
+          anchorOrigin: { vertical: 'top', horizontal: 'center' }
+        });
+
+        // Trigger animation
+        const images = parseImages(product);
+        const imageSrc = images.length > 0 ? images[0] : '/placeholder-flower.jpg'; // Fallback image
+        flyToCart(e.currentTarget, imageSrc);
+      } else {
+        // Error: Show error toast
+        enqueueSnackbar(result?.message || '添加失败', {
+          variant: 'error',
+          autoHideDuration: 3000
+        });
+      }
     }
   };
 
@@ -246,7 +318,7 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
               >
                 <MenuItem value="">全部分类</MenuItem>
                 {categories.map((category) => (
-                  <MenuItem key={category.id} value={category.id.toString()} sx={{ fontSize: '14px' }}>
+                  <MenuItem key={category.id} value={String(category.id)} sx={{ fontSize: '14px' }}>
                     {category.name}
                   </MenuItem>
                 ))}
@@ -566,7 +638,7 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
                           variant="contained"
                           size="small"
                           startIcon={<CartIcon />}
-                          onClick={() => handleAddToCart(product)}
+                          onClick={(e) => handleAddToCart(e, product)}
                           disabled={product.stockQuantity === 0}
                           sx={{
                             flex: 1,

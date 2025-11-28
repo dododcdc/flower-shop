@@ -10,16 +10,22 @@ import {
   Chip,
   IconButton,
   useTheme,
+  Snackbar,
+  Fade,
 } from '@mui/material';
 import {
   ShoppingCart,
   Visibility,
   LocalFlorist,
   Star,
+  CheckCircle as CheckIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Product } from '../../models/product';
+import { useCartStore } from '../../store/cartStore';
+import { useToast } from './ToastNotification';
 
 interface ProductCardProps {
   product: Product;
@@ -29,6 +35,8 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const { addItem } = useCartStore();
+  const { showSuccess } = useToast();
 
   const handleViewDetails = () => {
     navigate(`/shop/product/${product.id}`);
@@ -36,7 +44,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onAddToCart(product);
+    console.log('🛒 点击添加购物车按钮，商品:', product.name);
+    addItem(product, 1);
+    // 显示添加成功提示
+    showSuccess('✓ 已添加到购物车', 2000);
   };
 
   const formatPrice = (price: number) => {
@@ -59,11 +70,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
     : 0;
 
   return (
-    <motion.div
-      whileHover={{ y: -4 }}
-      whileTap={{ scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-    >
+    <>
+      <motion.div
+        whileHover={{ y: -4 }}
+        whileTap={{ scale: 0.98 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      >
       <Card
         sx={{
           height: '100%',
@@ -270,6 +282,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
         </CardActions>
       </Card>
     </motion.div>
+    </>
   );
 };
 

@@ -1,8 +1,10 @@
 import React, { ReactNode } from 'react';
-import { Box, AppBar, Toolbar, Typography, Button, Container, IconButton } from '@mui/material';
+import { Box, AppBar, Toolbar, Typography, Button, Container, IconButton, Badge } from '@mui/material';
 import { ShoppingBasket, Phone, LocationOn } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import CartDrawer from './CartDrawer';
+import { useCartStore } from '../../store/cartStore';
 
 interface ShopLayoutProps {
   children: ReactNode;
@@ -10,24 +12,26 @@ interface ShopLayoutProps {
 
 const ShopLayout: React.FC<ShopLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
+  const { totalItems, openCart } = useCartStore();
 
   const handleLogoClick = () => {
     navigate('/shop');
   };
 
   const handleCartClick = () => {
-    navigate('/shop/cart');
+    openCart();
   };
-
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#fafafa' }}>
       {/* 顶部导航栏 */}
       <AppBar
-        position="sticky"
+        position="fixed"
         elevation={0}
         sx={{
           bgcolor: '#1B3A2B',
-          borderBottom: '2px solid #D4AF37'
+          borderBottom: '2px solid #D4AF37',
+          top: 0,
+          zIndex: 1100,
         }}
       >
         <Container maxWidth="lg">
@@ -110,44 +114,34 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children }) => {
 
               {/* 购物车按钮 */}
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <IconButton
-                  onClick={handleCartClick}
-                  sx={{
-                    color: '#D4AF37',
-                    bgcolor: 'rgba(212, 175, 55, 0.1)',
-                    '&:hover': {
-                      bgcolor: 'rgba(212, 175, 55, 0.2)',
-                    }
-                  }}
-                >
-                  <ShoppingBasket />
-                </IconButton>
+                <Badge badgeContent={totalItems} color="error">
+                  <IconButton
+                    id="cart-icon-btn"
+                    onClick={handleCartClick}
+                    sx={{
+                      color: '#D4AF37',
+                      bgcolor: 'rgba(212, 175, 55, 0.1)',
+                      '&:hover': {
+                        bgcolor: 'rgba(212, 175, 55, 0.2)',
+                      }
+                    }}
+                  >
+                    <ShoppingBasket />
+                  </IconButton>
+                </Badge>
               </motion.div>
-
-              {/* 管理员入口 */}
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => navigate('/admin/login')}
-                sx={{
-                  color: '#D4AF37',
-                  borderColor: '#D4AF37',
-                  '&:hover': {
-                    borderColor: '#F4E4C1',
-                    color: '#F4E4C1',
-                    bgcolor: 'rgba(244, 228, 193, 0.1)'
-                  }
-                }}
-              >
-                管理员
-              </Button>
             </Box>
           </Toolbar>
         </Container>
       </AppBar>
 
+      {/* 购物车抽屉 */}
+      <CartDrawer />
+
       {/* 主要内容区域 */}
       <Box sx={{ flexGrow: 1 }}>
+        {/* 占位符，防止内容被固定导航栏遮挡 */}
+        <Toolbar sx={{ py: 1 }} />
         {children}
       </Box>
 
