@@ -108,6 +108,12 @@ public interface OrderMapper extends BaseMapper<Order> {
     List<Order> selectGuestOrders();
 
     /**
+     * 根据客户手机号分页查询订单
+     */
+    @Select("SELECT * FROM orders WHERE customer_phone = #{phone} ORDER BY created_at DESC")
+    IPage<Order> selectOrdersByCustomerPhone(IPage<Order> page, @Param("phone") String phone);
+
+    /**
      * 查询已支付订单
      */
     @Select("SELECT o.*, " +
@@ -144,6 +150,21 @@ public interface OrderMapper extends BaseMapper<Order> {
     @Select("SELECT COUNT(*) FROM orders WHERE DATE(created_at) = CURDATE()")
     int countTodayOrders();
 
+    /**
+     * 统计今日销售额
+     */
+    @Select("SELECT COALESCE(SUM(total_amount), 0) " +
+            "FROM orders " +
+            "WHERE status = 4 AND DATE(completed_at) = CURDATE()")
+    java.math.BigDecimal getTodaySales();
+
+    /**
+     * 统计月度销售额
+     */
+    @Select("SELECT COALESCE(SUM(total_amount), 0) " +
+            "FROM orders " +
+            "WHERE status = 4 AND YEAR(created_at) = #{year} AND MONTH(created_at) = #{month}")
+    java.math.BigDecimal getMonthlySales(@Param("year") Integer year, @Param("month") Integer month);
 
 
 }
