@@ -18,6 +18,7 @@ const DeliveryManagementPage = lazy(() => import('./pages/DeliveryManagementPage
 // 游客端页面组件
 const ShopPage = lazy(() => import('./pages/shop/ShopPage'));
 const ProductDetailPage = lazy(() => import('./pages/shop/ProductDetailPage'));
+const CheckoutPage = lazy(() => import('./pages/shop/CheckoutPage'));
 
 // Toast通知组件
 const ToastRenderer = lazy(() => import('./components/shop/ToastRenderer'));
@@ -45,6 +46,11 @@ const App: React.FC = () => {
             <Route path="/shop" element={
               <Suspense fallback={<LoadingSpinner />}>
                 <ShopPage />
+              </Suspense>
+            } />
+            <Route path="/shop/checkout" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <CheckoutPage />
               </Suspense>
             } />
             <Route path="/shop/product/:id" element={

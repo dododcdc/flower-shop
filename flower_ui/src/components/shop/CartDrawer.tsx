@@ -27,6 +27,7 @@ import {
   LocalFlorist as FloristIcon,
 } from '@mui/icons-material';
 import { motion, AnimatePresence as AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useCartStore, type CartItem } from '../../store/cartStore';
 
 interface CartDrawerProps {
@@ -60,14 +61,17 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ open, onClose }) => {
     }
   };
 
+  const navigate = useNavigate();
+
   const handleCheckout = () => {
     const selectedItems = getSelectedItems();
     if (selectedItems.length === 0) {
       alert('请选择要结算的商品');
       return;
     }
-    // TODO: 跳转到结算页面
-    alert('跳转到结算页面');
+    onClose?.(); // 关闭侧边栏
+    closeCart();
+    navigate('/shop/checkout');
   };
 
   const formatPrice = (price: number) => {

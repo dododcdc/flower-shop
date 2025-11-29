@@ -110,7 +110,18 @@ public class Order {
     @TableField("notes")
     private String notes;
 
-    
+    /**
+     * 贺卡内容
+     */
+    @TableField("card_content")
+    private String cardContent;
+
+    /**
+     * 贺卡署名
+     */
+    @TableField("card_sender")
+    private String cardSender;
+
     /**
      * 创建时间
      */
@@ -123,7 +134,6 @@ public class Order {
     @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedAt;
 
-    
     /**
      * 订单项列表（临时存储，用于显示）
      */
@@ -134,15 +144,23 @@ public class Order {
      * 订单状态文本
      */
     public String getStatusText() {
-        if (status == null) return "未知";
+        if (status == null)
+            return "未知";
         switch (status) {
-            case 0: return "待支付";
-            case 1: return "待确认";
-            case 2: return "准备中";
-            case 3: return "配送中";
-            case 4: return "已完成";
-            case 5: return "已取消";
-            default: return "未知";
+            case 0:
+                return "待支付";
+            case 1:
+                return "待确认";
+            case 2:
+                return "准备中";
+            case 3:
+                return "配送中";
+            case 4:
+                return "已完成";
+            case 5:
+                return "已取消";
+            default:
+                return "未知";
         }
     }
 
