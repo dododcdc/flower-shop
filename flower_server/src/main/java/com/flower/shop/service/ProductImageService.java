@@ -90,40 +90,4 @@ public class ProductImageService {
         return imageInfos.isEmpty() ? null : imageInfos.get(0).getImagePath();
     }
 
-    /**
-     * 验证主图唯一性
-     */
-    public void validateMainImageUniqueness(List<ProductService.ExistingImageInfo> existingImages,
-                                          List<ProductService.NewImageInfo> newImages) {
-        long mainImageCount = 0;
-
-        // 统计现有图片中的主图数量
-        if (existingImages != null) {
-            mainImageCount += existingImages.stream()
-                .filter(img -> !img.getIsDeleted() && img.getImageType() == 1)
-                .count();
-        }
-
-        // 统计新图片中的主图数量
-        if (newImages != null) {
-            mainImageCount += newImages.stream()
-                .filter(img -> img.getImageType() == 1)
-                .count();
-        }
-
-        if (mainImageCount > 1) {
-            throw new IllegalArgumentException("一个商品只能有一个主图");
-        }
     }
-
-    /**
-     * 确保只有一个主图（仅验证，不自动修复）
-     */
-    public void ensureSingleMainImage(Long productId) {
-        List<ProductImage> mainImages = productImageMapper.selectMainImages(productId);
-
-        if (mainImages.size() > 1) {
-            throw new IllegalArgumentException("一个商品只能有一个主图，当前存在 " + mainImages.size() + " 个主图");
-        }
-    }
-}

@@ -27,51 +27,8 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
 
     private final CategoryMapper categoryMapper;
 
-    @Override
-    public List<Category> getEnabledCategories() {
-        return lambdaQuery()
-                .eq(Category::getStatus, 1)
-                .orderByAsc(Category::getType)
-                .orderByAsc(Category::getSortOrder)
-                .list();
-    }
-
-    @Override
-    public List<Category> getCategoriesByType(String type) {
-        return lambdaQuery()
-                .eq(Category::getType, type)
-                .orderByAsc(Category::getSortOrder)
-                .list();
-    }
-
-    @Override
-    public List<Category> getCategoriesByTypeAndStatus(String type, Integer status) {
-        return lambdaQuery()
-                .eq(Category::getType, type)
-                .eq(Category::getStatus, status)
-                .orderByAsc(Category::getSortOrder)
-                .list();
-    }
-
-    @Override
-    public List<Category> getFlowerCategories() {
-        return getCategoriesByTypeAndStatus("FLOWER", 1);
-    }
-
-    @Override
-    public List<Category> getPackagingCategories() {
-        return getCategoriesByTypeAndStatus("PACKAGING", 1);
-    }
-
-    @Override
-    public List<Category> getCategoriesByStatus(Integer status) {
-        return lambdaQuery()
-                .eq(Category::getStatus, status)
-                .orderByAsc(Category::getType)
-                .orderByAsc(Category::getSortOrder)
-                .list();
-    }
-
+    
+    
     @Override
     @Transactional
     public boolean createCategory(Category category) {
@@ -236,53 +193,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         return true;
     }
 
-    @Override
-    public int countCategories() {
-        return Math.toIntExact(count());
-    }
-
-    @Override
-    public int countFlowerCategories() {
-        return Math.toIntExact(lambdaQuery()
-                .eq(Category::getType, "FLOWER")
-                .count());
-    }
-
-    @Override
-    public int countPackagingCategories() {
-        return Math.toIntExact(lambdaQuery()
-                .eq(Category::getType, "PACKAGING")
-                .count());
-    }
-
-    @Override
-    @Transactional
-    public void initDefaultCategories() {
-        // 检查是否已有数据
-        if (count() > 0) {
-            log.info("分类数据已存在，跳过初始化");
-            return;
-        }
-
-        // 初始化花材分类
-        List<Category> flowerCategories = List.of(
-                Category.builder().name("玫瑰").code("ROSE").type("FLOWER").sortOrder(1).status(1).build(),
-                Category.builder().name("百合").code("LILY").type("FLOWER").sortOrder(2).status(1).build(),
-                Category.builder().name("夜来香").code("TUBEROSE").type("FLOWER").sortOrder(3).status(1).build(),
-                Category.builder().name("康乃馨").code("CARNATION").type("FLOWER").sortOrder(4).status(1).build(),
-                Category.builder().name("向日葵").code("SUNFLOWER").type("FLOWER").sortOrder(5).status(1).build());
-
-        // 初始化包装分类
-        List<Category> packagingCategories = List.of(
-                Category.builder().name("花束").code("BOUQUET").type("PACKAGING").sortOrder(1).status(1).build(),
-                Category.builder().name("花篮").code("BASKET").type("PACKAGING").sortOrder(2).status(1).build());
-
-        saveBatch(flowerCategories);
-        saveBatch(packagingCategories);
-
-        log.info("默认分类数据初始化成功");
-    }
-
+    
     /**
      * 获取下一个排序值
      */

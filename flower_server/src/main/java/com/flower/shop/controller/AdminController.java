@@ -75,11 +75,4 @@ public class AdminController {
         }
     }
 
-    /**
-     * 获取当前管理员信息
-     */
-    @GetMapping("/auth/info")
-    public Result<String> getCurrentAdminInfo() {
-        return Result.success("管理员信息获取成功", "当前登录管理员");
-    }
-}
+  }

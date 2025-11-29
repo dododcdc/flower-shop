@@ -141,14 +141,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
             // 1. 更新商品基本信息
             updateById(request.getProduct());
 
-            // 2. 验证主图唯一性
-            validateMainImageUniqueness(request);
-
-            // 3. 处理图片更新
+            // 2. 处理图片更新
             ImageUpdateResult updateResult = processImageUpdates(request, productId);
-
-            // 4. 确保只有一个主图
-            ensureSingleMainImage(productId);
 
             // 5. 异步清理已删除的物理文件
             scheduleFileDeletion(updateResult.getDeletedImagePaths());
@@ -258,23 +252,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     
     // ==================== 图片管理支持类 ====================
 
-    /**
-     * 验证主图唯一性
-     */
-    private void validateMainImageUniqueness(ProductService.ProductUpdateRequest request) {
-        productImageService.validateMainImageUniqueness(
-            request.getExistingImages(),
-            request.getNewImages()
-        );
-    }
-
-    /**
-     * 验证只有一个主图（仅验证，不自动修复）
-     */
-    private void ensureSingleMainImage(Long productId) {
-        productImageService.ensureSingleMainImage(productId);
-    }
-
+    
+    
     /**
      * 删除物理文件
      */

@@ -9,9 +9,7 @@ import lombok.Data;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.Update;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -26,146 +24,15 @@ import java.util.List;
 public interface ProductMapper extends BaseMapper<Product> {
 
     /**
-     * 分页查询商品列表（包含分类信息）
-     */
-    @Select("SELECT p.*, " +
-            "c.name as category_name " +
-            "FROM products p " +
-            "LEFT JOIN categories c ON p.category_id = c.id " +
-            "ORDER BY p.created_at DESC")
-    IPage<Product> selectProductsWithDetails(Page<Product> page);
-
-    /**
-     * 根据分类ID查询商品
-     */
-    @Select("SELECT p.*, " +
-            "c.name as category_name " +
-            "FROM products p " +
-            "LEFT JOIN categories c ON p.category_id = c.id " +
-            "WHERE p.category_id = #{categoryId} " +
-            "ORDER BY p.created_at DESC")
-    List<Product> selectProductsByCategoryId(@Param("categoryId") Long categoryId);
-
-    /**
-     * 查询上架商品列表
-     */
-    @Select("SELECT p.*, " +
-            "c.name as category_name " +
-            "FROM products p " +
-            "LEFT JOIN categories c ON p.category_id = c.id " +
-            "WHERE p.status = 1 " +
-            "ORDER BY p.created_at DESC")
-    List<Product> selectOnlineProducts();
-
-    /**
-     * 分页查询上架商品列表
-     */
-    @Select("SELECT p.*, " +
-            "c.name as category_name " +
-            "FROM products p " +
-            "LEFT JOIN categories c ON p.category_id = c.id " +
-            "WHERE p.status = 1 " +
-            "ORDER BY p.created_at DESC")
-    IPage<Product> selectOnlineProductsPage(Page<Product> page);
-
-    /**
-     * 查询推荐商品
-     */
-    @Select("SELECT p.*, " +
-            "c.name as category_name " +
-            "FROM products p " +
-            "LEFT JOIN categories c ON p.category_id = c.id " +
-            "WHERE p.status = 1 AND p.featured = 1 " +
-            "ORDER BY p.created_at DESC " +
-            "LIMIT #{limit}")
-    List<Product> selectFeaturedProducts(@Param("limit") Integer limit);
-
-    /**
-     * 按销量查询热门商品（基于订单统计） - 使用XML实现
-     */
-    List<Product> selectTopSellingProducts(@Param("limit") Integer limit);
-
-    /**
-     * 按价格区间查询商品
-     */
-    @Select("SELECT p.*, " +
-            "c.name as category_name " +
-            "FROM products p " +
-            "LEFT JOIN categories c ON p.category_id = c.id " +
-            "WHERE p.price >= #{minPrice} AND p.price <= #{maxPrice} " +
-            "AND p.status = 1 " +
-            "ORDER BY p.price ASC")
-    List<Product> selectProductsByPriceRange(@Param("minPrice") BigDecimal minPrice,
-                                             @Param("maxPrice") BigDecimal maxPrice);
-
-    
-    
-    /**
-     * 统计商品总数
-     */
-    @Select("SELECT COUNT(*) FROM products")
-    int countAllProducts();
-
-    /**
-     * 统计上架商品数
-     */
-    @Select("SELECT COUNT(*) FROM products WHERE status = 1")
-    int countOnlineProducts();
-
-    /**
-     * 统计指定分类下的商品数
-     */
-    @Select("SELECT COUNT(*) FROM products WHERE category_id = #{categoryId}")
-    int countProductsByCategory(@Param("categoryId") Long categoryId);
-
-    /**
      * 检查商品名称是否存在
      */
     @Select("SELECT COUNT(*) FROM products WHERE name = #{name} AND id != #{excludeId}")
     int countByNameExcludeId(@Param("name") String name, @Param("excludeId") Long excludeId);
 
-    
-    /**
-     * 批量更新商品状态
-     */
-    @Update("UPDATE products SET status = #{status} WHERE id IN #{productIds}")
-    int batchUpdateStatus(@Param("productIds") List<Long> productIds, @Param("status") Integer status);
-
-    /**
-     * 批量查询商品
-     */
-    @Select("SELECT * FROM products WHERE id IN #{productIds}")
-    List<Product> selectBatchIds(@Param("productIds") List<Long> productIds);
-
     /**
      * 多条件动态搜索商品（分页）- 优化版本，包含主图信息
      */
-    IPage<Product> searchProductsAdvanced(Page<Product> page, @Param("request") ProductSearchRequest request);
-
-    /**
-     * 优化的商品搜索查询，一次性获取主图信息
-     */
     IPage<Product> searchProductsWithMainImage(Page<Product> page, @Param("request") ProductSearchRequest request);
-
-    /**
-     * 查询商品的主图路径
-     */
-    @Select("SELECT image_path FROM product_images WHERE product_id = #{productId} AND image_type = 1 ORDER BY sort_order ASC, id ASC LIMIT 1")
-    String selectMainImageByProductId(@Param("productId") Long productId);
-
-    /**
-     * 批量查询商品的主图路径
-     */
-    @Select("<script>" +
-            "SELECT product_id, image_path FROM product_images " +
-            "WHERE product_id IN " +
-            "<foreach collection='productIds' item='productId' open='(' separator=',' close=')'>" +
-            "#{productId}" +
-            "</foreach>" +
-            " AND image_type = 1 " +
-            "ORDER BY product_id, sort_order ASC, id ASC" +
-            "</script>")
-    List<MainImageInfo> selectMainImageByProductIds(@Param("productIds") List<Long> productIds);
 
     /**
      * 查询商品的所有图片详情（包含完整信息）
@@ -183,14 +50,5 @@ public interface ProductMapper extends BaseMapper<Product> {
         private String imagePath;
         private Integer imageType;
         private Integer sortOrder;
-    }
-
-    /**
-     * 批量查询主图信息的内部类
-     */
-    @Data
-    class MainImageInfo {
-        private Long productId;
-        private String imagePath;
     }
 }
