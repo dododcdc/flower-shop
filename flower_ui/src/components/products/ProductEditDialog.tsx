@@ -245,9 +245,13 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
             setImageList(prev => {
                 const updatedList = [...prev, ...newItems];
                 // 如果之前没有主图（比如全删了），新加的第一张自动成为主图
-                if (!mainImageId && getActiveImageCount() === 0) {
-                    setMainImageId(newItems[0].id);
-                    // 这种情况不需要设置 prevMainImageId，因为是从无到有
+                // 修复：即使已经有主图记录，但如果主图已被删除或不存在于当前列表中，也要设置第一张新图为默认主图
+                if (!mainImageId || (mainImageId && !prev.find(item => item.id === mainImageId && !item.isDeleted))) {
+                    // 查找当前有效的第一张图片作为主图
+                    const firstActive = updatedList.find(item => !item.isDeleted);
+                    if (firstActive) {
+                        setMainImageId(firstActive.id);
+                    }
                 }
                 return updatedList;
             });
