@@ -70,24 +70,24 @@ public class Order {
 
     /**
      * 订单状态：
-     * 0-待支付
-     * 1-已支付（待确认）
-     * 2-已确认（准备中）
-     * 3-配送中
-     * 4-已完成
-     * 5-已取消
+     * PENDING - 待支付
+     * PAID - 已支付（待确认）
+     * PREPARING - 准备中
+     * DELIVERING - 配送中
+     * COMPLETED - 已完成
+     * CANCELLED - 已取消
      */
     @TableField("status")
-    private Integer status;
+    private String status;
 
     /**
-     * 支付方式
+     * 支付方式: ALIPAY, WECHAT, CASH, MOCK
      */
     @TableField("payment_method")
     private String paymentMethod;
 
     /**
-     * 支付状态
+     * 支付状态: PENDING, PAID, REFUNDED
      */
     @TableField("payment_status")
     private String paymentStatus;
@@ -147,17 +147,17 @@ public class Order {
         if (status == null)
             return "未知";
         switch (status) {
-            case 0:
+            case "PENDING":
                 return "待支付";
-            case 1:
-                return "待确认";
-            case 2:
+            case "PAID":
+                return "已支付";
+            case "PREPARING":
                 return "准备中";
-            case 3:
+            case "DELIVERING":
                 return "配送中";
-            case 4:
+            case "COMPLETED":
                 return "已完成";
-            case 5:
+            case "CANCELLED":
                 return "已取消";
             default:
                 return "未知";
@@ -168,14 +168,38 @@ public class Order {
      * 支付方式文本
      */
     public String getPaymentMethodText() {
-        return paymentMethod != null ? paymentMethod : "未选择";
+        if (paymentMethod == null)
+            return "未选择";
+        switch (paymentMethod) {
+            case "ALIPAY":
+                return "支付宝";
+            case "WECHAT":
+                return "微信支付";
+            case "CASH":
+                return "现金";
+            case "MOCK":
+                return "模拟支付";
+            default:
+                return paymentMethod;
+        }
     }
 
     /**
      * 支付状态文本
      */
     public String getPaymentStatusText() {
-        return paymentStatus != null ? paymentStatus : "未支付";
+        if (paymentStatus == null)
+            return "未支付";
+        switch (paymentStatus) {
+            case "PENDING":
+                return "待支付";
+            case "PAID":
+                return "已支付";
+            case "REFUNDED":
+                return "已退款";
+            default:
+                return paymentStatus;
+        }
     }
 
     /**
@@ -189,48 +213,50 @@ public class Order {
      * 判断是否已支付
      */
     public boolean isPaid() {
-        return Integer.valueOf(1).equals(this.paymentStatus);
+        return "PAID".equals(this.paymentStatus);
     }
 
     /**
      * 判断是否已完成
      */
     public boolean isCompleted() {
-        return Integer.valueOf(4).equals(this.status);
+        return "COMPLETED".equals(this.status);
     }
 
     /**
      * 判断是否已取消
      */
     public boolean isCancelled() {
-        return Integer.valueOf(5).equals(this.status);
+        return "CANCELLED".equals(this.status);
     }
 
     /**
      * 判断是否可以取消
      */
     public boolean canCancel() {
-        return status != null && status < 3 && !isCancelled();
+        return status != null &&
+                ("PENDING".equals(status) || "PAID".equals(status) || "PREPARING".equals(status)) &&
+                !isCancelled();
     }
 
     /**
      * 判断是否可以确认
      */
     public boolean canConfirm() {
-        return Integer.valueOf(1).equals(this.status) && isPaid();
+        return "PAID".equals(this.status) && isPaid();
     }
 
     /**
      * 判断是否可以开始配送
      */
     public boolean canShip() {
-        return Integer.valueOf(2).equals(this.status);
+        return "PREPARING".equals(this.status);
     }
 
     /**
      * 判断是否可以完成
      */
     public boolean canComplete() {
-        return Integer.valueOf(3).equals(this.status);
+        return "DELIVERING".equals(this.status);
     }
 }

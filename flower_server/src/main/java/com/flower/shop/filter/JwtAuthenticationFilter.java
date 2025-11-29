@@ -33,8 +33,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                  HttpServletResponse response,
-                                  FilterChain filterChain) throws ServletException, IOException {
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
 
         try {
             // 1. 从请求头中提取Token
@@ -50,11 +50,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     // 4. 创建认证对象
                     // 直接使用从JWT中获取的角色，它已经是ROLE_格式
                     List<SimpleGrantedAuthority> authorities = List.of(
-                        new SimpleGrantedAuthority(role)
-                    );
+                            new SimpleGrantedAuthority(role));
 
-                    UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(username, null, authorities);
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            username, null, authorities);
 
                     // 5. 设置到Security上下文
                     SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -96,12 +95,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // 跳过这些路径的JWT验证
         return path.startsWith("/test/") ||
-               path.startsWith("/admin/init/") ||
-               path.equals("/admin/auth/login") ||
-               path.startsWith("/static/") ||
-               path.startsWith("/css/") ||
-               path.startsWith("/js/") ||
-               path.startsWith("/images/") ||
-               path.equals("/error");
+                path.startsWith("/admin/init/") ||
+                path.equals("/admin/auth/login") ||
+                path.startsWith("/products/") ||
+                path.startsWith("/categories/") ||
+                path.startsWith("/orders/") ||
+                path.startsWith("/static/") ||
+                path.startsWith("/css/") ||
+                path.startsWith("/js/") ||
+                path.startsWith("/images/") ||
+                path.startsWith("/uploads/") ||
+                path.equals("/error");
     }
 }

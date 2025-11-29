@@ -41,25 +41,14 @@ public class OrderItem {
     /**
      * 商品快照名称（下单时商品的名称）
      */
-    @TableField("product_snapshot_name")
+    @TableField("product_name")
     private String productSnapshotName;
 
-    /**
-     * 商品快照图片（下单时商品的图片）
-     */
-    @TableField("product_snapshot_image")
-    private String productSnapshotImage;
-
-    /**
-     * 商品快照规格（下单时商品的规格）
-     */
-    @TableField("product_snapshot_specification")
-    private String productSnapshotSpecification;
-
+    
     /**
      * 商品单价（下单时的价格，防止价格变动）
      */
-    @TableField("unit_price")
+    @TableField("product_price")
     private BigDecimal unitPrice;
 
     /**
@@ -71,40 +60,17 @@ public class OrderItem {
     /**
      * 小计金额（单价 × 数量）
      */
-    @TableField("subtotal")
+    @TableField("total_price")
     private BigDecimal subtotal;
 
-    /**
-     * 花材分类名称（快照）
-     */
-    @TableField("category_snapshot_name")
-    private String categorySnapshotName;
-
-    /**
-     * 包装分类名称（快照）
-     */
-    @TableField("packaging_snapshot_name")
-    private String packagingSnapshotName;
-
+    
     /**
      * 创建时间
      */
     @TableField(value = "created_at", fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 
-    /**
-     * 更新时间
-     */
-    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updatedAt;
-
-    /**
-     * 逻辑删除标记：0-未删除，1-已删除
-     */
-    @TableLogic
-    @TableField("deleted")
-    private Integer deleted;
-
+    
     /**
      * 商品名称（临时存储，用于显示）
      */

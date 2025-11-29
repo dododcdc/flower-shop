@@ -1,21 +1,134 @@
 import React from 'react';
-import { Box, Container, Grid, Typography, Paper, Button, Divider } from '@mui/material';
+import { Box, Container, Grid, Typography, Paper, Button, Divider, TextField } from '@mui/material';
 import { motion } from 'framer-motion';
 import ShopLayout from '../../components/shop/ShopLayout';
 import { useCartStore } from '../../store/cartStore';
 import { useNavigate } from 'react-router-dom';
+import { useSnackbar } from 'notistack';
+import { orderAPI } from '../../api/orderAPI';
 
 import MessageCardEditor from '../../components/shop/MessageCardEditor';
 
 const CheckoutPage: React.FC = () => {
     const navigate = useNavigate();
-    const { getSelectedItems, getTotalSelectedPrice } = useCartStore();
+    const { enqueueSnackbar } = useSnackbar();
+    const { getSelectedItems, getTotalSelectedPrice, clearCart } = useCartStore();
     const selectedItems = getSelectedItems();
     const totalPrice = getTotalSelectedPrice();
 
     // 状态管理
     const [cardContent, setCardContent] = React.useState('');
     const [cardSender, setCardSender] = React.useState('');
+
+    // 收货信息状态
+    const [recipientName, setRecipientName] = React.useState('');
+    const [recipientPhone, setRecipientPhone] = React.useState('');
+    const [recipientAddress, setRecipientAddress] = React.useState('');
+
+    // 配送时间状态
+    const [deliveryDate, setDeliveryDate] = React.useState('');
+    const [deliveryTime, setDeliveryTime] = React.useState('');
+
+    // 提交状态
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+    // 表单验证
+    const validateForm = () => {
+        if (!recipientName.trim()) {
+            enqueueSnackbar('请填写收货人姓名', { variant: 'error' });
+            return false;
+        }
+        if (!recipientPhone.trim()) {
+            enqueueSnackbar('请填写联系电话', { variant: 'error' });
+            return false;
+        }
+        if (!/^1[3-9]\d{9}$/.test(recipientPhone)) {
+            enqueueSnackbar('请填写正确的手机号码', { variant: 'error' });
+            return false;
+        }
+        if (!recipientAddress.trim()) {
+            enqueueSnackbar('请填写详细地址', { variant: 'error' });
+            return false;
+        }
+        if (!deliveryDate) {
+            enqueueSnackbar('请选择配送日期', { variant: 'error' });
+            return false;
+        }
+        if (!deliveryTime) {
+            enqueueSnackbar('请选择配送时间', { variant: 'error' });
+            return false;
+        }
+        return true;
+    };
+
+    // 提交订单
+    const handleSubmitOrder = async () => {
+        if (!validateForm()) {
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const orderRequest = {
+                recipientName,
+                recipientPhone,
+                recipientAddress,
+                deliveryDate,
+                deliveryTime,
+                cardContent: cardContent || undefined,
+                cardSender: cardSender || undefined,
+                items: selectedItems.map(item => ({
+                    productId: item.product.id,
+                    quantity: item.quantity,
+                    price: item.product.price,
+                })),
+            };
+
+            const order = await orderAPI.createOrder(orderRequest);
+
+            enqueueSnackbar('订单创建成功！订单号：' + order.orderNo, {
+                variant: 'success',
+                autoHideDuration: 3000,
+            });
+
+            // 清空购物车
+            clearCart();
+
+            // 跳转到订单成功页面
+            setTimeout(() => {
+                navigate('/shop/order-success', {
+                    state: {
+                        orderNo: order.orderNo,
+                        customerName: recipientName,
+                        customerPhone: recipientPhone,
+                        deliveryAddress: recipientAddress,
+                        deliveryTime: `${deliveryDate} ${deliveryTime}`,
+                        totalAmount: order.finalAmount || totalPrice,
+                        message: cardContent
+                    }
+                });
+            }, 1500);
+
+        } catch (error: any) {
+            console.error('订单创建失败:', error);
+            enqueueSnackbar(error.response?.data?.message || '订单创建失败，请重试', {
+                variant: 'error',
+                autoHideDuration: 3000,
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    // 解析图片路径
+    const getImageUrl = (imagePath: string | null | undefined) => {
+        if (!imagePath) return '/placeholder-flower.jpg';
+        if (imagePath.startsWith('http')) return imagePath;
+        if (imagePath.startsWith('/uploads/')) {
+            return `http://localhost:8080/api${imagePath}`;
+        }
+        return imagePath;
+    };
 
     if (selectedItems.length === 0) {
         return (
@@ -48,11 +161,40 @@ const CheckoutPage: React.FC = () => {
                                 <Typography variant="h6" sx={{ mb: 2, color: '#D4AF37', fontWeight: 'bold' }}>
                                     1. 收货信息
                                 </Typography>
-                                <Box sx={{ p: 2, bgcolor: '#f9f9f9', borderRadius: 1 }}>
-                                    <Typography color="text.secondary">
-                                        (此处将放置收货人信息表单)
-                                    </Typography>
-                                </Box>
+                                <Grid container spacing={2}>
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <TextField
+                                            label="收货人姓名"
+                                            fullWidth
+                                            required
+                                            value={recipientName}
+                                            onChange={(e) => setRecipientName(e.target.value)}
+                                            placeholder="请填写收货人姓名"
+                                        />
+                                    </Grid>
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <TextField
+                                            label="联系电话"
+                                            fullWidth
+                                            required
+                                            value={recipientPhone}
+                                            onChange={(e) => setRecipientPhone(e.target.value)}
+                                            placeholder="请填写手机号码"
+                                        />
+                                    </Grid>
+                                    <Grid size={{ xs: 12 }}>
+                                        <TextField
+                                            label="详细地址"
+                                            fullWidth
+                                            required
+                                            multiline
+                                            rows={2}
+                                            value={recipientAddress}
+                                            onChange={(e) => setRecipientAddress(e.target.value)}
+                                            placeholder="街道、楼牌号等"
+                                        />
+                                    </Grid>
+                                </Grid>
                             </Paper>
 
                             {/* 配送时间 */}
@@ -60,11 +202,30 @@ const CheckoutPage: React.FC = () => {
                                 <Typography variant="h6" sx={{ mb: 2, color: '#D4AF37', fontWeight: 'bold' }}>
                                     2. 配送时间
                                 </Typography>
-                                <Box sx={{ p: 2, bgcolor: '#f9f9f9', borderRadius: 1 }}>
-                                    <Typography color="text.secondary">
-                                        (此处将放置配送日期和时间选择器)
-                                    </Typography>
-                                </Box>
+                                <Grid container spacing={2}>
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <TextField
+                                            label="配送日期"
+                                            type="date"
+                                            fullWidth
+                                            required
+                                            value={deliveryDate}
+                                            onChange={(e) => setDeliveryDate(e.target.value)}
+                                            InputLabelProps={{ shrink: true }}
+                                        />
+                                    </Grid>
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <TextField
+                                            label="配送时间"
+                                            type="time"
+                                            fullWidth
+                                            required
+                                            value={deliveryTime}
+                                            onChange={(e) => setDeliveryTime(e.target.value)}
+                                            InputLabelProps={{ shrink: true }}
+                                        />
+                                    </Grid>
+                                </Grid>
                             </Paper>
 
                             {/* 心意卡片 */}
@@ -101,7 +262,7 @@ const CheckoutPage: React.FC = () => {
                                     {selectedItems.map((item) => (
                                         <Box key={item.id} sx={{ display: 'flex', gap: 2, mb: 2 }}>
                                             <img
-                                                src={item.product.mainImagePath || '/placeholder-flower.jpg'}
+                                                src={getImageUrl(item.product.mainImagePath)}
                                                 alt={item.product.name}
                                                 style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 4 }}
                                             />
@@ -145,6 +306,8 @@ const CheckoutPage: React.FC = () => {
                                     variant="contained"
                                     fullWidth
                                     size="large"
+                                    onClick={handleSubmitOrder}
+                                    disabled={isSubmitting}
                                     sx={{
                                         background: 'linear-gradient(135deg, #D4AF37 0%, #B8941F 100%)',
                                         color: '#1B3A2B',
@@ -152,7 +315,7 @@ const CheckoutPage: React.FC = () => {
                                         py: 1.5,
                                     }}
                                 >
-                                    提交订单
+                                    {isSubmitting ? '提交中...' : '提交订单'}
                                 </Button>
                             </Paper>
                         </Box>

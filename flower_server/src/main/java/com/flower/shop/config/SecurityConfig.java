@@ -32,29 +32,30 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // 启用CORS - 直接内联配置，避免Bean冲突
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            // 禁用CSRF
-            .csrf(AbstractHttpConfigurer::disable)
-            // 配置请求授权
-            .authorizeHttpRequests(auth -> auth
-                // 允许测试接口无需认证访问
-                .requestMatchers("/test/**").permitAll()
-                // 允许管理员初始化和登录接口无需认证访问
-                .requestMatchers("/admin/init/**").permitAll()
-                .requestMatchers("/admin/auth/login").permitAll()
-                // 允许游客端商品接口无需认证访问
-                .requestMatchers("/products/**").permitAll()
-                .requestMatchers("/categories/**").permitAll()
-                // 允许静态资源访问
-                .requestMatchers("/static/**", "/css/**", "/js/**", "/images/**", "/uploads/**").permitAll()
-                // 允许错误页面访问
-                .requestMatchers("/error").permitAll()
-                // 其他所有请求都需要认证
-                .anyRequest().authenticated()
-            )
-            // 添加JWT认证过滤器
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                // 启用CORS - 直接内联配置，避免Bean冲突
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                // 禁用CSRF
+                .csrf(AbstractHttpConfigurer::disable)
+                // 配置请求授权
+                .authorizeHttpRequests(auth -> auth
+                        // 允许测试接口无需认证访问
+                        .requestMatchers("/test/**").permitAll()
+                        // 允许管理员初始化和登录接口无需认证访问
+                        .requestMatchers("/admin/init/**").permitAll()
+                        .requestMatchers("/admin/auth/login").permitAll()
+                        // 允许游客端商品接口无需认证访问
+                        .requestMatchers("/products/**").permitAll()
+                        .requestMatchers("/categories/**").permitAll()
+                        // 允许游客端订单接口无需认证访问（游客下单）
+                        .requestMatchers("/orders/**").permitAll()
+                        // 允许静态资源访问
+                        .requestMatchers("/static/**", "/css/**", "/js/**", "/images/**", "/uploads/**").permitAll()
+                        // 允许错误页面访问
+                        .requestMatchers("/error").permitAll()
+                        // 其他所有请求都需要认证
+                        .anyRequest().authenticated())
+                // 添加JWT认证过滤器
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

@@ -19,6 +19,8 @@ const DeliveryManagementPage = lazy(() => import('./pages/DeliveryManagementPage
 const ShopPage = lazy(() => import('./pages/shop/ShopPage'));
 const ProductDetailPage = lazy(() => import('./pages/shop/ProductDetailPage'));
 const CheckoutPage = lazy(() => import('./pages/shop/CheckoutPage'));
+const OrderSuccessPage = lazy(() => import('./pages/shop/OrderSuccessPage'));
+const OrderListPage = lazy(() => import('./pages/shop/OrderListPage'));
 
 // Toast通知组件
 const ToastRenderer = lazy(() => import('./components/shop/ToastRenderer'));
@@ -51,6 +53,16 @@ const App: React.FC = () => {
             <Route path="/shop/checkout" element={
               <Suspense fallback={<LoadingSpinner />}>
                 <CheckoutPage />
+              </Suspense>
+            } />
+            <Route path="/shop/order-success" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <OrderSuccessPage />
+              </Suspense>
+            } />
+            <Route path="/shop/orders" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <OrderListPage />
               </Suspense>
             } />
             <Route path="/shop/product/:id" element={
