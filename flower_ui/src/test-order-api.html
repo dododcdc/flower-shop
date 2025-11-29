@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>订单API测试</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>订单API测试</h1>
+    <button onclick="testOrderAPI()">测试订单查询API</button>
+    <div id="result"></div>
+
+    <script>
+        function testOrderAPI() {
+            const phone = '138123456789';
+
+            console.log('发送测试请求...');
+
+            // 发送GET请求
+            axios.get(`http://localhost:8080/api/orders/by-phone?phone=${phone}&page=1&size=10`)
+                .then(response => {
+                    console.log('请求成功:', response);
+                    console.log('响应数据:', response.data);
+
+                    // 显示结果
+                    document.getElementById('result').innerHTML =
+                        '<h3>请求结果</h3>' +
+                        '<p><strong>状态:</strong> ' + response.status + '</p>' +
+                        '<p><strong>数据:</strong></p>' +
+                        '<pre>' + JSON.stringify(response.data, null, 2) + '</pre>';
+                })
+                .catch(error => {
+                    console.log('请求失败:', error);
+                    document.getElementById('result').innerHTML =
+                        '<h3>请求结果</h3>' +
+                        '<p><strong>错误:</strong> ' + error.message + '</p>' +
+                        '<p><strong>状态:</strong> ' + error.status + '</p>' +
+                        '<p><strong>数据:</strong> null</p>';
+                });
+        }
+        }
+    </script>
+</body>
+</html>

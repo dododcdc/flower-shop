@@ -1,6 +1,9 @@
 package com.flower.shop.service.impl;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.flower.shop.dto.CreateOrderRequest;
 import com.flower.shop.entity.Order;
 import com.flower.shop.entity.OrderItem;
@@ -16,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +27,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
     private final OrderItemMapper orderItemMapper;
     private final ProductService productService;
+    private final OrderMapper orderMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -48,7 +53,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         // 4. 设置订单备注（收货地址）
         order.setNotes(request.getRecipientAddress());
 
-        // 5. 计算订单金额
+        // 5. 设置支付方式
+        if (request.getPaymentMethod() != null) {
+            order.setPaymentMethod(request.getPaymentMethod());
+        } else {
+            order.setPaymentMethod("ON_DELIVERY"); // 默认使用到付
+        }
+
+        // 6. 计算订单金额
         BigDecimal totalAmount = BigDecimal.ZERO;
         for (CreateOrderRequest.OrderItemDTO itemDTO : request.getItems()) {
             BigDecimal itemTotal = itemDTO.getPrice().multiply(BigDecimal.valueOf(itemDTO.getQuantity()));
@@ -59,14 +71,20 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         order.setDeliveryFee(BigDecimal.ZERO); // 暂时免运费
         order.setFinalAmount(totalAmount);
 
-        // 6. 设置订单状态
-        order.setStatus("PENDING"); // 待支付
-        order.setPaymentStatus("PENDING"); // 待支付
+        // 7. 设置订单状态
+        // 对于到付订单，直接进入准备状态；对于在线支付订单，需要等待支付
+        if ("ON_DELIVERY".equals(request.getPaymentMethod())) {
+            order.setStatus("PREPARING"); // 准备中
+            order.setPaymentStatus("PENDING"); // 待支付（配送时付款）
+        } else {
+            order.setStatus("PENDING"); // 待支付
+            order.setPaymentStatus("PENDING"); // 待支付
+        }
 
-        // 7. 保存订单
+        // 8. 保存订单
         this.save(order);
 
-        // 8. 保存订单项
+        // 9. 保存订单项
         for (CreateOrderRequest.OrderItemDTO itemDTO : request.getItems()) {
             Product product = productService.getById(itemDTO.getProductId());
             if (product == null) {
@@ -85,6 +103,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         }
 
         return order;
+    }
+
+    @Override
+    public IPage<Order> getOrdersByPhone(String phone, Integer page, Integer size) {
+        Page<Order> pageInfo =
+            new Page<>(page, size);
+
+        return orderMapper.selectOrdersByCustomerPhone(pageInfo, phone);
     }
 
     /**

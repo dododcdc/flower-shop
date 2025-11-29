@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Container, Grid, Typography, Paper, Button, Divider, TextField } from '@mui/material';
+import { Box, Container, Grid, Typography, Paper, Button, Divider, TextField, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel } from '@mui/material';
 import { motion } from 'framer-motion';
 import ShopLayout from '../../components/shop/ShopLayout';
 import { useCartStore } from '../../store/cartStore';
@@ -19,6 +19,9 @@ const CheckoutPage: React.FC = () => {
     // 状态管理
     const [cardContent, setCardContent] = React.useState('');
     const [cardSender, setCardSender] = React.useState('');
+
+    // 支付方式状态
+    const [paymentMethod, setPaymentMethod] = React.useState('ON_DELIVERY'); // 默认使用到付
 
     // 收货信息状态
     const [recipientName, setRecipientName] = React.useState('');
@@ -77,6 +80,7 @@ const CheckoutPage: React.FC = () => {
                 deliveryTime,
                 cardContent: cardContent || undefined,
                 cardSender: cardSender || undefined,
+                paymentMethod, // 添加支付方式
                 items: selectedItems.map(item => ({
                     productId: item.product.id,
                     quantity: item.quantity,
@@ -228,10 +232,46 @@ const CheckoutPage: React.FC = () => {
                                 </Grid>
                             </Paper>
 
+                            {/* 支付方式 */}
+                            <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+                                <Typography variant="h6" sx={{ mb: 2, color: '#D4AF37', fontWeight: 'bold' }}>
+                                    3. 支付方式
+                                </Typography>
+                                <FormControl component="fieldset">
+                                    <RadioGroup
+                                        aria-label="payment-method"
+                                        name="payment-method"
+                                        value={paymentMethod}
+                                        onChange={(e) => setPaymentMethod(e.target.value)}
+                                    >
+                                        <FormControlLabel
+                                            value="ALIPAY"
+                                            control={<Radio />}
+                                            label="支付宝"
+                                            disabled
+                                        />
+                                        <FormControlLabel
+                                            value="WECHAT"
+                                            control={<Radio />}
+                                            label="微信支付"
+                                            disabled
+                                        />
+                                        <FormControlLabel
+                                            value="ON_DELIVERY"
+                                            control={<Radio />}
+                                            label="到付"
+                                        />
+                                    </RadioGroup>
+                                </FormControl>
+                                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                    注：目前仅支持到付，后续获得营业执照后将支持支付宝和微信支付。
+                                </Typography>
+                            </Paper>
+
                             {/* 心意卡片 */}
                             <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
                                 <Typography variant="h6" sx={{ mb: 2, color: '#D4AF37', fontWeight: 'bold' }}>
-                                    3. 心意卡片 ✨
+                                    4. 心意卡片 ✨
                                 </Typography>
                                 <MessageCardEditor
                                     content={cardContent}

@@ -21,6 +21,9 @@ public class CreateOrderRequest {
     private String cardContent;
     private String cardSender;
 
+    // 支付方式
+    private String paymentMethod;
+
     // 订单项
     private List<OrderItemDTO> items;
 

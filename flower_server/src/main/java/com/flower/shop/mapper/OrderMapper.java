@@ -53,16 +53,6 @@ public interface OrderMapper extends BaseMapper<Order> {
             "ORDER BY o.created_at DESC")
     List<Order> selectOrdersByUserId(@Param("userId") Long userId);
 
-    /**
-     * 根据客户手机号查询订单
-     */
-    @Select("SELECT o.*, " +
-            "u.username as user_name " +
-            "FROM orders o " +
-            "LEFT JOIN users u ON o.user_id = u.id " +
-            "WHERE o.customer_phone = #{customerPhone} " +
-            "ORDER BY o.created_at DESC")
-    List<Order> selectOrdersByCustomerPhone(@Param("customerPhone") String customerPhone);
 
     /**
      * 根据订单号查询订单
@@ -154,31 +144,6 @@ public interface OrderMapper extends BaseMapper<Order> {
     @Select("SELECT COUNT(*) FROM orders WHERE DATE(created_at) = CURDATE()")
     int countTodayOrders();
 
-    /**
-     * 统计今日销售额
-     */
-    @Select("SELECT COALESCE(SUM(total_amount), 0) " +
-            "FROM orders " +
-            "WHERE status = 4 AND DATE(completed_at) = CURDATE()")
-    java.math.BigDecimal getTodaySales();
 
-    /**
-     * 统计月度销售额
-     */
-    @Select("SELECT COALESCE(SUM(total_amount), 0) " +
-            "FROM orders " +
-            "WHERE status = 4 AND YEAR(created_at) = #{year} AND MONTH(created_at) = #{month}")
-    java.math.BigDecimal getMonthlySales(@Param("year") Integer year, @Param("month") Integer month);
 
-    /**
-     * 获取最近的订单
-     */
-    @Select("SELECT o.*, " +
-            "u.username as user_name " +
-            "FROM orders o " +
-            "LEFT JOIN users u ON o.user_id = u.id " +
-            "WHERE 1=1 " +
-            "ORDER BY o.created_at DESC " +
-            "LIMIT #{limit}")
-    List<Order> selectRecentOrders(@Param("limit") Integer limit);
 }

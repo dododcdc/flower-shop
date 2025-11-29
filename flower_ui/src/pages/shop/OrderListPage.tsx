@@ -31,6 +31,7 @@ import {
 import ShopLayout from '../../components/shop/ShopLayout';
 import PageContainer from '../../components/common/PageContainer';
 import { motion } from 'framer-motion';
+import { orderAPI } from '../../api/orderAPI';
 
 interface OrderInfo {
     id: number;
@@ -62,15 +63,24 @@ const OrderListPage: React.FC = () => {
     const [error, setError] = useState('');
     const [selectedOrder, setSelectedOrder] = useState<OrderInfo | null>(null);
     const [detailOpen, setDetailOpen] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [paginationInfo, setPaginationInfo] = useState({
+        total: 0,
+        current: 1,
+        size: 10,
+        pages: 0,
+    });
 
     const statusMap = {
-        1: { text: '已付款', color: '#4CAF50' },
-        2: { text: '准备中', color: '#FF9800' },
-        3: { text: '配送中', color: '#2196F3' },
-        4: { text: '已完成', color: '#9C27B0' },
+        'PENDING': { text: '待支付', color: '#4CAF50' },
+        'PAID': { text: '已支付', color: '#FF9800' },
+        'PREPARING': { text: '准备中', color: '#2196F3' },
+        'DELIVERING': { text: '配送中', color: '#2196F3' },
+        'COMPLETED': { text: '已完成', color: '#9C27B0' },
+        'CANCELLED': { text: '已取消', color: '#F44336' },
     };
 
-    const handleSearch = async () => {
+    const handleSearch = async (page: number = 1) => {
         if (!searchPhone.trim()) {
             setError('请输入手机号码');
             return;
@@ -78,32 +88,20 @@ const OrderListPage: React.FC = () => {
 
         setLoading(true);
         setError('');
+        setCurrentPage(page);
 
         try {
-            // 这里需要调用实际的API查询订单
-            // const response = await orderAPI.getOrdersByPhone(searchPhone);
-            // 暂时使用模拟数据
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // 调用实际的API查询订单
+            const response = await orderAPI.getOrdersByPhone(searchPhone, page, 10);
+            setOrders(response.records);
+            setPaginationInfo({
+                total: response.total,
+                current: response.current,
+                size: response.size,
+                pages: response.pages,
+            });
 
-            // 模拟数据
-            const mockOrders: OrderInfo[] = [
-                {
-                    id: 1,
-                    orderNo: 'ORD202501290001',
-                    customerName: '张三',
-                    customerPhone: searchPhone,
-                    deliveryAddress: '北京市朝阳区建国路88号',
-                    deliveryTime: '2025-01-29 14:00-16:00',
-                    totalAmount: 299.00,
-                    status: 2,
-                    message: '生日快乐！',
-                    createdAt: '2025-01-29 10:30:00',
-                },
-            ];
-
-            setOrders(mockOrders);
-
-            if (mockOrders.length === 0) {
+            if (response.records.length === 0) {
                 setError('未找到相关订单');
             }
         } catch (err: any) {
@@ -123,15 +121,19 @@ const OrderListPage: React.FC = () => {
         setSelectedOrder(null);
     };
 
+    const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+        handleSearch(value);
+    };
+
     const handleKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
-            handleSearch();
+            handleSearch(1);
         }
     };
 
     return (
         <ShopLayout>
-            <PageContainer title="订单查询" maxWidth="md">
+            <PageContainer title="" maxWidth="md">
                 <Container maxWidth="md" sx={{ py: 4 }}>
                     {/* 搜索区域 */}
                     <Paper
@@ -140,10 +142,6 @@ const OrderListPage: React.FC = () => {
                         animate={{ opacity: 1, y: 0 }}
                         sx={{ p: 3, mb: 3 }}
                     >
-                        <Typography variant="h6" sx={{ mb: 2, color: '#1B3A2B', fontWeight: 'bold' }}>
-                            查询我的订单
-                        </Typography>
-
                         <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end' }}>
                             <TextField
                                 fullWidth
@@ -165,7 +163,7 @@ const OrderListPage: React.FC = () => {
                             />
                             <Button
                                 variant="contained"
-                                onClick={handleSearch}
+                                onClick={() => handleSearch(1)}
                                 disabled={loading}
                                 startIcon={loading ? <CircularProgress size={20} /> : <SearchIcon />}
                                 sx={{
@@ -279,7 +277,29 @@ const OrderListPage: React.FC = () => {
                                     </Grid>
                                 ))}
                             </Grid>
-                        </Box>
+
+                        {/* 分页组件 */}
+                        {paginationInfo.pages > 1 && (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                                <Pagination
+                                    count={paginationInfo.pages}
+                                    page={currentPage}
+                                    onChange={handlePageChange}
+                                    color="primary"
+                                    size="large"
+                                    sx={{
+                                        '& .MuiPaginationItem-root': {
+                                            color: '#1B3A2B',
+                                            '&.Mui-selected': {
+                                                backgroundColor: '#D4AF37',
+                                                color: '#1B3A2B',
+                                            },
+                                        },
+                                    }}
+                                />
+                            </Box>
+                        )}
+                    </Box>
                     )}
 
                     {/* 订单详情弹窗 */}
@@ -329,7 +349,7 @@ const OrderListPage: React.FC = () => {
                                             配送信息
                                         </Typography>
                                         <Typography variant="body2" sx={{ mb: 0.5 }}>
-                                            📍 {selectedOrder.deliveryAddress}
+                                            📍 {selectedOrder.notes}
                                         </Typography>
                                         <Typography variant="body2" sx={{ mb: 0.5 }}>
                                             🕐 {selectedOrder.deliveryTime}
@@ -348,13 +368,16 @@ const OrderListPage: React.FC = () => {
                                         </Typography>
                                     </Box>
 
-                                    {selectedOrder.message && (
+                                    {selectedOrder.cardContent && (
                                         <Box sx={{ mb: 2 }}>
                                             <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
                                                 祝福贺卡
                                             </Typography>
                                             <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
-                                                {selectedOrder.message}
+                                                {selectedOrder.cardContent}
+                                            </Typography>
+                                            <Typography variant="body2" sx={{ fontStyle: 'italic', mt: 1 }}>
+                                                —— {selectedOrder.cardSender}
                                             </Typography>
                                         </Box>
                                     )}

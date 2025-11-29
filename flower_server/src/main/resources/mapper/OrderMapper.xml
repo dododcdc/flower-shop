@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.flower.shop.mapper.OrderMapper">
+
+    <!-- 根据客户手机号分页查询订单 -->
+    <select id="selectOrdersByCustomerPhone" resultType="com.flower.shop.entity.Order">
+        SELECT
+            o.id,
+            o.order_no,
+            o.customer_name,
+            o.customer_phone,
+            o.total_amount,
+            o.delivery_fee,
+            o.final_amount,
+            o.status,
+            o.payment_method,
+            o.payment_status,
+            o.delivery_time,
+            o.notes,
+            o.card_content,
+            o.card_sender,
+            o.created_at,
+            o.updated_at
+        FROM orders o
+        WHERE o.customer_phone = #{customerPhone}
+        ORDER BY o.created_at DESC
+    </select>
+
+</mapper>

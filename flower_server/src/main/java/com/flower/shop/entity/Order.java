@@ -32,11 +32,7 @@ public class Order {
     @TableField("order_no")
     private String orderNo;
 
-    /**
-     * 用户ID（游客下单时为空，注册用户下单时填写）
-     */
-    @TableField("user_id")
-    private Long userId;
+
 
     /**
      * 客户姓名
@@ -81,7 +77,7 @@ public class Order {
     private String status;
 
     /**
-     * 支付方式: ALIPAY, WECHAT, CASH, MOCK
+     * 支付方式: ALIPAY, WECHAT, ON_DELIVERY
      */
     @TableField("payment_method")
     private String paymentMethod;
@@ -175,10 +171,8 @@ public class Order {
                 return "支付宝";
             case "WECHAT":
                 return "微信支付";
-            case "CASH":
-                return "现金";
-            case "MOCK":
-                return "模拟支付";
+            case "ON_DELIVERY":
+                return "到付";
             default:
                 return paymentMethod;
         }
@@ -202,12 +196,7 @@ public class Order {
         }
     }
 
-    /**
-     * 判断是否为游客订单
-     */
-    public boolean isGuestOrder() {
-        return this.userId == null;
-    }
+
 
     /**
      * 判断是否已支付
