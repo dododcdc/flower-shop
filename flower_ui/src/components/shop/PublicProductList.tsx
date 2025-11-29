@@ -64,6 +64,7 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  
   // Pagination state
   const [pagination, setPagination] = useState({
     current: 1,
@@ -233,17 +234,18 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
       const result = onAddToCart(product, 1); // 默认添加1个
 
       if (result && result.success) {
-        // Success: Show animation and success toast
-        enqueueSnackbar('已加入购物车', {
-          variant: 'success',
-          autoHideDuration: 2000,
-          anchorOrigin: { vertical: 'top', horizontal: 'center' }
-        });
-
-        // Trigger animation
+        // Success: Trigger animation and global cart feedback
         const images = parseImages(product);
         const imageSrc = images.length > 0 ? images[0] : '/placeholder-flower.jpg'; // Fallback image
         flyToCart(e.currentTarget, imageSrc);
+
+        // Trigger global cart feedback
+        if ((window as any).triggerCartFeedback) {
+          (window as any).triggerCartFeedback({
+            name: product.name,
+            image: imageSrc,
+          });
+        }
       } else {
         // Error: Show error toast
         enqueueSnackbar(result?.message || '添加失败', {
@@ -710,7 +712,8 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
           />
         </Box>
       )}
-    </Box>
+
+      </Box>
   );
 };
 

@@ -1,18 +1,21 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useRef, useState, useEffect } from 'react';
 import { Box, AppBar, Toolbar, Typography, Button, Container, IconButton, Badge } from '@mui/material';
 import { ShoppingBasket, Phone, LocationOn } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import CartDrawer from './CartDrawer';
+import CartFeedback from './CartFeedback';
 import { useCartStore } from '../../store/cartStore';
 
 interface ShopLayoutProps {
   children: ReactNode;
+  onCartUpdate?: (trigger: boolean, productInfo?: { name?: string; image?: string }) => void;
 }
 
-const ShopLayout: React.FC<ShopLayoutProps> = ({ children }) => {
+const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
   const navigate = useNavigate();
   const { totalItems, openCart } = useCartStore();
+  const cartButtonRef = useRef<HTMLButtonElement>(null);
 
   const handleLogoClick = () => {
     navigate('/shop');
@@ -21,6 +24,29 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children }) => {
   const handleCartClick = () => {
     openCart();
   };
+
+  // 状态管理反馈触发
+  const [feedbackTrigger, setFeedbackTrigger] = useState(false);
+  const [feedbackProduct, setFeedbackProduct] = useState<{ name?: string; image?: string }>({});
+
+  const triggerCartFeedback = (productInfo?: { name?: string; image?: string }) => {
+    setFeedbackProduct(productInfo || {});
+    setFeedbackTrigger(true);
+    setTimeout(() => setFeedbackTrigger(false), 1500);
+
+    // 通知父组件
+    if (onCartUpdate) {
+      onCartUpdate(true, productInfo);
+    }
+  };
+
+  // 暴露反馈触发函数给全局使用
+  useEffect(() => {
+    (window as any).triggerCartFeedback = triggerCartFeedback;
+    return () => {
+      delete (window as any).triggerCartFeedback;
+    };
+  }, []);
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#fafafa' }}>
       {/* 顶部导航栏 */}
@@ -113,9 +139,36 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children }) => {
               </Box>
 
               {/* 购物车按钮 */}
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Badge badgeContent={totalItems} color="error">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                animate={feedbackTrigger ? {
+                  scale: [1, 1.2, 0.9, 1.1, 1],
+                  transition: { duration: 0.6, ease: "easeOut" }
+                } : {}}
+              >
+                <Badge
+                  badgeContent={totalItems}
+                  color="error"
+                  sx={{
+                    '& .MuiBadge-badge': {
+                      animation: feedbackTrigger ? 'badgeFlash 0.8s ease-out' : 'none',
+                      '@keyframes badgeFlash': {
+                        '0%, 100%': {
+                          transform: 'scale(1)',
+                          backgroundColor: '#D32F2F',
+                        },
+                        '50%': {
+                          transform: 'scale(1.3)',
+                          backgroundColor: '#4CAF50',
+                          boxShadow: '0 0 12px rgba(76, 175, 80, 0.6)',
+                        },
+                      },
+                    },
+                  }}
+                >
                   <IconButton
+                    ref={cartButtonRef}
                     id="cart-icon-btn"
                     onClick={handleCartClick}
                     sx={{
@@ -123,13 +176,32 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children }) => {
                       bgcolor: 'rgba(212, 175, 55, 0.1)',
                       '&:hover': {
                         bgcolor: 'rgba(212, 175, 55, 0.2)',
-                      }
+                      },
+                      animation: feedbackTrigger ? 'borderGlow 0.6s ease-out' : 'none',
+                      '@keyframes borderGlow': {
+                        '0%, 100%': {
+                          boxShadow: '0 0 0 rgba(212, 175, 55, 0)',
+                          border: '2px solid rgba(212, 175, 55, 0.3)',
+                        },
+                        '50%': {
+                          boxShadow: '0 0 16px rgba(212, 175, 55, 0.8)',
+                          border: '2px solid #D4AF37',
+                        },
+                      },
                     }}
                   >
                     <ShoppingBasket />
                   </IconButton>
                 </Badge>
               </motion.div>
+
+              {/* 购物车反馈效果 */}
+              <CartFeedback
+                trigger={feedbackTrigger}
+                productName={feedbackProduct.name}
+                productImage={feedbackProduct.image}
+                cartButtonRef={cartButtonRef}
+              />
             </Box>
           </Toolbar>
         </Container>
