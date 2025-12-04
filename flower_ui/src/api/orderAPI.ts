@@ -26,11 +26,16 @@ export interface Order {
     customerPhone: string;
     totalAmount: number;
     finalAmount: number;
-    status: number;
+    deliveryFee: number;
+    status: string; // "PENDING" | "PAID" | "PREPARING" | "DELIVERING" | "COMPLETED" | "CANCELLED"
+    paymentMethod: string;
+    paymentStatus: string;
     deliveryTime?: string;
+    notes?: string;
     cardContent?: string;
     cardSender?: string;
     createdAt: string;
+    updatedAt: string;
 }
 
 export const orderAPI = {

@@ -22,7 +22,7 @@
             o.created_at,
             o.updated_at
         FROM orders o
-        WHERE o.customer_phone = #{customerPhone}
+        WHERE o.customer_phone = #{phone}
         ORDER BY o.created_at DESC
     </select>
 

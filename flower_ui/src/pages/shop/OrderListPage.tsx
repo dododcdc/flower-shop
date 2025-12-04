@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
     Box,
     Container,
@@ -13,55 +12,28 @@ import {
     CardContent,
     Grid,
     Chip,
-    Divider,
     IconButton,
     Dialog,
     DialogTitle,
     DialogContent,
     DialogActions,
+    Pagination,
 } from '@mui/material';
 import {
     Search as SearchIcon,
-    Refresh as RefreshIcon,
-    LocalShipping as ShippingIcon,
-    Phone as PhoneIcon,
-    Schedule as ScheduleIcon,
     Receipt as ReceiptIcon,
 } from '@mui/icons-material';
 import ShopLayout from '../../components/shop/ShopLayout';
 import PageContainer from '../../components/common/PageContainer';
 import { motion } from 'framer-motion';
-import { orderAPI } from '../../api/orderAPI';
-
-interface OrderInfo {
-    id: number;
-    orderNo: string;
-    customerName: string;
-    customerPhone: string;
-    deliveryAddress: string;
-    deliveryTime: string;
-    totalAmount: number;
-    status: number; // 1-已付款 2-准备中 3-配送中 4-已完成
-    message?: string;
-    createdAt: string;
-    items?: OrderItem[];
-}
-
-interface OrderItem {
-    id: number;
-    productName: string;
-    quantity: number;
-    unitPrice: number;
-    subtotal: number;
-}
+import { orderAPI, Order } from '../../api/orderAPI';
 
 const OrderListPage: React.FC = () => {
-    const navigate = useNavigate();
     const [searchPhone, setSearchPhone] = useState('');
     const [loading, setLoading] = useState(false);
-    const [orders, setOrders] = useState<OrderInfo[]>([]);
+    const [orders, setOrders] = useState<Order[]>([]);
     const [error, setError] = useState('');
-    const [selectedOrder, setSelectedOrder] = useState<OrderInfo | null>(null);
+    const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [detailOpen, setDetailOpen] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [paginationInfo, setPaginationInfo] = useState({
@@ -93,6 +65,14 @@ const OrderListPage: React.FC = () => {
         try {
             // 调用实际的API查询订单
             const response = await orderAPI.getOrdersByPhone(searchPhone, page, 10);
+
+            // 添加空值检查
+            if (!response || !response.records) {
+                setError('查询失败，服务器返回数据格式错误');
+                setOrders([]);
+                return;
+            }
+
             setOrders(response.records);
             setPaginationInfo({
                 total: response.total,
@@ -105,13 +85,14 @@ const OrderListPage: React.FC = () => {
                 setError('未找到相关订单');
             }
         } catch (err: any) {
-            setError(err.message || '查询失败，请重试');
+            setError(err.message || '查询失败,请重试');
+            setOrders([]);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleViewDetail = (order: OrderInfo) => {
+    const handleViewDetail = (order: Order) => {
         setSelectedOrder(order);
         setDetailOpen(true);
     };
@@ -121,7 +102,7 @@ const OrderListPage: React.FC = () => {
         setSelectedOrder(null);
     };
 
-    const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+    const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
         handleSearch(value);
     };
 
@@ -245,13 +226,13 @@ const OrderListPage: React.FC = () => {
 
                                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
                                                             <Typography variant="body2" color="text.secondary">
-                                                                📍 {order.deliveryAddress}
+                                                                📍 {order.notes || '无配送地址'}
                                                             </Typography>
                                                         </Box>
 
                                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
                                                             <Typography variant="body2" color="text.secondary">
-                                                                🕐 {order.deliveryTime}
+                                                                🕐 {order.deliveryTime || '未指定配送时间'}
                                                             </Typography>
                                                         </Box>
                                                     </Grid>
@@ -278,28 +259,28 @@ const OrderListPage: React.FC = () => {
                                 ))}
                             </Grid>
 
-                        {/* 分页组件 */}
-                        {paginationInfo.pages > 1 && (
-                            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-                                <Pagination
-                                    count={paginationInfo.pages}
-                                    page={currentPage}
-                                    onChange={handlePageChange}
-                                    color="primary"
-                                    size="large"
-                                    sx={{
-                                        '& .MuiPaginationItem-root': {
-                                            color: '#1B3A2B',
-                                            '&.Mui-selected': {
-                                                backgroundColor: '#D4AF37',
+                            {/* 分页组件 */}
+                            {paginationInfo.pages > 1 && (
+                                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                                    <Pagination
+                                        count={paginationInfo.pages}
+                                        page={currentPage}
+                                        onChange={handlePageChange}
+                                        color="primary"
+                                        size="large"
+                                        sx={{
+                                            '& .MuiPaginationItem-root': {
                                                 color: '#1B3A2B',
+                                                '&.Mui-selected': {
+                                                    backgroundColor: '#D4AF37',
+                                                    color: '#1B3A2B',
+                                                },
                                             },
-                                        },
-                                    }}
-                                />
-                            </Box>
-                        )}
-                    </Box>
+                                        }}
+                                    />
+                                </Box>
+                            )}
+                        </Box>
                     )}
 
                     {/* 订单详情弹窗 */}

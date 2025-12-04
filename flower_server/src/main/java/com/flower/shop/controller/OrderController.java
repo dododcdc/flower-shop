@@ -39,10 +39,20 @@ public class OrderController {
             @RequestParam(value = "page", defaultValue = "1") Integer page,
             @RequestParam(value = "size", defaultValue = "10") Integer size) {
         try {
-            com.baomidou.mybatisplus.core.metadata.IPage<Order> orders =
-                orderService.getOrdersByPhone(phone, page, size);
+            System.out.println("查询订单 - 手机号: " + phone + ", 页码: " + page + ", 每页大小: " + size);
+            com.baomidou.mybatisplus.core.metadata.IPage<Order> orders = orderService.getOrdersByPhone(phone, page,
+                    size);
+            System.out.println("查询结果 - orders对象: " + orders);
+            if (orders != null) {
+                System.out.println("查询结果 - 总数: " + orders.getTotal());
+                System.out.println("查询结果 - 记录数: " + orders.getRecords().size());
+                System.out.println("查询结果 - 记录内容: " + orders.getRecords());
+            } else {
+                System.out.println("查询结果 - orders对象为null!");
+            }
             return Result.success(orders);
         } catch (Exception e) {
+            e.printStackTrace();
             return Result.error("查询订单失败: " + e.getMessage());
         }
     }
