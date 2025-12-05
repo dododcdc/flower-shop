@@ -47,11 +47,11 @@ import {
   getDiscountPercentage,
   getProductStatusText,
   getProductStatusColor,
-  getMainProductImage,
 } from '../../models/product';
 import { productAPI } from '../../api/productAPI';
 import { categoryAPI, type Category } from '../../api/categoryAPI';
 import ProductEditDialog from './ProductEditDialog';
+import { API_BASE_URL } from '../../constants';
 
 // Animation variants
 const cardVariants = {
@@ -175,7 +175,7 @@ const ProductList: React.FC = () => {
       setFilters(newFilters);
     } catch (validationError) {
       if (validationError instanceof z.ZodError) {
-        setError(`搜索参数错误: ${validationError.errors.map(e => e.message).join(', ')}`);
+        setError(`搜索参数错误: ${validationError.issues.map((e) => e.message).join(', ')}`);
       }
     }
   };
@@ -200,7 +200,7 @@ const ProductList: React.FC = () => {
     });
   };
 
-  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+  const handlePageChange = (_: React.ChangeEvent<unknown>, value: number) => {
     setFilters({ ...filters, current: value });
   };
 
@@ -274,12 +274,12 @@ const ProductList: React.FC = () => {
         if (!/^https?:/i.test(imageUrl)) {
           // If it's a relative path starting with /uploads/, convert to full API URL
           if (imageUrl.startsWith('/uploads/')) {
-            imageUrl = `http://localhost:8080/api${imageUrl}`;
+            imageUrl = `${API_BASE_URL}${imageUrl}`;
           }
           // Legacy absolute file system path support (convert to API URL)
           else if (imageUrl.startsWith('/Users/wenbin/Projects/flower_shop/flower_server/uploads')) {
             const relativePath = imageUrl.replace('/Users/wenbin/Projects/flower_shop/flower_server', '');
-            imageUrl = `http://localhost:8080/api${relativePath}`;
+            imageUrl = `${API_BASE_URL}${relativePath}`;
           }
         }
 
@@ -773,7 +773,7 @@ const ProductList: React.FC = () => {
             size="large"
             sx={{
               '& .MuiPaginationItem-root': {
-                color: 'white', // 未选中页码改为白色
+                color: 'text.primary', // 修正：使用主题文本颜色，确保在浅色背景上可见
                 fontWeight: 500,
                 '&:hover': {
                   backgroundColor: '#FFF9C4', // 浅浅的鸡蛋黄 (Pale Yellow)
