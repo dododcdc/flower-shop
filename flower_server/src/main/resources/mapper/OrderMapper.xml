@@ -23,6 +23,9 @@
             o.updated_at
         FROM orders o
         WHERE o.customer_phone = #{phone}
+        <if test="status != null and status != '' and status != 'ALL'">
+            AND o.status = #{status}
+        </if>
         ORDER BY o.created_at DESC
     </select>
 

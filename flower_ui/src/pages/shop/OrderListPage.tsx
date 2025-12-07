@@ -18,6 +18,8 @@ import {
     DialogContent,
     DialogActions,
     Pagination,
+    Tabs,
+    Tab,
 } from '@mui/material';
 import {
     Search as SearchIcon,
@@ -43,20 +45,34 @@ const OrderListPage: React.FC = () => {
         pages: 0,
     });
 
-    const statusMap = {
-        'PENDING': { text: '待支付', color: '#4CAF50' },
-        'PAID': { text: '已支付', color: '#FF9800' },
+    const [currentStatus, setCurrentStatus] = useState('ALL');
+
+    const statusMap: Record<string, { text: string; color: string }> = {
+        'PENDING': { text: '待支付', color: '#FF9800' }, // Changed color for better visibility
+        'PAID': { text: '已支付', color: '#4CAF50' },   // Changed color
         'PREPARING': { text: '准备中', color: '#2196F3' },
-        'DELIVERING': { text: '配送中', color: '#2196F3' },
+        'DELIVERING': { text: '配送中', color: '#03A9F4' },
         'COMPLETED': { text: '已完成', color: '#9C27B0' },
         'CANCELLED': { text: '已取消', color: '#F44336' },
     };
 
-    const handleSearch = async (page: number = 1) => {
+    const statusTabs = [
+        { value: 'ALL', label: '全部' },
+        { value: 'PENDING', label: '待支付' },
+        { value: 'PAID', label: '已支付' },
+        { value: 'PREPARING', label: '准备中' },
+        { value: 'DELIVERING', label: '配送中' },
+        { value: 'COMPLETED', label: '已完成' },
+        { value: 'CANCELLED', label: '已取消' },
+    ];
+
+    const handleSearch = async (page: number = 1, statusOverride?: string) => {
         if (!searchPhone.trim()) {
             setError('请输入手机号码');
             return;
         }
+
+        const statusToUse = statusOverride !== undefined ? statusOverride : currentStatus;
 
         setLoading(true);
         setError('');
@@ -64,7 +80,12 @@ const OrderListPage: React.FC = () => {
 
         try {
             // 调用实际的API查询订单
-            const response = await orderAPI.getOrdersByPhone(searchPhone, page, 10);
+            const response = await orderAPI.getOrdersByPhone(
+                searchPhone,
+                statusToUse === 'ALL' ? undefined : statusToUse,
+                page,
+                10
+            );
 
             // 添加空值检查
             if (!response || !response.records) {
@@ -82,7 +103,10 @@ const OrderListPage: React.FC = () => {
             });
 
             if (response.records.length === 0) {
-                setError('未找到相关订单');
+                // 如果是筛选状态下没有数据，不显示错误，只是列表为空
+                if (statusToUse === 'ALL') {
+                    setError('未找到相关订单');
+                }
             }
         } catch (err: any) {
             setError(err.message || '查询失败,请重试');
@@ -90,6 +114,11 @@ const OrderListPage: React.FC = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => {
+        setCurrentStatus(newValue);
+        handleSearch(1, newValue);
     };
 
     const handleViewDetail = (order: Order) => {
@@ -165,6 +194,46 @@ const OrderListPage: React.FC = () => {
                         <Alert severity="error" sx={{ mb: 3 }}>
                             {error}
                         </Alert>
+                    )}
+
+                    {/* 状态过滤标签栏 */}
+                    {(orders.length > 0 || currentStatus !== 'ALL') && (
+                        <Paper
+                            sx={{ mb: 3, bgcolor: 'background.paper' }}
+                            component={motion.div}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                        >
+                            <Tabs
+                                value={currentStatus}
+                                onChange={handleTabChange}
+                                variant="scrollable"
+                                scrollButtons="auto"
+                                allowScrollButtonsMobile
+                                textColor="primary"
+                                indicatorColor="primary"
+                                sx={{
+                                    '& .MuiTab-root': {
+                                        minWidth: 80,
+                                        fontWeight: 600,
+                                    },
+                                    '& .Mui-selected': {
+                                        color: '#D4AF37',
+                                    },
+                                    '& .MuiTabs-indicator': {
+                                        backgroundColor: '#D4AF37',
+                                    }
+                                }}
+                            >
+                                {statusTabs.map((tab) => (
+                                    <Tab
+                                        key={tab.value}
+                                        label={tab.label}
+                                        value={tab.value}
+                                    />
+                                ))}
+                            </Tabs>
+                        </Paper>
                     )}
 
                     {/* 订单列表 */}

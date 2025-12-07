@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:8080/api';
+import { API_BASE_URL } from '../constants';
 
 export interface OrderItem {
     productId: number;
@@ -50,16 +49,16 @@ export const orderAPI = {
     /**
      * 根据手机号查询订单（分页）
      */
-    getOrdersByPhone: async (phone: string, page: number = 1, size: number = 10): Promise<{
+    getOrdersByPhone: async (phone: string, status?: string, page: number = 1, size: number = 10): Promise<{
         records: Order[];
         total: number;
         size: number;
         current: number;
         pages: number;
     }> => {
-        console.log('查询参数:', { phone, page, size }); // 调试日志
+        console.log('查询参数:', { phone, status, page, size }); // 调试日志
         const response = await axios.get(`${API_BASE_URL}/orders/by-phone`, {
-            params: { phone, page, size }
+            params: { phone, status, page, size }
         });
         return response.data.data;
     },

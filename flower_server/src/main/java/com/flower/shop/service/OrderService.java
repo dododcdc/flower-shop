@@ -20,9 +20,9 @@ public interface OrderService extends IService<Order> {
      * 根据手机号查询订单（分页）
      *
      * @param phone 客户手机号
-     * @param page 页码，从1开始
-     * @param size 每页大小
+     * @param page  页码，从1开始
+     * @param size  每页大小
      * @return 分页订单对象
      */
-    IPage<Order> getOrdersByPhone(String phone, Integer page, Integer size);
+    IPage<Order> getOrdersByPhone(String phone, String status, Integer page, Integer size);
 }

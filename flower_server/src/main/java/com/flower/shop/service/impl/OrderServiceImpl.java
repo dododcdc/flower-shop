@@ -104,10 +104,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     }
 
     @Override
-    public IPage<Order> getOrdersByPhone(String phone, Integer page, Integer size) {
-        Page<Order> pageInfo =
-            new Page<>(page, size);
-        return orderMapper.selectOrdersByCustomerPhone(pageInfo, phone);
+    public IPage<Order> getOrdersByPhone(String phone, String status, Integer page, Integer size) {
+        Page<Order> pageInfo = new Page<>(page, size);
+        return orderMapper.selectOrdersByCustomerPhone(pageInfo, phone, status);
     }
 
     /**

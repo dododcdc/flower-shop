@@ -8,8 +8,6 @@ import com.flower.shop.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/orders")
 @RequiredArgsConstructor
@@ -36,12 +34,12 @@ public class OrderController {
     @GetMapping("/by-phone")
     public Result<IPage<Order>> getOrdersByPhone(
             @RequestParam("phone") String phone,
+            @RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "page", defaultValue = "1") Integer page,
             @RequestParam(value = "size", defaultValue = "10") Integer size) {
         try {
-            System.out.println("查询订单 - 手机号: " + phone + ", 页码: " + page + ", 每页大小: " + size);
-            com.baomidou.mybatisplus.core.metadata.IPage<Order> orders = orderService.getOrdersByPhone(phone, page,
-                    size);
+            System.out.println("查询订单 - 手机号: " + phone + ", 状态: " + status + ", 页码: " + page + ", 每页大小: " + size);
+            IPage<Order> orders = orderService.getOrdersByPhone(phone, status, page, size);
             System.out.println("查询结果 - orders对象: " + orders);
             if (orders != null) {
                 System.out.println("查询结果 - 总数: " + orders.getTotal());
