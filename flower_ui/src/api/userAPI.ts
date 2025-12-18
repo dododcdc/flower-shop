@@ -20,6 +20,9 @@ export const userAPI = {
      */
     register: async (payload: UserRegisterRequest): Promise<string> => {
         const res = await api.post<ApiResponse<string>>('/auth/register', payload);
+        if (res.data.code !== 200) {
+            throw new Error(res.data.message || '注册失败');
+        }
         return res.data.data || res.data.message;
     },
 
@@ -29,8 +32,15 @@ export const userAPI = {
     login: async (payload: LoginRequest): Promise<LoginResponse> => {
         const res = await api.post<ApiResponse<LoginResponse>>('/auth/login', payload);
 
-        const rawData = res.data;
-        const loginData: LoginResponse = rawData?.data ?? (rawData as any);
+        // 必须校验业务状态码
+        if (res.data.code !== 200) {
+            throw new Error(res.data.message || '登录失败');
+        }
+
+        const loginData = res.data.data;
+        if (!loginData) {
+            throw new Error('服务器返回数据为空');
+        }
 
         const token = loginData?.token;
         if (token) {

@@ -2,7 +2,7 @@ import React, { ReactNode, useRef, useState, useEffect } from 'react';
 import { Box, AppBar, Toolbar, Typography, Button, Container, IconButton, Badge, Menu, MenuItem } from '@mui/material';
 import { ShoppingBasket, Receipt, AccountCircle } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import CartDrawer from './CartDrawer';
 import CartFeedback from './CartFeedback';
 import { useCartStore } from '../../store/cartStore';
@@ -16,6 +16,7 @@ interface ShopLayoutProps {
 
 const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
   const navigate = useNavigate();
+  const location = useLocation(); // Hook for checking current path
   const { totalItems, openCart } = useCartStore();
   const cartButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -28,12 +29,14 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
 
   useEffect(() => {
     // 如果既没有登录，也没有游客身份，则显示欢迎弹窗
-    // 延迟一点显示，体验更好
-    if (!isLoggedIn && !guestId) {
+    // 但如果用户已经在登录或注册页面，则不弹窗
+    const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+
+    if (!isLoggedIn && !guestId && !isAuthPage) {
       const timer = setTimeout(() => setWelcomeOpen(true), 1000);
       return () => clearTimeout(timer);
     }
-  }, [isLoggedIn, guestId]);
+  }, [isLoggedIn, guestId, location.pathname]);
 
   const handleLogoClick = () => {
     navigate('/shop');

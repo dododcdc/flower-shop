@@ -52,9 +52,11 @@ const CheckoutPage: React.FC = () => {
 
     // 提交状态
     const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [orderSuccess, setOrderSuccess] = React.useState(false); // 新增：防止提交成功后闪烁空购物车状态
 
     // 表单验证
     const validateForm = () => {
+        // ... (保持原样)
         if (!recipientName.trim()) {
             enqueueSnackbar('请填写收货人姓名', { variant: 'error' });
             return false;
@@ -98,7 +100,7 @@ const CheckoutPage: React.FC = () => {
                 deliveryTime,
                 cardContent: cardContent || undefined,
                 cardSender: cardSender || undefined,
-                paymentMethod, // 添加支付方式
+                paymentMethod,
                 items: selectedItems.map(item => ({
                     productId: item.product.id,
                     quantity: item.quantity,
@@ -112,6 +114,9 @@ const CheckoutPage: React.FC = () => {
                 variant: 'success',
                 autoHideDuration: 3000,
             });
+
+            // 标记成功，防止显示空购物车界面
+            setOrderSuccess(true);
 
             // 清空购物车
             clearCart();
@@ -129,7 +134,7 @@ const CheckoutPage: React.FC = () => {
                         message: cardContent
                     }
                 });
-            }, 1500);
+            }, 500); // 缩短等待时间，改善体验
 
         } catch (error: any) {
             console.error('订单创建失败:', error);
@@ -137,9 +142,9 @@ const CheckoutPage: React.FC = () => {
                 variant: 'error',
                 autoHideDuration: 3000,
             });
-        } finally {
-            setIsSubmitting(false);
+            setIsSubmitting(false); // 只有失败时才恢复提交按钮状态
         }
+        // finally不要重置isSubmitting，如果是成功的话，让它一直loading直到跳转
     };
 
     // 解析图片路径
@@ -152,7 +157,7 @@ const CheckoutPage: React.FC = () => {
         return imagePath;
     };
 
-    if (selectedItems.length === 0) {
+    if (selectedItems.length === 0 && !orderSuccess) { // 只有非成功状态下的空购物车才显示提示
         return (
             <ShopLayout>
                 <Container maxWidth="lg" sx={{ py: 8, textAlign: 'center' }}>

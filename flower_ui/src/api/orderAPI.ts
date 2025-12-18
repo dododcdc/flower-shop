@@ -1,5 +1,4 @@
-import axios from 'axios';
-import { API_BASE_URL } from '../constants';
+import api from './axiosClient';
 
 export interface OrderItem {
     productId: number;
@@ -42,7 +41,7 @@ export const orderAPI = {
      * 创建订单
      */
     createOrder: async (request: CreateOrderRequest): Promise<Order> => {
-        const response = await axios.post(`${API_BASE_URL}/orders`, request);
+        const response = await api.post('/orders', request);
         return response.data.data;
     },
 
@@ -57,7 +56,7 @@ export const orderAPI = {
         pages: number;
     }> => {
         console.log('查询参数:', { phone, status, page, size }); // 调试日志
-        const response = await axios.get(`${API_BASE_URL}/orders/by-phone`, {
+        const response = await api.get('/orders/by-phone', {
             params: { phone, status, page, size }
         });
         return response.data.data;
@@ -73,9 +72,15 @@ export const orderAPI = {
         current: number;
         pages: number;
     }> => {
-        const response = await axios.get(`${API_BASE_URL}/orders/my`, {
+        const response = await api.get('/orders/my', {
             params: { status, page, size }
         });
+        console.log('getMyOrders Response:', response.data); // Debug log
+
+        if (response.data.code !== 200) {
+            throw new Error(response.data.message || '查询订单失败');
+        }
+
         return response.data.data;
     },
 };
