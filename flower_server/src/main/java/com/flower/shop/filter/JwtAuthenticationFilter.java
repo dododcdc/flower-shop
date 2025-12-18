@@ -55,6 +55,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                             username, null, authorities);
 
+                    // 将userId放入details中，方便Service层获取
+                    Long userId = JwtUtil.getUserIdFromToken(token);
+                    authentication.setDetails(userId);
+
                     // 5. 设置到Security上下文
                     SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -99,7 +103,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 path.equals("/admin/auth/login") ||
                 path.startsWith("/products/") ||
                 path.startsWith("/categories/") ||
-                path.startsWith("/orders/") ||
+                // path.startsWith("/orders/") || // 订单接口需要尝试解析Token以获取当前用户（可选）
                 path.startsWith("/static/") ||
                 path.startsWith("/css/") ||
                 path.startsWith("/js/") ||

@@ -27,12 +27,16 @@ public class Order {
     private Long id;
 
     /**
+     * 关联的用户ID
+     */
+    @TableField("user_id")
+    private Long userId;
+
+    /**
      * 订单号（唯一，格式如：FH20251122001）
      */
     @TableField("order_no")
     private String orderNo;
-
-
 
     /**
      * 客户姓名
@@ -195,8 +199,6 @@ public class Order {
                 return paymentStatus;
         }
     }
-
-
 
     /**
      * 判断是否已支付

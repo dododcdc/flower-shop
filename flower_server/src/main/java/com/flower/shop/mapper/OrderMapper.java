@@ -54,6 +54,12 @@ public interface OrderMapper extends BaseMapper<Order> {
         List<Order> selectOrdersByUserId(@Param("userId") Long userId);
 
         /**
+         * 根据用户ID分页查询订单
+         */
+        IPage<Order> selectOrdersByUserIdPage(IPage<Order> page, @Param("userId") Long userId,
+                        @Param("status") String status);
+
+        /**
          * 根据订单号查询订单
          */
         @Select("SELECT o.*, " +

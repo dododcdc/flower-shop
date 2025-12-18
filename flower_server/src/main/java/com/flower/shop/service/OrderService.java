@@ -25,4 +25,9 @@ public interface OrderService extends IService<Order> {
      * @return 分页订单对象
      */
     IPage<Order> getOrdersByPhone(String phone, String status, Integer page, Integer size);
+
+    /**
+     * 根据用户ID查询订单（分页）
+     */
+    IPage<Order> getOrdersByUserId(Long userId, String status, Integer page, Integer size);
 }

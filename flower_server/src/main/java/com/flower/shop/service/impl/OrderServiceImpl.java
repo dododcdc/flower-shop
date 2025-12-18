@@ -19,6 +19,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 @Service
 @RequiredArgsConstructor
 public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements OrderService {
@@ -36,11 +39,20 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         order.setCustomerName(request.getRecipientName());
         order.setCustomerPhone(request.getRecipientPhone());
 
+        // 尝试绑定登录用户
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && auth.getDetails() instanceof Long) {
+                order.setUserId((Long) auth.getDetails());
+            }
+        } catch (Exception e) {
+            // 忽略获取用户信息的异常，不影响游客下单
+            System.err.println("绑定用户下单失败: " + e.getMessage());
+        }
+
         // 2. 设置配送信息
         if (request.getDeliveryDate() != null && request.getDeliveryTime() != null) {
-            LocalDateTime deliveryDateTime = LocalDateTime.of(
-                    request.getDeliveryDate(),
-                    request.getDeliveryTime());
+            LocalDateTime deliveryDateTime = LocalDateTime.of(request.getDeliveryDate(), request.getDeliveryTime());
             order.setDeliveryTime(deliveryDateTime);
         }
 
@@ -107,6 +119,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     public IPage<Order> getOrdersByPhone(String phone, String status, Integer page, Integer size) {
         Page<Order> pageInfo = new Page<>(page, size);
         return orderMapper.selectOrdersByCustomerPhone(pageInfo, phone, status);
+    }
+
+    @Override
+    public IPage<Order> getOrdersByUserId(Long userId, String status, Integer page, Integer size) {
+        Page<Order> pageInfo = new Page<>(page, size);
+        return orderMapper.selectOrdersByUserIdPage(pageInfo, userId, status);
     }
 
     /**

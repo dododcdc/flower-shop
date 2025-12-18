@@ -6,6 +6,8 @@ import com.flower.shop.dto.Result;
 import com.flower.shop.entity.Order;
 import com.flower.shop.service.OrderService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -29,6 +31,30 @@ public class OrderController {
     }
 
     /**
+     * 查询当前登录用户的订单（分页）
+     */
+    @GetMapping("/my")
+    public Result<IPage<Order>> getMyOrders(
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "page", defaultValue = "1") Integer page,
+            @RequestParam(value = "size", defaultValue = "10") Integer size) {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null || !auth.isAuthenticated() || !(auth.getDetails() instanceof Long)) {
+                return Result.error("请先登录");
+            }
+
+            Long userId = (Long) auth.getDetails();
+            IPage<Order> orders = orderService.getOrdersByUserId(userId, status, page, size);
+
+            return Result.success(orders);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("查询订单失败: " + e.getMessage());
+        }
+    }
+
+    /**
      * 根据手机号查询订单（分页）
      */
     @GetMapping("/by-phone")
@@ -38,16 +64,7 @@ public class OrderController {
             @RequestParam(value = "page", defaultValue = "1") Integer page,
             @RequestParam(value = "size", defaultValue = "10") Integer size) {
         try {
-            System.out.println("查询订单 - 手机号: " + phone + ", 状态: " + status + ", 页码: " + page + ", 每页大小: " + size);
             IPage<Order> orders = orderService.getOrdersByPhone(phone, status, page, size);
-            System.out.println("查询结果 - orders对象: " + orders);
-            if (orders != null) {
-                System.out.println("查询结果 - 总数: " + orders.getTotal());
-                System.out.println("查询结果 - 记录数: " + orders.getRecords().size());
-                System.out.println("查询结果 - 记录内容: " + orders.getRecords());
-            } else {
-                System.out.println("查询结果 - orders对象为null!");
-            }
             return Result.success(orders);
         } catch (Exception e) {
             e.printStackTrace();

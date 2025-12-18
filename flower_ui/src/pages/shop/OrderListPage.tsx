@@ -29,8 +29,10 @@ import ShopLayout from '../../components/shop/ShopLayout';
 import PageContainer from '../../components/common/PageContainer';
 import { motion } from 'framer-motion';
 import { orderAPI, Order } from '../../api/orderAPI';
+import { useAuthStore } from '../../store/authStore'; // Import authStore
 
 const OrderListPage: React.FC = () => {
+    const { user } = useAuthStore(); // Get user status
     const [searchPhone, setSearchPhone] = useState('');
     const [loading, setLoading] = useState(false);
     const [orders, setOrders] = useState<Order[]>([]);
@@ -48,8 +50,8 @@ const OrderListPage: React.FC = () => {
     const [currentStatus, setCurrentStatus] = useState('ALL');
 
     const statusMap: Record<string, { text: string; color: string }> = {
-        'PENDING': { text: '待支付', color: '#FF9800' }, // Changed color for better visibility
-        'PAID': { text: '已支付', color: '#4CAF50' },   // Changed color
+        'PENDING': { text: '待支付', color: '#FF9800' },
+        'PAID': { text: '已支付', color: '#4CAF50' },
         'PREPARING': { text: '准备中', color: '#2196F3' },
         'DELIVERING': { text: '配送中', color: '#03A9F4' },
         'COMPLETED': { text: '已完成', color: '#9C27B0' },
@@ -66,28 +68,20 @@ const OrderListPage: React.FC = () => {
         { value: 'CANCELLED', label: '已取消' },
     ];
 
-    const handleSearch = async (page: number = 1, statusOverride?: string) => {
-        if (!searchPhone.trim()) {
-            setError('请输入手机号码');
-            return;
-        }
-
+    // 加载当前用户的订单
+    const fetchMyOrders = async (page: number = 1, statusOverride?: string) => {
         const statusToUse = statusOverride !== undefined ? statusOverride : currentStatus;
-
         setLoading(true);
         setError('');
         setCurrentPage(page);
 
         try {
-            // 调用实际的API查询订单
-            const response = await orderAPI.getOrdersByPhone(
-                searchPhone,
+            const response = await orderAPI.getMyOrders(
                 statusToUse === 'ALL' ? undefined : statusToUse,
                 page,
                 10
             );
 
-            // 添加空值检查
             if (!response || !response.records) {
                 setError('查询失败，服务器返回数据格式错误');
                 setOrders([]);
@@ -102,11 +96,53 @@ const OrderListPage: React.FC = () => {
                 pages: response.pages,
             });
 
-            if (response.records.length === 0) {
-                // 如果是筛选状态下没有数据，不显示错误，只是列表为空
-                if (statusToUse === 'ALL') {
-                    setError('未找到相关订单');
-                }
+            if (response.records.length === 0 && statusToUse === 'ALL') {
+                setError('您还没有相关订单');
+            }
+        } catch (err: any) {
+            setError(err.message || '查询订单失败');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // 游客：根据手机号查询
+    const handleSearch = async (page: number = 1, statusOverride?: string) => {
+        if (!searchPhone.trim()) {
+            setError('请输入手机号码');
+            return;
+        }
+
+        const statusToUse = statusOverride !== undefined ? statusOverride : currentStatus;
+
+        setLoading(true);
+        setError('');
+        setCurrentPage(page);
+
+        try {
+            const response = await orderAPI.getOrdersByPhone(
+                searchPhone,
+                statusToUse === 'ALL' ? undefined : statusToUse,
+                page,
+                10
+            );
+
+            if (!response || !response.records) {
+                setError('查询失败，服务器返回数据格式错误');
+                setOrders([]);
+                return;
+            }
+
+            setOrders(response.records);
+            setPaginationInfo({
+                total: response.total,
+                current: response.current,
+                size: response.size,
+                pages: response.pages,
+            });
+
+            if (response.records.length === 0 && statusToUse === 'ALL') {
+                setError('未找到相关订单');
             }
         } catch (err: any) {
             setError(err.message || '查询失败,请重试');
@@ -116,9 +152,25 @@ const OrderListPage: React.FC = () => {
         }
     };
 
+    // 统一的数据获取入口
+    const fetchData = (page: number, status?: string) => {
+        if (user) {
+            fetchMyOrders(page, status);
+        } else {
+            handleSearch(page, status);
+        }
+    };
+
+    // 初始化加载（如果是登录用户）
+    React.useEffect(() => {
+        if (user) {
+            fetchMyOrders(1, 'ALL');
+        }
+    }, [user]);
+
     const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => {
         setCurrentStatus(newValue);
-        handleSearch(1, newValue);
+        fetchData(1, newValue);
     };
 
     const handleViewDetail = (order: Order) => {
@@ -132,7 +184,7 @@ const OrderListPage: React.FC = () => {
     };
 
     const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
-        handleSearch(value);
+        fetchData(value);
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -145,49 +197,63 @@ const OrderListPage: React.FC = () => {
         <ShopLayout>
             <PageContainer title="" maxWidth="md">
                 <Container maxWidth="md" sx={{ py: 4 }}>
-                    {/* 搜索区域 */}
-                    <Paper
-                        component={motion.div}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        sx={{ p: 3, mb: 3 }}
-                    >
-                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end' }}>
-                            <TextField
-                                fullWidth
-                                label="请输入下单时填写的手机号"
-                                variant="outlined"
-                                value={searchPhone}
-                                onChange={(e) => setSearchPhone(e.target.value)}
-                                onKeyPress={handleKeyPress}
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        '&:hover fieldset': {
-                                            borderColor: '#D4AF37',
+                    {/* 标题区域 */}
+                    <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#1B3A2B' }}>
+                            {user ? '我的订单' : '订单查询'}
+                        </Typography>
+                        {user && (
+                            <Typography variant="body2" color="text.secondary">
+                                当前用户: {user.username}
+                            </Typography>
+                        )}
+                    </Box>
+
+                    {/* 搜索区域 (仅游客显示) */}
+                    {!user && (
+                        <Paper
+                            component={motion.div}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            sx={{ p: 3, mb: 3 }}
+                        >
+                            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end' }}>
+                                <TextField
+                                    fullWidth
+                                    label="请输入下单时填写的手机号"
+                                    variant="outlined"
+                                    value={searchPhone}
+                                    onChange={(e) => setSearchPhone(e.target.value)}
+                                    onKeyPress={handleKeyPress}
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            '&:hover fieldset': {
+                                                borderColor: '#D4AF37',
+                                            },
+                                            '&.Mui-focused fieldset': {
+                                                borderColor: '#D4AF37',
+                                            },
                                         },
-                                        '&.Mui-focused fieldset': {
-                                            borderColor: '#D4AF37',
+                                    }}
+                                />
+                                <Button
+                                    variant="contained"
+                                    onClick={() => handleSearch(1)}
+                                    disabled={loading}
+                                    startIcon={loading ? <CircularProgress size={20} /> : <SearchIcon />}
+                                    sx={{
+                                        background: 'linear-gradient(45deg, #E91E63 30%, #F06292 90%)',
+                                        '&:hover': {
+                                            background: 'linear-gradient(45deg, #C2185B 30%, #E91E63 90%)',
                                         },
-                                    },
-                                }}
-                            />
-                            <Button
-                                variant="contained"
-                                onClick={() => handleSearch(1)}
-                                disabled={loading}
-                                startIcon={loading ? <CircularProgress size={20} /> : <SearchIcon />}
-                                sx={{
-                                    background: 'linear-gradient(45deg, #E91E63 30%, #F06292 90%)',
-                                    '&:hover': {
-                                        background: 'linear-gradient(45deg, #C2185B 30%, #E91E63 90%)',
-                                    },
-                                    minWidth: 120,
-                                }}
-                            >
-                                {loading ? '查询中' : '查询'}
-                            </Button>
-                        </Box>
-                    </Paper>
+                                        minWidth: 120,
+                                    }}
+                                >
+                                    {loading ? '查询中' : '查询'}
+                                </Button>
+                            </Box>
+                        </Paper>
+                    )}
 
                     {/* 错误提示 */}
                     {error && (
@@ -196,8 +262,8 @@ const OrderListPage: React.FC = () => {
                         </Alert>
                     )}
 
-                    {/* 状态过滤标签栏 */}
-                    {(orders.length > 0 || currentStatus !== 'ALL') && (
+                    {/* 状态过滤标签栏 (一直显示，除非是游客且没搜出结果) */}
+                    {(user || orders.length > 0 || currentStatus !== 'ALL') && (
                         <Paper
                             sx={{ mb: 3, bgcolor: 'background.paper' }}
                             component={motion.div}
@@ -207,7 +273,7 @@ const OrderListPage: React.FC = () => {
                             <Tabs
                                 value={currentStatus}
                                 onChange={handleTabChange}
-                                variant="scrollable"
+                                variant="scrollable" // ... rest of the props
                                 scrollButtons="auto"
                                 allowScrollButtonsMobile
                                 textColor="primary"

@@ -62,4 +62,20 @@ export const orderAPI = {
         });
         return response.data.data;
     },
+
+    /**
+     * 查询当前登录用户的订单（分页）
+     */
+    getMyOrders: async (status?: string, page: number = 1, size: number = 10): Promise<{
+        records: Order[];
+        total: number;
+        size: number;
+        current: number;
+        pages: number;
+    }> => {
+        const response = await axios.get(`${API_BASE_URL}/orders/my`, {
+            params: { status, page, size }
+        });
+        return response.data.data;
+    },
 };

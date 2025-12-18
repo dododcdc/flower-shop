@@ -2,11 +2,12 @@ import React from 'react';
 import { Box, Container, Grid, Typography, Paper, Button, Divider, TextField, Radio, RadioGroup, FormControlLabel, FormControl } from '@mui/material';
 import { motion } from 'framer-motion';
 import ShopLayout from '../../components/shop/ShopLayout';
-import { useCartStore } from '../../store/cartStore';
+import { useAuthStore } from '../../store/authStore';
+
 import { useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import { orderAPI } from '../../api/orderAPI';
-
+import { useCartStore } from '../../store/cartStore';
 import MessageCardEditor from '../../components/shop/MessageCardEditor';
 import { API_BASE_URL } from '../../constants';
 
@@ -14,6 +15,8 @@ const CheckoutPage: React.FC = () => {
     const navigate = useNavigate();
     const { enqueueSnackbar } = useSnackbar();
     const { getSelectedItems, getTotalSelectedPrice, clearCart } = useCartStore();
+    const { user } = useAuthStore(); // 获取登录用户
+
     const selectedItems = getSelectedItems();
     const totalPrice = getTotalSelectedPrice();
 
@@ -28,6 +31,20 @@ const CheckoutPage: React.FC = () => {
     const [recipientName, setRecipientName] = React.useState('');
     const [recipientPhone, setRecipientPhone] = React.useState('');
     const [recipientAddress, setRecipientAddress] = React.useState('');
+
+    // 自动填充用户信息
+    React.useEffect(() => {
+        if (user) {
+            if (user.phone && !recipientPhone) {
+                setRecipientPhone(user.phone);
+            }
+            // 如果我们也想自动填个默认名字（虽然通常是收货人并不一定是自己），可以默认不填或填用户名
+            // 但用户体验上，如果是买花送自己，填用户名可能不合适。
+            // 暂时只填手机号，这是确定的。
+        }
+    }, [user]);
+
+    // 配送时间状态
 
     // 配送时间状态
     const [deliveryDate, setDeliveryDate] = React.useState('');
