@@ -10,6 +10,8 @@ import { queryClient } from './utils/queryClient';
 
 // 懒加载页面组件
 const LoginPage = lazy(() => import('./components/auth/LoginPage'));
+const UserLoginPage = lazy(() => import('./pages/auth/UserLoginPage'));
+const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ProductManagementPage = lazy(() => import('./pages/ProductManagementPage'));
 const OrderManagementPage = lazy(() => import('./pages/OrderManagementPage'));
@@ -70,6 +72,10 @@ const App: React.FC = () => {
                 <ProductDetailPage />
               </Suspense>
             } />
+
+            {/* 用户认证路由 */}
+            <Route path="/login" element={<UserLoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
 
             {/* 管理端路由 */}
             <Route path="/admin/login" element={<LoginPage />} />

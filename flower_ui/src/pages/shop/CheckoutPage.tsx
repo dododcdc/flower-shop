@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Container, Grid, Typography, Paper, Button, Divider, TextField, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel } from '@mui/material';
+import { Box, Container, Grid, Typography, Paper, Button, Divider, TextField, Radio, RadioGroup, FormControlLabel, FormControl } from '@mui/material';
 import { motion } from 'framer-motion';
 import ShopLayout from '../../components/shop/ShopLayout';
 import { useCartStore } from '../../store/cartStore';
@@ -8,6 +8,7 @@ import { useSnackbar } from 'notistack';
 import { orderAPI } from '../../api/orderAPI';
 
 import MessageCardEditor from '../../components/shop/MessageCardEditor';
+import { API_BASE_URL } from '../../constants';
 
 const CheckoutPage: React.FC = () => {
     const navigate = useNavigate();
@@ -129,7 +130,7 @@ const CheckoutPage: React.FC = () => {
         if (!imagePath) return '/placeholder-flower.jpg';
         if (imagePath.startsWith('http')) return imagePath;
         if (imagePath.startsWith('/uploads/')) {
-            return `http://localhost:8080/api${imagePath}`;
+            return `${API_BASE_URL}${imagePath}`;
         }
         return imagePath;
     };

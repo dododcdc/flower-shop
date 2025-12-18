@@ -1,12 +1,12 @@
 import axios, { AxiosInstance } from 'axios';
-import { STORAGE_KEYS } from '../constants';
+import { STORAGE_KEYS, API_BASE_URL } from '../constants';
 import { ApiErrorHandler } from '../utils/errorHandler';
 import { logger } from '../utils/logger';
 
 // Centralized Axios instance for the frontend MVP
 // Direct connection to backend server (port 8080)
 const instance: AxiosInstance = axios.create({
-  baseURL: 'http://localhost:8080/api',
+  baseURL: API_BASE_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -22,7 +22,7 @@ instance.interceptors.request.use(
     }
 
     // 添加请求开始时间（用于性能监控）
-    config.metadata = { startTime: Date.now() };
+    (config as any).metadata = { startTime: Date.now() };
 
     return config;
   },
@@ -35,16 +35,16 @@ instance.interceptors.request.use(
 instance.interceptors.response.use(
   (response) => {
     // 记录结束时间
-    if (response.config.metadata) {
-      response.config.metadata.endTime = Date.now();
+    if ((response.config as any).metadata) {
+      (response.config as any).metadata.endTime = Date.now();
     }
 
     // 记录成功请求（仅在开发环境）
     if (import.meta.env.DEV) {
       logger.debug(`API success: ${response.config.method?.toUpperCase()} ${response.config.url}`, {
         status: response.status,
-        duration: response.config.metadata?.endTime
-          ? response.config.metadata.endTime - response.config.metadata.startTime
+        duration: (response.config as any).metadata?.endTime
+          ? (response.config as any).metadata.endTime - (response.config as any).metadata.startTime
           : undefined
       });
     }

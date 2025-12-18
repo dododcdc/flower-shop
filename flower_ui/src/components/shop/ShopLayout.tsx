@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import CartDrawer from './CartDrawer';
 import CartFeedback from './CartFeedback';
 import { useCartStore } from '../../store/cartStore';
+import { useAuthStore } from '../../store/authStore';
+import WelcomeDialog from '../../pages/shop/WelcomeDialog';
 
 interface ShopLayoutProps {
   children: ReactNode;
@@ -17,6 +19,22 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
   const { totalItems, openCart } = useCartStore();
   const cartButtonRef = useRef<HTMLButtonElement>(null);
 
+  // 获取用户认证状态
+  const { user, logout, guestId, setGuestId } = useAuthStore();
+  const isLoggedIn = !!user;
+
+  // 欢迎弹窗控制
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+
+  useEffect(() => {
+    // 如果既没有登录，也没有游客身份，则显示欢迎弹窗
+    // 延迟一点显示，体验更好
+    if (!isLoggedIn && !guestId) {
+      const timer = setTimeout(() => setWelcomeOpen(true), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoggedIn, guestId]);
+
   const handleLogoClick = () => {
     navigate('/shop');
   };
@@ -25,8 +43,7 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
     openCart();
   };
 
-  // 用户菜单相关 - 暂时注释，等实现登录功能后再启用
-  /*
+  // 用户菜单相关
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
   const userMenuOpen = Boolean(userMenuAnchor);
 
@@ -38,12 +55,22 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
     setUserMenuAnchor(null);
   };
 
-  const handleMyProfile = () => {
+  const handleMyOrders = () => {
     handleUserMenuClose();
-    // 用户个人信息页面（可选功能）
-    navigate('/shop');
+    navigate('/shop/orders');
   };
-  */
+
+  const handleLogout = () => {
+    handleUserMenuClose();
+    logout();
+    setGuestId(null); // 清除游客ID，下次进入会再次询问
+    navigate('/login');
+  };
+
+  const handleLoginRegister = () => {
+    handleUserMenuClose();
+    navigate('/login');
+  }
 
   // 状态管理反馈触发
   const [feedbackTrigger, setFeedbackTrigger] = useState(false);
@@ -67,8 +94,11 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
       delete (window as any).triggerCartFeedback;
     };
   }, []);
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#fafafa' }}>
+      <WelcomeDialog open={welcomeOpen} onClose={() => setWelcomeOpen(false)} />
+
       {/* 顶部导航栏 */}
       <AppBar
         position="fixed"
@@ -87,7 +117,7 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleLogoClick}
-              style={{ cursor: 'pointer', flex: 1 }}
+              style={{ cursor: 'pointer' }} // 移除 flex: 1，防止点击区域过大
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Box sx={{
@@ -128,54 +158,13 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
               </Box>
             </motion.div>
 
+            {/* 中间占位符，将左右两端撑开 */}
+            <Box sx={{ flexGrow: 1 }} />
+
             {/* 右侧按钮组 */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              {/* 查询订单按钮 */}
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button
-                  variant="text"
-                  startIcon={<Receipt />}
-                  onClick={() => navigate('/shop/orders')}
-                  sx={{
-                    color: '#D4AF37',
-                    bgcolor: 'rgba(212, 175, 55, 0.1)',
-                    border: '1px solid rgba(212, 175, 55, 0.3)',
-                    borderRadius: '8px',
-                    px: 1.5,
-                    py: 0.8,
-                    minWidth: 'auto',
-                    fontSize: '14px',
-                    textTransform: 'none',
-                    fontWeight: 500,
-                    '&:hover': {
-                      bgcolor: 'rgba(212, 175, 55, 0.2)',
-                      borderColor: '#D4AF37',
-                    },
-                    display: { xs: 'none', sm: 'flex' }, // 小屏幕隐藏文字
-                  }}
-                >
-                  查询订单
-                </Button>
-                {/* 小屏幕只显示图标按钮 */}
-                <IconButton
-                  onClick={() => navigate('/shop/orders')}
-                  sx={{
-                    color: '#D4AF37',
-                    bgcolor: 'rgba(212, 175, 55, 0.1)',
-                    border: '1px solid rgba(212, 175, 55, 0.3)',
-                    '&:hover': {
-                      bgcolor: 'rgba(212, 175, 55, 0.2)',
-                      borderColor: '#D4AF37',
-                    },
-                    display: { xs: 'flex', sm: 'none' }, // 只在小屏幕显示
-                  }}
-                >
-                  <Receipt />
-                </IconButton>
-              </motion.div>
+
+              {/* 移除了独立的“查询订单”按钮，功能移入用户下拉菜单 */}
 
               {/* 购物车按钮 */}
               <motion.div
@@ -234,32 +223,22 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
                 </Badge>
               </motion.div>
 
-              {/* 用户菜单 - 仅在已登录时显示 */}
-              {/*
-              // TODO: 添加真实的用户登录状态检查
-              // const isLoggedIn = useSelector(state => state.auth?.isAuthenticated);
-              // 暂时隐藏用户菜单，等实现登录功能后再启用
-              */}
-              {/*
-              {isLoggedIn && (
-                <IconButton
-                  onClick={handleUserMenuOpen}
-                  sx={{
-                    color: '#F4E4C1',
-                    bgcolor: 'rgba(244, 228, 193, 0.1)',
-                    '&:hover': {
-                      bgcolor: 'rgba(244, 228, 193, 0.2)',
-                    },
-                    ml: 1,
-                  }}
-                >
-                  <AccountCircle />
-                </IconButton>
-              )}
-              */}
+              {/* 用户头像 (统一入口) */}
+              <IconButton
+                onClick={handleUserMenuOpen}
+                sx={{
+                  color: '#F4E4C1',
+                  bgcolor: 'rgba(244, 228, 193, 0.1)',
+                  '&:hover': {
+                    bgcolor: 'rgba(244, 228, 193, 0.2)',
+                  },
+                  ml: 1,
+                }}
+              >
+                <AccountCircle />
+              </IconButton>
 
-              {/* 用户菜单下拉 - 暂时隐藏，等实现登录功能后再启用 */}
-              {/*
+              {/* 统一的用户下拉菜单 */}
               <Menu
                 anchorEl={userMenuAnchor}
                 open={userMenuOpen}
@@ -275,33 +254,64 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
                 PaperProps={{
                   sx: {
                     mt: 1,
+                    minWidth: 160,
                     bgcolor: '#1B3A2B',
                     color: '#F4E4C1',
                     border: '1px solid #D4AF37',
                     '& .MuiMenuItem-root': {
+                      color: '#F4E4C1', // 强制菜单项文字颜色
                       '&:hover': {
                         bgcolor: 'rgba(212, 175, 55, 0.2)',
                       },
                     },
+                    '& .MuiTypography-root': {
+                      color: '#F4E4C1', // 强制内部所有文本组件颜色
+                    }
                   },
                 }}
               >
-                <MenuItem onClick={handleMyProfile}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <AccountCircle sx={{ fontSize: 18, color: '#D4AF37' }} />
-                    <Typography>个人信息</Typography>
-                  </Box>
-                </MenuItem>
-              </Menu>
-              */}
+                <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid rgba(212, 175, 55, 0.2)' }}>
+                  <Typography variant="caption" color="rgba(244, 228, 193, 0.7)">
+                    当前身份
+                  </Typography>
+                  <Typography variant="body2" fontWeight="bold">
+                    {isLoggedIn ? user?.username : (guestId || '游客(待定)')}
+                  </Typography>
+                </Box>
 
-              {/* 购物车反馈效果 */}
-              <CartFeedback
-                trigger={feedbackTrigger}
-                productName={feedbackProduct.name}
-                productImage={feedbackProduct.image}
-                cartButtonRef={cartButtonRef}
-              />
+                {isLoggedIn ? (
+                  // 登录用户菜单
+                  [
+                    <MenuItem key="my-orders" onClick={handleMyOrders}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Receipt sx={{ fontSize: 18, color: '#D4AF37' }} />
+                        <Typography>我的订单</Typography>
+                      </Box>
+                    </MenuItem>,
+                    <MenuItem key="logout" onClick={handleLogout}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography>退出登录</Typography>
+                      </Box>
+                    </MenuItem>
+                  ]
+                ) : (
+                  // 游客菜单
+                  [
+                    <MenuItem key="login" onClick={handleLoginRegister}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <AccountCircle sx={{ fontSize: 18, color: '#D4AF37' }} />
+                        <Typography>登录 / 注册</Typography>
+                      </Box>
+                    </MenuItem>,
+                    <MenuItem key="query-orders" onClick={handleMyOrders}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Receipt sx={{ fontSize: 18, color: '#D4AF37' }} />
+                        <Typography>查询订单</Typography>
+                      </Box>
+                    </MenuItem>
+                  ]
+                )}
+              </Menu>
             </Box>
           </Toolbar>
         </Container>
@@ -311,7 +321,7 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
       <CartDrawer />
 
       {/* 主要内容区域 */}
-      <Box sx={{ flexGrow: 1 }}>
+      <Box sx={{ flexGrow: 1, bgcolor: '#ffffff', minHeight: 'calc(100vh - 200px)' }}>
         {/* 占位符，防止内容被固定导航栏遮挡 */}
         <Toolbar sx={{ py: 1 }} />
         {children}

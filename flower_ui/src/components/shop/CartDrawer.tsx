@@ -5,13 +5,7 @@ import {
   Typography,
   IconButton,
   Button,
-  Divider,
-  List,
-  ListItem,
-  ListItemAvatar,
   Avatar,
-  ListItemText,
-  ListItemSecondaryAction,
   TextField,
   Chip,
   Badge,
@@ -29,6 +23,7 @@ import {
 import { motion, AnimatePresence as AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useCartStore, type CartItem } from '../../store/cartStore';
+import { API_BASE_URL } from '../../constants';
 
 interface CartDrawerProps {
   open?: boolean;
@@ -41,7 +36,6 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ open, onClose }) => {
     items,
     isOpen,
     totalItems,
-    totalPrice,
     closeCart,
     removeItem,
     updateQuantity,
@@ -239,7 +233,13 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ open, onClose }) => {
                           {/* Product Image */}
                           <Avatar
                             variant="rounded"
-                            src={item.product.mainImagePath || '/placeholder-flower.jpg'}
+                            src={
+                              item.product.mainImagePath
+                                ? (item.product.mainImagePath.startsWith('/uploads/')
+                                  ? `${API_BASE_URL}${item.product.mainImagePath}`
+                                  : item.product.mainImagePath)
+                                : '/placeholder-flower.jpg'
+                            }
                             alt={item.product.name}
                             sx={{ width: 60, height: 60, bgcolor: '#f5f5f5' }}
                           >

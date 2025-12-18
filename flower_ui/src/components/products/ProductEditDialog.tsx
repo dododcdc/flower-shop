@@ -26,9 +26,10 @@ import {
     CloudUpload as UploadIcon,
     Delete as DeleteIcon,
 } from '@mui/icons-material';
-import { type Product, parseProductImages } from '../../models/product';
+import { type Product } from '../../models/product';
 import { useProduct, useUpdateProduct, useCreateProduct } from '../../hooks/useProducts';
 import { categoryAPI, type Category } from '../../api/categoryAPI';
+import { API_BASE_URL } from '../../constants';
 
 interface ProductEditDialogProps {
     open: boolean;
@@ -46,6 +47,12 @@ interface ImageItem {
     isDeleted: boolean;  // 是否标记为删除
 }
 
+// 表单数据类型，允许 undefined
+interface ProductFormData extends Omit<Partial<Product>, 'price' | 'originalPrice'> {
+    price?: number | undefined;
+    originalPrice?: number | undefined;
+}
+
 const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
     open,
     productId,
@@ -61,7 +68,7 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [categories, setCategories] = useState<Category[]>([]);
 
-    const [formData, setFormData] = useState<Partial<Product>>({
+    const [formData, setFormData] = useState<ProductFormData>({
         name: '',
         categoryId: 0,
         description: '',
@@ -115,7 +122,7 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
             const newImageList: ImageItem[] = [];
 
             if (product.images && product.images.length > 0) {
-                product.images.forEach((imageDetail) => {
+                product.images.forEach((imageDetail: any) => {
                     newImageList.push({
                         id: imageDetail.id.toString(),
                         url: imageDetail.imageUrl || imageDetail.imagePath,
@@ -127,11 +134,11 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
 
             setImageList(newImageList);
             // 初始化主图指针（找到主图）
-            const mainImage = product.images?.find(img => img.imageType === 1);
+            const mainImage = product.images?.find((img: any) => img.imageType === 1);
             if (mainImage) {
                 setMainImageId(mainImage.id.toString());
             } else if (newImageList.length > 0) {
-                setMainImageId(newImageList[0].id);
+                setMainImageId(newImageList[0]!.id);
             }
             setPrevMainImageId(null);
         } else if (!productId && open) {
@@ -278,6 +285,8 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
             if (targetIndex === -1) return prevList;
 
             const targetItem = prevList[targetIndex];
+            if (!targetItem) return prevList;
+
             let newList = [...prevList];
 
             // 逻辑分支：已有图片标记删除，新图片直接移除
@@ -483,7 +492,7 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
                                                 <CardMedia
                                                     component="img"
                                                     image={item.isExisting && item.url.startsWith('/uploads/')
-                                                        ? `http://localhost:8080/api${item.url}`
+                                                        ? `${API_BASE_URL}${item.url}`
                                                         : item.url}
                                                     alt="商品图片"
                                                     sx={{ width: '100%', height: '100%', objectFit: 'cover' }}

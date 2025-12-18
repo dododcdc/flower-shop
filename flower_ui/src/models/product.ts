@@ -58,7 +58,7 @@ export interface Product {
   description: string;
   price: number;
   originalPrice?: number;
-  images?: string; // 旧字段，兼容性保留
+  images?: any; // 旧字段，兼容性保留，可能是JSON字符串或对象数组
   imageList?: string[]; // 新的图片列表
   mainImagePath?: string; // 主图路径
   flowerLanguage?: string;

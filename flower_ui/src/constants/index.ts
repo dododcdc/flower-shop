@@ -8,6 +8,8 @@ export const STORAGE_KEYS = {
   THEME: 'flower_shop_theme',
 } as const;
 
+export const API_BASE_URL = 'http://localhost:8080/api';
+
 export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: '/admin/auth/login',

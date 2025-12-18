@@ -13,9 +13,7 @@ import {
   FormControl,
   InputLabel,
   Chip,
-  IconButton,
   Pagination,
-  useTheme,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -28,15 +26,14 @@ import { motion } from 'framer-motion';
 import {
   type Product,
   type ProductFilters,
-  productSearchSchema,
   getStockStatusText,
   getStockStatusColor,
   hasDiscount,
   getDiscountPercentage,
-  getMainProductImage,
 } from '../../models/product';
 import { productAPI } from '../../api/productAPI';
 import { categoryAPI, type Category } from '../../api/categoryAPI';
+import { API_BASE_URL } from '../../constants';
 
 // Animation variants
 const cardVariants = {
@@ -55,7 +52,6 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
   onAddToCart,
   onViewDetails
 }) => {
-  const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
 
   // State for products and pagination
@@ -64,7 +60,7 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  
+
   // Pagination state
   const [pagination, setPagination] = useState({
     current: 1,
@@ -176,7 +172,7 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
     });
   };
 
-  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+  const handlePageChange = (_: React.ChangeEvent<unknown>, value: number) => {
     setFilters({ ...filters, current: value });
   };
 
@@ -268,7 +264,7 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
         let imageUrl = product.mainImagePath;
         if (!/^https?:/i.test(imageUrl)) {
           if (imageUrl.startsWith('/uploads/')) {
-            imageUrl = `http://localhost:8080/api${imageUrl}`;
+            imageUrl = `${API_BASE_URL}${imageUrl}`;
           }
         }
         return [imageUrl];
@@ -602,12 +598,12 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
                         <Typography
                           variant="body2"
                           sx={{
-                            color: getStockStatusColor(product.stockQuantity, product.lowStockThreshold),
+                            color: getStockStatusColor(product),
                             fontSize: '13px',
                             fontWeight: 500,
                           }}
                         >
-                          {getStockStatusText(product.stockQuantity, product.lowStockThreshold)}
+                          {getStockStatusText(product)}
                         </Typography>
                       </Box>
 
@@ -713,7 +709,7 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
         </Box>
       )}
 
-      </Box>
+    </Box>
   );
 };
 

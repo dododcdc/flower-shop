@@ -169,6 +169,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
           flex: 1,
           p: { xs: 1, sm: 1.5 },
           minHeight: 'calc(100vh - 64px)',
+          background: 'linear-gradient(135deg, #F8F6F0 0%, #FAF6F2 100%)',
         }}
       >
         {children}
