@@ -13,7 +13,6 @@ import LocalFloristIcon from '@mui/icons-material/LocalFlorist';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import ShoppingBasketIcon from '@mui/icons-material/ShoppingBasket';
-import DeliveryDiningIcon from '@mui/icons-material/DeliveryDining';
 import api, { AxiosInstance } from '../../api/axiosClient';
 import { STORAGE_KEYS } from '../../constants';
 
@@ -26,7 +25,6 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     { label: 'Dashboard', value: '/dashboard', icon: <DashboardIcon /> },
     { label: '商品管理', value: '/products', icon: <InventoryIcon /> },
     { label: '订单管理', value: '/orders', icon: <ShoppingBasketIcon /> },
-    { label: '配送管理', value: '/delivery', icon: <DeliveryDiningIcon /> },
   ];
 
   const handleLogout = () => {

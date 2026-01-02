@@ -15,7 +15,6 @@ const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const ProductManagementPage = lazy(() => import('./pages/ProductManagementPage'));
 const OrderManagementPage = lazy(() => import('./pages/OrderManagementPage'));
-const DeliveryManagementPage = lazy(() => import('./pages/DeliveryManagementPage'));
 
 // 游客端页面组件
 const ShopPage = lazy(() => import('./pages/shop/ShopPage'));
@@ -108,15 +107,6 @@ const App: React.FC = () => {
                 <DashboardLayout>
                   <Suspense fallback={<LoadingSpinner />}>
                     <OrderManagementPage />
-                  </Suspense>
-                </DashboardLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/delivery" element={
-              <ProtectedRoute>
-                <DashboardLayout>
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <DeliveryManagementPage />
                   </Suspense>
                 </DashboardLayout>
               </ProtectedRoute>

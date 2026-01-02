@@ -8,10 +8,6 @@ import {
   Typography,
   TextField,
   Button,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   Chip,
   IconButton,
   Pagination,
@@ -33,6 +29,7 @@ import {
   ToggleOff as ToggleOffIcon,
   Star as StarIcon,
   StarBorder as StarBorderIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { z } from 'zod';
@@ -91,9 +88,22 @@ const ProductList: React.FC = () => {
     minPrice: '',
     maxPrice: '',
     stockStatus: '',
-    sortBy: 'created_at',
-    sortOrder: 'desc',
+    sortBy: 'created_at-desc',
   });
+
+  // 防抖搜索
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
+  const [isComposing, setIsComposing] = useState(false);
+
+  useEffect(() => {
+    if (!isComposing) {
+      const timer = setTimeout(() => {
+        setDebouncedKeyword(searchForm.keyword);
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [searchForm.keyword, isComposing]);
 
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -155,18 +165,31 @@ const ProductList: React.FC = () => {
       return;
     }
 
+    // 解析复合排序字段（如 "created_at-desc" -> sortBy: "created_at", sortOrder: "desc"）
+    let sortBy: string = 'created_at';
+    let sortOrder: string = 'desc';
+
+    if (searchForm.sortBy && searchForm.sortBy.includes('-')) {
+      const [sortField, sortDirection] = searchForm.sortBy.split('-');
+      sortBy = sortField;
+      sortOrder = sortDirection;
+    } else {
+      sortBy = searchForm.sortBy || 'created_at';
+      sortOrder = 'desc';
+    }
+
     const newFilters: ProductFilters = {
       ...filters,
-      current: 1, // Reset to first page when searching
-      keyword: searchForm.keyword || undefined,
+      current: 1,
+      keyword: debouncedKeyword || undefined,
       categoryId: searchForm.categoryId ? Number(searchForm.categoryId) : undefined,
       status: searchForm.status ? (searchForm.status === '1' ? 1 : 0) as 0 | 1 : undefined,
       featured: searchForm.featured ? (searchForm.featured === '1' ? 1 : 0) as 0 | 1 : undefined,
       minPrice: searchForm.minPrice ? Number(searchForm.minPrice) : undefined,
       maxPrice: searchForm.maxPrice ? Number(searchForm.maxPrice) : undefined,
       stockStatus: searchForm.stockStatus as any || undefined,
-      sortBy: searchForm.sortBy as any,
-      sortOrder: searchForm.sortOrder as any,
+      sortBy: sortBy as any,
+      sortOrder: sortOrder as any,
     };
 
     // Validate with Zod schema
@@ -180,6 +203,11 @@ const ProductList: React.FC = () => {
     }
   };
 
+  // 当筛选条件变化时自动搜索
+  useEffect(() => {
+    handleSearch();
+  }, [debouncedKeyword, searchForm.categoryId, searchForm.status, searchForm.stockStatus, searchForm.sortBy]);
+
   const handleReset = () => {
     setSearchForm({
       keyword: '',
@@ -189,12 +217,11 @@ const ProductList: React.FC = () => {
       minPrice: '',
       maxPrice: '',
       stockStatus: '',
-      sortBy: 'created_at',
-      sortOrder: 'desc',
+      sortBy: 'created_at-desc',
     });
     setFilters({
       current: 1,
-      size: 12,
+      size: 8,
       sortBy: 'created_at',
       sortOrder: 'desc',
     });
@@ -295,210 +322,399 @@ const ProductList: React.FC = () => {
     <Box sx={{ px: 1, pt: 1 }}>
       {/* Search and Filters */}
       <Card sx={{ mb: 2 }}>
-        <CardContent sx={{ py: 1.5, px: 2 }}>
-          <Grid container spacing={1}>
-            {/* 第一行：搜索框 + 主要筛选 */}
-            <Grid size={{ xs: 12, md: 4 }}>
-              <TextField
-                fullWidth
-                size="small"
-                label="搜索关键词"
-                value={searchForm.keyword}
-                onChange={(e) => setSearchForm({ ...searchForm, keyword: e.target.value })}
-                placeholder="商品名称、描述或花语"
-                InputProps={{
-                  startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 0.5 }} />,
-                }}
-                sx={{ '& .MuiInputBase-input': { py: 0.75, px: 1, fontSize: '0.875rem' } }}
-              />
-            </Grid>
+        <CardContent sx={{ py: 2, px: 2 }}>
+          {/* 第一行：搜索框 + 添加按钮 */}
+          <Box sx={{ display: 'flex', gap: 1, mb: 2, alignItems: 'center' }}>
+            <TextField
+              size="small"
+              placeholder="搜索商品..."
+              value={searchForm.keyword}
+              onChange={(e) => setSearchForm({ ...searchForm, keyword: e.target.value })}
+              onCompositionStart={() => setIsComposing(true)}
+              onCompositionEnd={() => setIsComposing(false)}
+              InputProps={{
+                startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary', fontSize: '18px' }} />,
+                endAdornment: searchForm.keyword && (
+                  <IconButton
+                    size="small"
+                    onClick={() => setSearchForm({ ...searchForm, keyword: '' })}
+                    sx={{ color: 'text.secondary' }}
+                  >
+                    <CloseIcon sx={{ fontSize: '16px' }} />
+                  </IconButton>
+                ),
+              }}
+              sx={{
+                flex: 1,
+                maxWidth: { md: '400px' },
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 1,
+                },
+              }}
+            />
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => {
+                setEditingProductId(null);
+                setEditDialogOpen(true);
+              }}
+              sx={{
+                background: 'linear-gradient(135deg, #2C5F3C 0%, #1B3A2B 100%)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #1B3A2B 0%, #2C5F3C 100%)',
+                },
+                color: 'white',
+                fontWeight: 600,
+                height: 36,
+                px: 2,
+              }}
+            >
+              添加商品
+            </Button>
+          </Box>
 
-            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-              <FormControl fullWidth size="small">
-                <InputLabel shrink sx={{ '&.Mui-focused': { fontSize: '0.875rem' } }}>商品分类</InputLabel>
-                <Select
-                  value={searchForm.categoryId}
-                  label="商品分类"
-                  displayEmpty
-                  onChange={(e) => setSearchForm({ ...searchForm, categoryId: e.target.value })}
-                  sx={{ '& .MuiSelect-select': { py: 0.75, px: 1, fontSize: '0.875rem' } }}
-                >
-                  <MenuItem value="">全部</MenuItem>
+          {/* 第二行：分类 + 上架 + 库存 chips */}
+          <Box sx={{ mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+              {/* 分类 */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '13px' }}>
+                  分类:
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 0.75 }}>
+                  <Chip
+                    label="全部"
+                    onClick={() => setSearchForm({ ...searchForm, categoryId: '' })}
+                    size="small"
+                    sx={{
+                      height: 28,
+                      bgcolor: searchForm.categoryId === '' ? 'primary.main' : 'transparent',
+                      color: searchForm.categoryId === '' ? 'white' : 'text.primary',
+                      fontWeight: searchForm.categoryId === '' ? 600 : 400,
+                      border: '1px solid',
+                      borderColor: searchForm.categoryId === '' ? 'primary.main' : 'divider',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      '&:hover': {
+                        bgcolor: searchForm.categoryId === '' ? 'primary.dark' : 'action.hover',
+                      },
+                    }}
+                  />
                   {categories.map((category) => (
-                    <MenuItem key={category.id} value={String(category.id)} sx={{ fontSize: '0.875rem' }}>
-                      {category.name}
-                    </MenuItem>
+                    <Chip
+                      key={category.id}
+                      label={category.name}
+                      onClick={() => setSearchForm({ ...searchForm, categoryId: String(category.id) })}
+                      size="small"
+                      sx={{
+                        height: 28,
+                        bgcolor: searchForm.categoryId === String(category.id) ? 'primary.main' : 'transparent',
+                        color: searchForm.categoryId === String(category.id) ? 'white' : 'text.primary',
+                        fontWeight: searchForm.categoryId === String(category.id) ? 600 : 400,
+                        border: '1px solid',
+                        borderColor: searchForm.categoryId === String(category.id) ? 'primary.main' : 'divider',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        '&:hover': {
+                          bgcolor: searchForm.categoryId === String(category.id) ? 'primary.dark' : 'action.hover',
+                        },
+                      }}
+                    />
                   ))}
-                </Select>
-              </FormControl>
-            </Grid>
+                </Box>
+              </Box>
 
-            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-              <FormControl fullWidth size="small">
-                <InputLabel shrink sx={{ '&.Mui-focused': { fontSize: '0.875rem' } }}>上架状态</InputLabel>
-                <Select
-                  value={searchForm.status}
-                  label="上架状态"
-                  displayEmpty
-                  onChange={(e) => setSearchForm({ ...searchForm, status: e.target.value })}
-                  sx={{ '& .MuiSelect-select': { py: 0.75, px: 1, fontSize: '0.875rem' } }}
-                >
-                  <MenuItem value="">全部</MenuItem>
-                  <MenuItem value="1" sx={{ fontSize: '0.875rem' }}>上架</MenuItem>
-                  <MenuItem value="0" sx={{ fontSize: '0.875rem' }}>下架</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
+              {/* 分隔符 */}
+              <Typography sx={{ color: 'rgba(0,0,0,0.2)', fontSize: '18px', display: { xs: 'none', md: 'block' } }}>
+                |
+              </Typography>
 
-            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-              <FormControl fullWidth size="small">
-                <InputLabel shrink sx={{ '&.Mui-focused': { fontSize: '0.875rem' } }}>库存状态</InputLabel>
-                <Select
-                  value={searchForm.stockStatus}
-                  label="库存状态"
-                  displayEmpty
-                  onChange={(e) => setSearchForm({ ...searchForm, stockStatus: e.target.value })}
-                  sx={{ '& .MuiSelect-select': { py: 0.75, px: 1, fontSize: '0.875rem' } }}
-                >
-                  <MenuItem value="">全部</MenuItem>
-                  <MenuItem value="in_stock" sx={{ fontSize: '0.875rem' }}>库存充足</MenuItem>
-                  <MenuItem value="low_stock" sx={{ fontSize: '0.875rem' }}>库存不足</MenuItem>
-                  <MenuItem value="out_of_stock" sx={{ fontSize: '0.875rem' }}>缺货</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
+              {/* 上架状态 */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '13px' }}>
+                  上架:
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 0.75 }}>
+                  <Chip
+                    label="全部"
+                    onClick={() => setSearchForm({ ...searchForm, status: '' })}
+                    size="small"
+                    sx={{
+                      height: 28,
+                      bgcolor: searchForm.status === '' ? 'success.main' : 'transparent',
+                      color: searchForm.status === '' ? 'white' : 'text.primary',
+                      fontWeight: searchForm.status === '' ? 600 : 400,
+                      border: '1px solid',
+                      borderColor: searchForm.status === '' ? 'success.main' : 'divider',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      '&:hover': {
+                        bgcolor: searchForm.status === '' ? 'success.dark' : 'action.hover',
+                      },
+                    }}
+                  />
+                  <Chip
+                    label="已上架"
+                    onClick={() => setSearchForm({ ...searchForm, status: '1' })}
+                    size="small"
+                    sx={{
+                      height: 28,
+                      bgcolor: searchForm.status === '1' ? 'success.main' : 'transparent',
+                      color: searchForm.status === '1' ? 'white' : 'text.primary',
+                      fontWeight: searchForm.status === '1' ? 600 : 400,
+                      border: '1px solid',
+                      borderColor: searchForm.status === '1' ? 'success.main' : 'divider',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      '&:hover': {
+                        bgcolor: searchForm.status === '1' ? 'success.dark' : 'action.hover',
+                      },
+                    }}
+                  />
+                  <Chip
+                    label="已下架"
+                    onClick={() => setSearchForm({ ...searchForm, status: '0' })}
+                    size="small"
+                    sx={{
+                      height: 28,
+                      bgcolor: searchForm.status === '0' ? 'error.main' : 'transparent',
+                      color: searchForm.status === '0' ? 'white' : 'text.primary',
+                      fontWeight: searchForm.status === '0' ? 600 : 400,
+                      border: '1px solid',
+                      borderColor: searchForm.status === '0' ? 'error.main' : 'divider',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      '&:hover': {
+                        bgcolor: searchForm.status === '0' ? 'error.dark' : 'action.hover',
+                      },
+                    }}
+                  />
+                </Box>
+              </Box>
 
+              {/* 分隔符 */}
+              <Typography sx={{ color: 'rgba(0,0,0,0.2)', fontSize: '18px', display: { xs: 'none', md: 'block' } }}>
+                |
+              </Typography>
 
-            {/* 第二行：价格和排序 + 操作按钮 */}
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <TextField
-                  fullWidth
+              {/* 库存状态 */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '13px' }}>
+                  库存:
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 0.75 }}>
+                  <Chip
+                    label="全部"
+                    onClick={() => setSearchForm({ ...searchForm, stockStatus: '' })}
+                    size="small"
+                    sx={{
+                      height: 28,
+                      bgcolor: searchForm.stockStatus === '' ? 'info.main' : 'transparent',
+                      color: searchForm.stockStatus === '' ? 'white' : 'text.primary',
+                      fontWeight: searchForm.stockStatus === '' ? 600 : 400,
+                      border: '1px solid',
+                      borderColor: searchForm.stockStatus === '' ? 'info.main' : 'divider',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      '&:hover': {
+                        bgcolor: searchForm.stockStatus === '' ? 'info.dark' : 'action.hover',
+                      },
+                    }}
+                  />
+                  <Chip
+                    label="充足"
+                    onClick={() => setSearchForm({ ...searchForm, stockStatus: 'in_stock' })}
+                    size="small"
+                    sx={{
+                      height: 28,
+                      bgcolor: searchForm.stockStatus === 'in_stock' ? 'info.main' : 'transparent',
+                      color: searchForm.stockStatus === 'in_stock' ? 'white' : 'text.primary',
+                      fontWeight: searchForm.stockStatus === 'in_stock' ? 600 : 400,
+                      border: '1px solid',
+                      borderColor: searchForm.stockStatus === 'in_stock' ? 'info.main' : 'divider',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      '&:hover': {
+                        bgcolor: searchForm.stockStatus === 'in_stock' ? 'info.dark' : 'action.hover',
+                      },
+                    }}
+                  />
+                  <Chip
+                    label="不足"
+                    onClick={() => setSearchForm({ ...searchForm, stockStatus: 'low_stock' })}
+                    size="small"
+                    sx={{
+                      height: 28,
+                      bgcolor: searchForm.stockStatus === 'low_stock' ? 'warning.main' : 'transparent',
+                      color: searchForm.stockStatus === 'low_stock' ? 'white' : 'text.primary',
+                      fontWeight: searchForm.stockStatus === 'low_stock' ? 600 : 400,
+                      border: '1px solid',
+                      borderColor: searchForm.stockStatus === 'low_stock' ? 'warning.main' : 'divider',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      '&:hover': {
+                        bgcolor: searchForm.stockStatus === 'low_stock' ? 'warning.dark' : 'action.hover',
+                      },
+                    }}
+                  />
+                  <Chip
+                    label="缺货"
+                    onClick={() => setSearchForm({ ...searchForm, stockStatus: 'out_of_stock' })}
+                    size="small"
+                    sx={{
+                      height: 28,
+                      bgcolor: searchForm.stockStatus === 'out_of_stock' ? 'error.main' : 'transparent',
+                      color: searchForm.stockStatus === 'out_of_stock' ? 'white' : 'text.primary',
+                      fontWeight: searchForm.stockStatus === 'out_of_stock' ? 600 : 400,
+                      border: '1px solid',
+                      borderColor: searchForm.stockStatus === 'out_of_stock' ? 'error.main' : 'divider',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      '&:hover': {
+                        bgcolor: searchForm.stockStatus === 'out_of_stock' ? 'error.dark' : 'action.hover',
+                      },
+                    }}
+                  />
+                </Box>
+              </Box>
+            </Box>
+          </Box>
+
+          {/* 第三行：价格区间 + 排序 + 重置 */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+            {/* 价格区间 */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '13px' }}>
+                价格:
+              </Typography>
+              <TextField
+                size="small"
+                type="number"
+                placeholder="最低"
+                value={searchForm.minPrice}
+                onChange={(e) => setSearchForm({ ...searchForm, minPrice: e.target.value })}
+                inputProps={{ min: 0, step: 0.01, style: { fontSize: '13px', padding: '4px 8px' } }}
+                sx={{
+                  width: 80,
+                  '& .MuiOutlinedInput-root': {
+                    height: 28,
+                    '& input': {
+                      height: 28,
+                    },
+                  },
+                }}
+              />
+              <Box sx={{ color: 'text.secondary', fontSize: '14px' }}>-</Box>
+              <TextField
+                size="small"
+                type="number"
+                placeholder="最高"
+                value={searchForm.maxPrice}
+                onChange={(e) => setSearchForm({ ...searchForm, maxPrice: e.target.value })}
+                inputProps={{ min: 0, step: 0.01, style: { fontSize: '13px', padding: '4px 8px' } }}
+                sx={{
+                  width: 80,
+                  '& .MuiOutlinedInput-root': {
+                    height: 28,
+                    '& input': {
+                      height: 28,
+                    },
+                  },
+                }}
+              />
+            </Box>
+
+            {/* 分隔符 */}
+            <Typography sx={{ color: 'rgba(0,0,0,0.2)', fontSize: '18px', display: { xs: 'none', md: 'block' } }}>
+              |
+            </Typography>
+
+            {/* 排序 */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '13px' }}>
+                排序:
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 0.75 }}>
+                <Chip
+                  label="最新"
+                  onClick={() => setSearchForm({ ...searchForm, sortBy: 'created_at-desc' })}
                   size="small"
-                  label="最低价"
-                  type="number"
-                  value={searchForm.minPrice}
-                  onChange={(e) => setSearchForm({ ...searchForm, minPrice: e.target.value })}
-                  inputProps={{ min: 0, step: 0.01 }}
-                  sx={{ '& .MuiInputBase-input': { py: 0.75, px: 1, fontSize: '0.875rem' } }}
+                  sx={{
+                    height: 28,
+                    bgcolor: searchForm.sortBy === 'created_at-desc' ? 'primary.main' : 'transparent',
+                    color: searchForm.sortBy === 'created_at-desc' ? 'white' : 'text.primary',
+                    fontWeight: searchForm.sortBy === 'created_at-desc' ? 600 : 400,
+                    border: '1px solid',
+                    borderColor: searchForm.sortBy === 'created_at-desc' ? 'primary.main' : 'divider',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    '&:hover': {
+                      bgcolor: searchForm.sortBy === 'created_at-desc' ? 'primary.dark' : 'action.hover',
+                    },
+                  }}
                 />
-                <Box sx={{ mx: 0.5, color: 'text.secondary', fontWeight: 'bold', fontSize: '0.875rem' }}>-</Box>
-                <TextField
-                  fullWidth
+                <Chip
+                  label="价格↑"
+                  onClick={() => setSearchForm({ ...searchForm, sortBy: 'price-asc' })}
                   size="small"
-                  label="最高价"
-                  type="number"
-                  value={searchForm.maxPrice}
-                  onChange={(e) => setSearchForm({ ...searchForm, maxPrice: e.target.value })}
-                  inputProps={{ min: 0, step: 0.01 }}
-                  sx={{ '& .MuiInputBase-input': { py: 0.75, px: 1, fontSize: '0.875rem' } }}
+                  sx={{
+                    height: 28,
+                    bgcolor: searchForm.sortBy === 'price-asc' ? 'primary.main' : 'transparent',
+                    color: searchForm.sortBy === 'price-asc' ? 'white' : 'text.primary',
+                    fontWeight: searchForm.sortBy === 'price-asc' ? 600 : 400,
+                    border: '1px solid',
+                    borderColor: searchForm.sortBy === 'price-asc' ? 'primary.main' : 'divider',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    '&:hover': {
+                      bgcolor: searchForm.sortBy === 'price-asc' ? 'primary.dark' : 'action.hover',
+                    },
+                  }}
+                />
+                <Chip
+                  label="价格↓"
+                  onClick={() => setSearchForm({ ...searchForm, sortBy: 'price-desc' })}
+                  size="small"
+                  sx={{
+                    height: 28,
+                    bgcolor: searchForm.sortBy === 'price-desc' ? 'primary.main' : 'transparent',
+                    color: searchForm.sortBy === 'price-desc' ? 'white' : 'text.primary',
+                    fontWeight: searchForm.sortBy === 'price-desc' ? 600 : 400,
+                    border: '1px solid',
+                    borderColor: searchForm.sortBy === 'price-desc' ? 'primary.main' : 'divider',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    '&:hover': {
+                      bgcolor: searchForm.sortBy === 'price-desc' ? 'primary.dark' : 'action.hover',
+                    },
+                  }}
                 />
               </Box>
-            </Grid>
+            </Box>
 
-            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-              <FormControl fullWidth size="small">
-                <InputLabel sx={{ '&.Mui-focused': { fontSize: '0.875rem' } }}>排序方式</InputLabel>
-                <Select
-                  value={searchForm.sortBy}
-                  label="排序方式"
-                  onChange={(e) => setSearchForm({ ...searchForm, sortBy: e.target.value })}
-                  sx={{ '& .MuiSelect-select': { py: 0.75, px: 1, fontSize: '0.875rem' } }}
-                >
-                  <MenuItem value="created_at" sx={{ fontSize: '0.875rem' }}>创建时间</MenuItem>
-                  <MenuItem value="price" sx={{ fontSize: '0.875rem' }}>价格</MenuItem>
-                  <MenuItem value="name" sx={{ fontSize: '0.875rem' }}>名称</MenuItem>
-                  <MenuItem value="stock_quantity" sx={{ fontSize: '0.875rem' }}>库存数量</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-              <FormControl fullWidth size="small">
-                <InputLabel sx={{ '&.Mui-focused': { fontSize: '0.875rem' } }}>排序顺序</InputLabel>
-                <Select
-                  value={searchForm.sortOrder}
-                  label="排序顺序"
-                  onChange={(e) => setSearchForm({ ...searchForm, sortOrder: e.target.value })}
-                  sx={{ '& .MuiSelect-select': { py: 0.75, px: 1, fontSize: '0.875rem' } }}
-                >
-                  <MenuItem value="desc" sx={{ fontSize: '0.875rem' }}>降序</MenuItem>
-                  <MenuItem value="asc" sx={{ fontSize: '0.875rem' }}>升序</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 8, md: 3 }}>
-              <Stack direction="row" spacing={1} sx={{ height: '100%', alignItems: 'center', justifyContent: 'flex-end' }}>
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon sx={{ fontSize: '1rem' }} />}
-                  onClick={() => {
-                    setEditingProductId(null);
-                    setEditDialogOpen(true);
-                  }}
-                  sx={{
-                    background: 'linear-gradient(135deg, #2C5F3C 0%, #1B3A2B 100%)',
-                    '&:hover': {
-                      background: 'linear-gradient(135deg, #1B3A2B 0%, #2C5F3C 100%)',
-                      boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
-                    },
-                    color: 'white',
-                    fontWeight: 600,
-                    height: 32,
-                    px: 1.5,
-                    fontSize: '0.75rem',
-                    minWidth: 60,
-                    borderRadius: 1,
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                  }}
-                >
-                  添加
-                </Button>
-                <Button
-                  variant="contained"
-                  startIcon={<SearchIcon sx={{ fontSize: '1rem' }} />}
-                  onClick={handleSearch}
-                  sx={{
-                    background: 'linear-gradient(135deg, #1B3A2B 0%, #2C5F3C 100%)',
-                    '&:hover': {
-                      background: 'linear-gradient(135deg, #2C5F3C 0%, #1B3A2B 100%)',
-                      boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
-                    },
-                    color: 'white',
-                    fontWeight: 600,
-                    height: 32,
-                    px: 1.5,
-                    fontSize: '0.75rem',
-                    minWidth: 60,
-                    borderRadius: 1,
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                  }}
-                >
-                  搜索
-                </Button>
-                <Button
-                  variant="outlined"
-                  onClick={handleReset}
-                  sx={{
-                    height: 32,
-                    px: 1.5,
-                    fontSize: '0.75rem',
-                    minWidth: 60,
-                    borderRadius: 1,
-                    borderColor: 'grey.300',
-                    color: 'text.primary',
-                    '&:hover': {
-                      borderColor: 'primary.main',
-                      backgroundColor: 'action.hover',
-                    },
-                  }}
-                >
-                  重置
-                </Button>
-              </Stack>
-            </Grid>
-          </Grid>
+            {/* 重置按钮 */}
+            <Box sx={{ ml: 'auto' }}>
+              <Button
+                variant="outlined"
+                onClick={handleReset}
+                size="small"
+                sx={{
+                  borderColor: 'divider',
+                  color: 'text.primary',
+                  fontWeight: 600,
+                  height: 28,
+                  fontSize: '13px',
+                  '&:hover': {
+                    borderColor: 'primary.main',
+                    bgcolor: 'action.hover',
+                  },
+                }}
+              >
+                重置筛选
+              </Button>
+            </Box>
+          </Box>
         </CardContent>
       </Card>
 
