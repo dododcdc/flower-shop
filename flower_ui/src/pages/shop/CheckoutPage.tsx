@@ -183,6 +183,56 @@ const CheckoutPage: React.FC = () => {
                     {/* 左侧：表单区域 */}
                     <Grid size={{ xs: 12, md: 8 }}>
                         <Box component={motion.div} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+
+                            {/* 游客登录引导提示 */}
+                            {!user && (
+                                <Paper sx={{
+                                    p: 2.5,
+                                    mb: 3,
+                                    borderRadius: 2,
+                                    bgcolor: 'linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(212, 175, 55, 0.05) 100%)',
+                                    border: '1px solid rgba(212, 175, 55, 0.3)'
+                                }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                                        <Box sx={{
+                                            width: 40,
+                                            height: 40,
+                                            borderRadius: '50%',
+                                            bgcolor: 'rgba(212, 175, 55, 0.15)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            flexShrink: 0
+                                        }}>
+                                            <Typography sx={{ fontSize: '1.2rem' }}>💡</Typography>
+                                        </Box>
+                                        <Box sx={{ flex: 1 }}>
+                                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#1B3A2B', mb: 0.5 }}>
+                                                您正在以游客身份下单
+                                            </Typography>
+                                            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5, lineHeight: 1.6 }}>
+                                                登录后可享受：个人账户管理、收藏商品、专享会员优惠等更多便利
+                                            </Typography>
+                                            <Button
+                                                variant="outlined"
+                                                size="small"
+                                                onClick={() => navigate('/login')}
+                                                sx={{
+                                                    borderColor: '#D4AF37',
+                                                    color: '#1B3A2B',
+                                                    '&:hover': {
+                                                        borderColor: '#B8941F',
+                                                        bgcolor: 'rgba(212, 175, 55, 0.08)'
+                                                    }
+                                                }}
+                                            >
+                                                立即登录
+                                            </Button>
+                                        </Box>
+                                    </Box>
+                                </Paper>
+                            )}
+
                             {/* 收货信息 */}
                             <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
                                 <Typography variant="h6" sx={{ mb: 2, color: '#D4AF37', fontWeight: 'bold' }}>

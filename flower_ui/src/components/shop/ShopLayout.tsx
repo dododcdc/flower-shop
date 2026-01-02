@@ -1,13 +1,11 @@
 import React, { ReactNode, useRef, useState, useEffect } from 'react';
-import { Box, AppBar, Toolbar, Typography, Button, Container, IconButton, Badge, Menu, MenuItem } from '@mui/material';
-import { ShoppingBasket, Receipt, AccountCircle } from '@mui/icons-material';
+import { Box, AppBar, Toolbar, Typography, Container, IconButton, Badge, Menu, MenuItem, Chip } from '@mui/material';
+import { ShoppingBasket, Receipt, AccountCircle, Login } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import CartDrawer from './CartDrawer';
-import CartFeedback from './CartFeedback';
 import { useCartStore } from '../../store/cartStore';
 import { useAuthStore } from '../../store/authStore';
-import WelcomeDialog from '../../pages/shop/WelcomeDialog';
 
 interface ShopLayoutProps {
   children: ReactNode;
@@ -24,19 +22,17 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
   const { user, logout, guestId, setGuestId } = useAuthStore();
   const isLoggedIn = !!user;
 
-  // 欢迎弹窗控制
-  const [welcomeOpen, setWelcomeOpen] = useState(false);
-
+  // 自动为新用户设置游客身份
   useEffect(() => {
-    // 如果既没有登录，也没有游客身份，则显示欢迎弹窗
-    // 但如果用户已经在登录或注册页面，则不弹窗
+    // 如果既没有登录，也没有游客身份，则自动生成游客ID
     const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
 
     if (!isLoggedIn && !guestId && !isAuthPage) {
-      const timer = setTimeout(() => setWelcomeOpen(true), 1000);
-      return () => clearTimeout(timer);
+      // 自动生成游客ID
+      const randomId = Math.floor(1000 + Math.random() * 9000);
+      setGuestId(`游客${randomId}`);
     }
-  }, [isLoggedIn, guestId, location.pathname]);
+  }, [isLoggedIn, guestId, location.pathname, setGuestId]);
 
   const handleLogoClick = () => {
     navigate('/shop');
@@ -100,8 +96,6 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#fafafa' }}>
-      <WelcomeDialog open={welcomeOpen} onClose={() => setWelcomeOpen(false)} />
-
       {/* 顶部导航栏 */}
       <AppBar
         position="fixed"
@@ -114,13 +108,13 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
         }}
       >
         <Container maxWidth="lg">
-          <Toolbar sx={{ py: 1 }}>
+          <Toolbar sx={{ py: 1, gap: 4 }}>
             {/* Logo */}
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleLogoClick}
-              style={{ cursor: 'pointer' }} // 移除 flex: 1，防止点击区域过大
+              style={{ cursor: 'pointer' }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Box sx={{
@@ -161,7 +155,86 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
               </Box>
             </motion.div>
 
-            {/* 中间占位符，将左右两端撑开 */}
+            {/* 导航链接 - 紧跟 Logo */}
+            <Box sx={{ display: 'flex', gap: 0, alignItems: 'center' }}>
+              <Box
+                onClick={() => navigate('/shop')}
+                sx={{
+                  px: 2.5,
+                  py: 1,
+                  cursor: 'pointer',
+                  position: 'relative',
+                  transition: 'all 0.3s ease',
+                  '&::after': {
+                    content: '""',
+                    position: 'absolute',
+                    bottom: 0,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: location.pathname === '/shop' ? '60%' : '0%',
+                    height: '3px',
+                    bgcolor: '#D4AF37',
+                    borderRadius: '2px 2px 0 0',
+                    transition: 'width 0.3s ease',
+                  },
+                  '&:hover::after': {
+                    width: '60%',
+                  },
+                }}
+              >
+                <Typography
+                  sx={{
+                    color: location.pathname === '/shop' ? '#D4AF37' : '#F4E4C1',
+                    fontSize: '15px',
+                    fontWeight: location.pathname === '/shop' ? 600 : 400,
+                    letterSpacing: '0.5px',
+                    transition: 'color 0.3s ease',
+                  }}
+                >
+                  首页
+                </Typography>
+              </Box>
+
+              <Box
+                onClick={() => navigate('/shop/products')}
+                sx={{
+                  px: 2.5,
+                  py: 1,
+                  cursor: 'pointer',
+                  position: 'relative',
+                  transition: 'all 0.3s ease',
+                  '&::after': {
+                    content: '""',
+                    position: 'absolute',
+                    bottom: 0,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: location.pathname === '/shop/products' ? '60%' : '0%',
+                    height: '3px',
+                    bgcolor: '#D4AF37',
+                    borderRadius: '2px 2px 0 0',
+                    transition: 'width 0.3s ease',
+                  },
+                  '&:hover::after': {
+                    width: '60%',
+                  },
+                }}
+              >
+                <Typography
+                  sx={{
+                    color: location.pathname === '/shop/products' ? '#D4AF37' : '#F4E4C1',
+                    fontSize: '15px',
+                    fontWeight: location.pathname === '/shop/products' ? 600 : 400,
+                    letterSpacing: '0.5px',
+                    transition: 'color 0.3s ease',
+                  }}
+                >
+                  全部商品
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* 占位符，将右侧按钮推到最右边 */}
             <Box sx={{ flexGrow: 1 }} />
 
             {/* 右侧按钮组 */}
@@ -241,7 +314,6 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
                 <AccountCircle />
               </IconButton>
 
-              {/* 统一的用户下拉菜单 */}
               <Menu
                 anchorEl={userMenuAnchor}
                 open={userMenuOpen}
@@ -257,7 +329,7 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
                 PaperProps={{
                   sx: {
                     mt: 1,
-                    minWidth: 160,
+                    minWidth: 200,
                     bgcolor: '#1B3A2B',
                     color: '#F4E4C1',
                     border: '1px solid #D4AF37',
@@ -273,12 +345,28 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
                   },
                 }}
               >
+                {/* 用户身份显示 */}
                 <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid rgba(212, 175, 55, 0.2)' }}>
-                  <Typography variant="caption" color="rgba(244, 228, 193, 0.7)">
-                    当前身份
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                    <Typography variant="caption" color="rgba(244, 228, 193, 0.7)">
+                      当前身份
+                    </Typography>
+                    {!isLoggedIn && (
+                      <Chip
+                        label="游客"
+                        size="small"
+                        sx={{
+                          height: 18,
+                          fontSize: '0.7rem',
+                          bgcolor: 'rgba(212, 175, 55, 0.2)',
+                          color: '#D4AF37',
+                          border: '1px solid rgba(212, 175, 55, 0.4)'
+                        }}
+                      />
+                    )}
+                  </Box>
                   <Typography variant="body2" fontWeight="bold">
-                    {isLoggedIn ? user?.username : (guestId || '游客(待定)')}
+                    {isLoggedIn ? user?.username : (guestId || '游客')}
                   </Typography>
                 </Box>
 
@@ -298,12 +386,33 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
                     </MenuItem>
                   ]
                 ) : (
-                  // 游客菜单
+                  // 游客菜单 - 优化登录引导
                   [
+                    <Box key="login-tip" sx={{ px: 2, py: 1.5, bgcolor: 'rgba(212, 175, 55, 0.1)', borderBottom: '1px solid rgba(212, 175, 55, 0.2)' }}>
+                      <Typography variant="caption" sx={{ color: '#D4AF37', display: 'block', mb: 0.5 }}>
+                        💡 登录后可享受
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'rgba(244, 228, 193, 0.8)', fontSize: '0.7rem', lineHeight: 1.4 }}>
+                        · 个人账户管理<br />
+                        · 收藏喜欢的商品<br />
+                        · 专享会员优惠
+                      </Typography>
+                    </Box>,
                     <MenuItem key="login" onClick={handleLoginRegister}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <AccountCircle sx={{ fontSize: 18, color: '#D4AF37' }} />
-                        <Typography>登录 / 注册</Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                        <Login sx={{ fontSize: 18, color: '#D4AF37' }} />
+                        <Typography sx={{ flex: 1 }}>登录 / 注册</Typography>
+                        <Chip
+                          label="推荐"
+                          size="small"
+                          sx={{
+                            height: 20,
+                            fontSize: '0.65rem',
+                            bgcolor: '#D4AF37',
+                            color: '#1B3A2B',
+                            fontWeight: 'bold'
+                          }}
+                        />
                       </Box>
                     </MenuItem>,
                     <MenuItem key="query-orders" onClick={handleMyOrders}>

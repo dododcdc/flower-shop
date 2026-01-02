@@ -19,6 +19,7 @@ const DeliveryManagementPage = lazy(() => import('./pages/DeliveryManagementPage
 
 // 游客端页面组件
 const ShopPage = lazy(() => import('./pages/shop/ShopPage'));
+const ShopHome = lazy(() => import('./pages/shop/ShopHome')); // New Home Page
 const ProductDetailPage = lazy(() => import('./pages/shop/ProductDetailPage'));
 const CheckoutPage = lazy(() => import('./pages/shop/CheckoutPage'));
 const OrderSuccessPage = lazy(() => import('./pages/shop/OrderSuccessPage'));
@@ -48,6 +49,11 @@ const App: React.FC = () => {
             {/* 游客端公开路由 */}
             <Route path="/" element={<Navigate to="/shop" replace />} />
             <Route path="/shop" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <ShopHome />
+              </Suspense>
+            } />
+            <Route path="/shop/products" element={
               <Suspense fallback={<LoadingSpinner />}>
                 <ShopPage />
               </Suspense>

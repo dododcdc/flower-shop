@@ -15,7 +15,7 @@ export const productSearchSchema = z.object({
   minPrice: z.number().min(0).optional(),
   maxPrice: z.number().min(0).optional(),
   stockStatus: z.enum(['in_stock', 'low_stock', 'out_of_stock']).optional(),
-  sortBy: z.enum(['created_at', 'price', 'name', 'stock_quantity']).default('created_at'),
+  sortBy: z.enum(['created_at', 'price', 'name', 'stock_quantity', 'sales']).default('created_at'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
   current: z.number().min(1).default(1),
   size: z.number().min(1).default(12),
