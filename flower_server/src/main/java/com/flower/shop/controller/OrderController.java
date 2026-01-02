@@ -110,4 +110,63 @@ public class OrderController {
             return Result.error("查询订单详情失败: " + e.getMessage());
         }
     }
+
+    /**
+     * 确认订单
+     */
+    @PutMapping("/{id}/confirm")
+    public Result<Order> confirmOrder(@PathVariable("id") Long id) {
+        try {
+            Order order = orderService.confirmOrder(id);
+            return Result.success(order);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("确认订单失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 开始配送
+     */
+    @PutMapping("/{id}/deliver")
+    public Result<Order> startDelivery(@PathVariable("id") Long id) {
+        try {
+            Order order = orderService.startDelivery(id);
+            return Result.success(order);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("开始配送失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 完成配送并收款
+     */
+    @PutMapping("/{id}/complete")
+    public Result<Order> completeOrder(@PathVariable("id") Long id) {
+        try {
+            Order order = orderService.completeOrder(id);
+            return Result.success(order);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("完成配送失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 取消订单
+     */
+    @PutMapping("/{id}/cancel")
+    public Result<Order> cancelOrder(
+            @PathVariable("id") Long id,
+            @RequestBody(required = false) java.util.Map<String, String> request) {
+        try {
+            String reason = request != null ? request.get("reason") : null;
+            Order order = orderService.cancelOrder(id, reason);
+            return Result.success(order);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("取消订单失败: " + e.getMessage());
+        }
+    }
 }

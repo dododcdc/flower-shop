@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -140,6 +141,88 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             return null;
         }
         return orderMapper.selectOrderDetail(orderId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Order confirmOrder(Long orderId) {
+        Order order = this.getById(orderId);
+        if (order == null) {
+            throw new RuntimeException("订单不存在");
+        }
+        if (!"PENDING".equals(order.getStatus())) {
+            throw new RuntimeException("只有待确认状态的订单才能确认");
+        }
+
+        order.setStatus("PREPARING");
+        this.updateById(order);
+        return order;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Order startDelivery(Long orderId) {
+        Order order = this.getById(orderId);
+        if (order == null) {
+            throw new RuntimeException("订单不存在");
+        }
+        if (!"PREPARING".equals(order.getStatus())) {
+            throw new RuntimeException("只有准备中状态的订单才能开始配送");
+        }
+
+        order.setStatus("DELIVERING");
+        this.updateById(order);
+        return order;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Order completeOrder(Long orderId) {
+        Order order = this.getById(orderId);
+        if (order == null) {
+            throw new RuntimeException("订单不存在");
+        }
+        if (!"DELIVERING".equals(order.getStatus())) {
+            throw new RuntimeException("只有配送中状态的订单才能完成配送");
+        }
+
+        order.setStatus("COMPLETED");
+        order.setPaymentStatus("PAID");
+        this.updateById(order);
+        return order;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Order cancelOrder(Long orderId, String reason) {
+        Order order = this.getById(orderId);
+        if (order == null) {
+            throw new RuntimeException("订单不存在");
+        }
+        if ("COMPLETED".equals(order.getStatus()) || "CANCELLED".equals(order.getStatus())) {
+            throw new RuntimeException("已完成或已取消的订单不能取消");
+        }
+
+        // 恢复库存
+        List<OrderItem> items = orderItemMapper.selectList(
+            new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<OrderItem>()
+                .eq("order_id", orderId)
+        );
+
+        for (OrderItem item : items) {
+            Product product = productService.getById(item.getProductId());
+            if (product != null && product.getStockQuantity() != null) {
+                product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
+                productService.updateById(product);
+            }
+        }
+
+        order.setStatus("CANCELLED");
+        if (reason != null && !reason.trim().isEmpty()) {
+            order.setNotes((order.getNotes() != null ? order.getNotes() + "\n" : "") + "取消原因: " + reason);
+        }
+        this.updateById(order);
+        return order;
     }
 
     /**

@@ -16,11 +16,15 @@ import {
   Visibility as ViewIcon,
 } from '@mui/icons-material';
 import { orderAPI, type Order, type OrderFilters } from '../../api/orderAPI';
+import OrderDetailDialog from './OrderDetailDialog';
 
 const OrderList: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
   const [pagination, setPagination] = useState({
     current: 1,
@@ -147,6 +151,32 @@ const OrderList: React.FC = () => {
       sortBy: 'created_at',
       sortOrder: 'desc',
     });
+  };
+
+  const handleViewDetail = async (orderId: number) => {
+    try {
+      setDetailLoading(true);
+      const orderDetail = await orderAPI.getOrderDetail(orderId);
+      setSelectedOrder(orderDetail);
+      setDetailDialogOpen(true);
+    } catch (err) {
+      console.error('加载订单详情失败', err);
+      setError(err instanceof Error ? err.message : '加载订单详情失败');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const handleDetailClose = () => {
+    setDetailDialogOpen(false);
+    // 延迟清理selectedOrder，等待关闭动画完成
+    setTimeout(() => {
+      setSelectedOrder(null);
+    }, 100);
+  };
+
+  const handleOrderUpdate = () => {
+    loadOrders();
   };
 
   const getStatusText = (status: string) => {
@@ -417,9 +447,7 @@ const OrderList: React.FC = () => {
                       <IconButton
                         size="small"
                         sx={{ color: 'text.secondary' }}
-                        onClick={() => {
-                          console.log('查看订单详情', order.id);
-                        }}
+                        onClick={() => handleViewDetail(order.id)}
                       >
                         <ViewIcon fontSize="small" />
                       </IconButton>
@@ -441,6 +469,16 @@ const OrderList: React.FC = () => {
             size="small"
           />
         </Box>
+      )}
+
+      {detailDialogOpen && selectedOrder && (
+        <OrderDetailDialog
+          order={selectedOrder}
+          open={true}
+          onClose={handleDetailClose}
+          onUpdate={handleOrderUpdate}
+          loading={detailLoading}
+        />
       )}
     </Box>
   );

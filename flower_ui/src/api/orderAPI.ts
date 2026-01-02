@@ -133,4 +133,36 @@ export const orderAPI = {
         const response = await api.get(`/orders/${id}`);
         return response.data.data;
     },
+
+    /**
+     * 确认订单
+     */
+    confirmOrder: async (id: number): Promise<Order> => {
+        const response = await api.put(`/orders/${id}/confirm`);
+        return response.data.data;
+    },
+
+    /**
+     * 开始配送
+     */
+    startDelivery: async (id: number): Promise<Order> => {
+        const response = await api.put(`/orders/${id}/deliver`);
+        return response.data.data;
+    },
+
+    /**
+     * 完成配送并收款
+     */
+    completeOrder: async (id: number): Promise<Order> => {
+        const response = await api.put(`/orders/${id}/complete`);
+        return response.data.data;
+    },
+
+    /**
+     * 取消订单
+     */
+    cancelOrder: async (id: number, reason?: string): Promise<Order> => {
+        const response = await api.put(`/orders/${id}/cancel`, reason ? { reason } : {});
+        return response.data.data;
+    },
 };

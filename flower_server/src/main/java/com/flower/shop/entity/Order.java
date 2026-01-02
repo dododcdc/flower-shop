@@ -134,6 +134,18 @@ public class Order {
     private java.util.List<OrderItem> orderItems;
 
     /**
+     * 配送地址（临时存储，用于显示）
+     */
+    @TableField(exist = false)
+    private String addressText;
+
+    /**
+     * 订单项数量（临时存储，用于显示）
+     */
+    @TableField(exist = false)
+    private Integer itemCount;
+
+    /**
      * 订单状态文本
      */
     public String getStatusText() {

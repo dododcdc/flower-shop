@@ -54,4 +54,37 @@ public interface OrderService extends IService<Order> {
      * @return 订单详情
      */
     Order getOrderDetail(Long orderId);
+
+    /**
+     * 确认订单（待确认 → 准备中）
+     *
+     * @param orderId 订单ID
+     * @return 更新后的订单
+     */
+    Order confirmOrder(Long orderId);
+
+    /**
+     * 开始配送（准备中 → 配送中）
+     *
+     * @param orderId 订单ID
+     * @return 更新后的订单
+     */
+    Order startDelivery(Long orderId);
+
+    /**
+     * 完成配送并收款（配送中 → 已完成，支付状态 → 已支付）
+     *
+     * @param orderId 订单ID
+     * @return 更新后的订单
+     */
+    Order completeOrder(Long orderId);
+
+    /**
+     * 取消订单（恢复库存）
+     *
+     * @param orderId 订单ID
+     * @param reason 取消原因
+     * @return 更新后的订单
+     */
+    Order cancelOrder(Long orderId, String reason);
 }
