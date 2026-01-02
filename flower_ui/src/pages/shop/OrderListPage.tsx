@@ -50,8 +50,7 @@ const OrderListPage: React.FC = () => {
     const [currentStatus, setCurrentStatus] = useState('ALL');
 
     const statusMap: Record<string, { text: string; color: string }> = {
-        'PENDING': { text: '待支付', color: '#FF9800' },
-        'PAID': { text: '已支付', color: '#4CAF50' },
+        'PENDING': { text: '待确认', color: '#FF9800' },
         'PREPARING': { text: '准备中', color: '#2196F3' },
         'DELIVERING': { text: '配送中', color: '#03A9F4' },
         'COMPLETED': { text: '已完成', color: '#9C27B0' },
@@ -60,8 +59,7 @@ const OrderListPage: React.FC = () => {
 
     const statusTabs = [
         { value: 'ALL', label: '全部' },
-        { value: 'PENDING', label: '待支付' },
-        { value: 'PAID', label: '已支付' },
+        { value: 'PENDING', label: '待确认' },
         { value: 'PREPARING', label: '准备中' },
         { value: 'DELIVERING', label: '配送中' },
         { value: 'COMPLETED', label: '已完成' },

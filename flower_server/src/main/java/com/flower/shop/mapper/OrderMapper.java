@@ -171,4 +171,17 @@ public interface OrderMapper extends BaseMapper<Order> {
                         "WHERE status = 4 AND YEAR(created_at) = #{year} AND MONTH(created_at) = #{month}")
         java.math.BigDecimal getMonthlySales(@Param("year") Integer year, @Param("month") Integer month);
 
+        /**
+         * 管理端：搜索订单（支持分页、筛选、排序）
+         */
+        IPage<Order> searchOrders(IPage<Order> page, @Param("keyword") String keyword,
+                                   @Param("status") String status, @Param("startDate") String startDate,
+                                   @Param("endDate") String endDate, @Param("sortBy") String sortBy,
+                                   @Param("sortOrder") String sortOrder);
+
+        /**
+         * 查询订单详情（包含配送地址和订单项）
+         */
+        Order selectOrderDetail(@Param("orderId") Long orderId);
+
 }

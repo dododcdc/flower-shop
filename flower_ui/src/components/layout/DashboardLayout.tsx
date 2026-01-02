@@ -2,17 +2,17 @@ import React from 'react';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import LocalFloristIcon from '@mui/icons-material/LocalFlorist';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import ShoppingBasketIcon from '@mui/icons-material/ShoppingBasket';
+import LogoutIcon from '@mui/icons-material/Logout';
 import api, { AxiosInstance } from '../../api/axiosClient';
 import { STORAGE_KEYS } from '../../constants';
 
@@ -138,31 +138,27 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
           </Box>
 
           {/* Right side - Logout button */}
-          <Button
-            onClick={handleLogout}
-            component={motion.button}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            sx={{
-              background: 'rgba(212, 175, 55, 0.2)',
-              color: '#F8F6F0', // 同样使用珍珠白色
-              px: 2,
-              py: 0.75,
-              borderRadius: 1,
-              '&:hover': {
-                background: 'rgba(212, 175, 55, 0.3)',
-              }
-            }}
-          >
-            退出登录
-          </Button>
+          <Tooltip title="退出登录" arrow>
+            <IconButton
+              onClick={handleLogout}
+              sx={{
+                background: 'rgba(244, 67, 54, 0.15)',
+                color: '#FFCDD2',
+                border: '1px solid rgba(244, 67, 54, 0.3)',
+                p: 1,
+                '&:hover': {
+                  background: 'rgba(244, 67, 54, 0.25)',
+                  borderColor: 'rgba(244, 67, 54, 0.5)',
+                }
+              }}
+            >
+              <LogoutIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </Toolbar>
       </AppBar>
       <Box
-        component={motion.main}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
+        component="main"
         sx={{
           flex: 1,
           p: { xs: 1, sm: 1.5 },

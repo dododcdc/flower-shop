@@ -127,6 +127,21 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         return orderMapper.selectOrdersByUserIdPage(pageInfo, userId, status);
     }
 
+    @Override
+    public IPage<Order> searchOrders(String keyword, String status, String startDate, String endDate,
+                                      Integer page, Integer size, String sortBy, String sortOrder) {
+        Page<Order> pageInfo = new Page<>(page, size);
+        return orderMapper.searchOrders(pageInfo, keyword, status, startDate, endDate, sortBy, sortOrder);
+    }
+
+    @Override
+    public Order getOrderDetail(Long orderId) {
+        if (orderId == null) {
+            return null;
+        }
+        return orderMapper.selectOrderDetail(orderId);
+    }
+
     /**
      * 生成订单号
      * 格式: FH + yyyyMMddHHmmss + 3位随机数

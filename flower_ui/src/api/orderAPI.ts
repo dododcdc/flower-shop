@@ -25,7 +25,7 @@ export interface Order {
     totalAmount: number;
     finalAmount: number;
     deliveryFee: number;
-    status: string; // "PENDING" | "PAID" | "PREPARING" | "DELIVERING" | "COMPLETED" | "CANCELLED"
+    status: string; // "PENDING" | "PREPARING" | "DELIVERING" | "COMPLETED" | "CANCELLED"
     paymentMethod: string;
     paymentStatus: string;
     deliveryTime?: string;
@@ -34,6 +34,38 @@ export interface Order {
     cardSender?: string;
     createdAt: string;
     updatedAt: string;
+    // 管理端额外字段
+    itemCount?: number; // 商品数量
+    addressText?: string; // 配送地址
+    items?: OrderItemDetail[]; // 订单项详情
+}
+
+export interface OrderItemDetail {
+    id: number;
+    productId: number;
+    productName: string;
+    productPrice: number;
+    quantity: number;
+    totalPrice: number;
+}
+
+export interface OrderFilters {
+    current?: number;
+    size?: number;
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+    keyword?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+}
+
+export interface PageResult<T> {
+    records: T[];
+    total: number;
+    size: number;
+    current: number;
+    pages: number;
 }
 
 export const orderAPI = {
@@ -81,6 +113,24 @@ export const orderAPI = {
             throw new Error(response.data.message || '查询订单失败');
         }
 
+        return response.data.data;
+    },
+
+    /**
+     * 管理端：搜索订单（分页、筛选、排序）
+     */
+    searchOrders: async (filters: OrderFilters): Promise<PageResult<Order>> => {
+        const response = await api.get('/orders/search', {
+            params: filters
+        });
+        return response.data.data;
+    },
+
+    /**
+     * 查询订单详情（包含配送地址和订单项）
+     */
+    getOrderDetail: async (id: number): Promise<Order> => {
+        const response = await api.get(`/orders/${id}`);
         return response.data.data;
     },
 };

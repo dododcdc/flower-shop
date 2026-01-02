@@ -51,12 +51,6 @@ public class Order {
     private String customerPhone;
 
     /**
-     * 配送距离（公里）
-     */
-    @TableField(exist = false)
-    private Double deliveryDistance;
-
-    /**
      * 配送费
      */
     @TableField("delivery_fee")
@@ -70,12 +64,11 @@ public class Order {
 
     /**
      * 订单状态：
-     * PENDING - 待支付
-     * PAID - 已支付（待确认）
-     * PREPARING - 准备中
-     * DELIVERING - 配送中
-     * COMPLETED - 已完成
-     * CANCELLED - 已取消
+     * PENDING - 待确认（新订单）
+     * PREPARING - 准备中（已确认，正在准备商品）
+     * DELIVERING - 配送中（已发货，正在配送）
+     * COMPLETED - 已完成（订单完成）
+     * CANCELLED - 已取消（订单取消）
      */
     @TableField("status")
     private String status;
@@ -148,9 +141,7 @@ public class Order {
             return "未知";
         switch (status) {
             case "PENDING":
-                return "待支付";
-            case "PAID":
-                return "已支付";
+                return "待确认";
             case "PREPARING":
                 return "准备中";
             case "DELIVERING":
@@ -226,7 +217,7 @@ public class Order {
      */
     public boolean canCancel() {
         return status != null &&
-                ("PENDING".equals(status) || "PAID".equals(status) || "PREPARING".equals(status)) &&
+                ("PENDING".equals(status) || "PREPARING".equals(status)) &&
                 !isCancelled();
     }
 
@@ -234,7 +225,7 @@ public class Order {
      * 判断是否可以确认
      */
     public boolean canConfirm() {
-        return "PAID".equals(this.status) && isPaid();
+        return "PENDING".equals(status);
     }
 
     /**

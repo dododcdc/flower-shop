@@ -71,4 +71,43 @@ public class OrderController {
             return Result.error("查询订单失败: " + e.getMessage());
         }
     }
+
+    /**
+     * 管理端：搜索订单（分页、筛选、排序）
+     */
+    @GetMapping("/search")
+    public Result<IPage<Order>> searchOrders(
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "startDate", required = false) String startDate,
+            @RequestParam(value = "endDate", required = false) String endDate,
+            @RequestParam(value = "page", defaultValue = "1") Integer page,
+            @RequestParam(value = "size", defaultValue = "10") Integer size,
+            @RequestParam(value = "sortBy", defaultValue = "created_at") String sortBy,
+            @RequestParam(value = "sortOrder", defaultValue = "desc") String sortOrder) {
+        try {
+            IPage<Order> orders = orderService.searchOrders(keyword, status, startDate, endDate, page, size, sortBy, sortOrder);
+            return Result.success(orders);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("搜索订单失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 查询订单详情（包含配送地址和订单项）
+     */
+    @GetMapping("/{id}")
+    public Result<Order> getOrderDetail(@PathVariable("id") Long id) {
+        try {
+            Order order = orderService.getOrderDetail(id);
+            if (order == null) {
+                return Result.error("订单不存在");
+            }
+            return Result.success(order);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Result.error("查询订单详情失败: " + e.getMessage());
+        }
+    }
 }

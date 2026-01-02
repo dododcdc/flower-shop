@@ -30,4 +30,28 @@ public interface OrderService extends IService<Order> {
      * 根据用户ID查询订单（分页）
      */
     IPage<Order> getOrdersByUserId(Long userId, String status, Integer page, Integer size);
+
+    /**
+     * 管理端：搜索订单（支持分页、筛选、排序）
+     *
+     * @param keyword 关键词（订单号/客户姓名/手机号）
+     * @param status 订单状态
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param page 页码
+     * @param size 每页大小
+     * @param sortBy 排序字段
+     * @param sortOrder 排序方向
+     * @return 分页订单对象
+     */
+    IPage<Order> searchOrders(String keyword, String status, String startDate, String endDate,
+                               Integer page, Integer size, String sortBy, String sortOrder);
+
+    /**
+     * 查询订单详情（包含配送地址和订单项）
+     *
+     * @param orderId 订单ID
+     * @return 订单详情
+     */
+    Order getOrderDetail(Long orderId);
 }
