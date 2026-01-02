@@ -8,18 +8,16 @@ import {
   Typography,
   TextField,
   Button,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   Chip,
   Pagination,
+  IconButton,
 } from '@mui/material';
 import {
   Search as SearchIcon,
   Visibility as ViewIcon,
   ShoppingCart as CartIcon,
   LocalFlorist,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 
@@ -82,11 +80,23 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
   const [searchForm, setSearchForm] = useState({
     keyword: '',
     categoryId: '',
-    minPrice: '',
-    maxPrice: '',
     sortBy: 'created_at-desc',
-    sortOrder: 'desc',
   });
+
+  // 防抖搜索
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
+  const [isComposing, setIsComposing] = useState(false); // 是否正在使用输入法
+
+  useEffect(() => {
+    // 只有在不在输入法状态下才触发搜索
+    if (!isComposing) {
+      const timer = setTimeout(() => {
+        setDebouncedKeyword(searchForm.keyword);
+      }, 500); // 500ms 延迟
+
+      return () => clearTimeout(timer);
+    }
+  }, [searchForm.keyword, isComposing]);
 
   // Load products
   const loadProducts = async () => {
@@ -121,12 +131,14 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
     }
   };
 
+  // 当筛选条件变化时自动搜索
   useEffect(() => {
     loadProducts();
     loadCategories();
   }, [filters]);
 
-  const handleSearch = () => {
+  // 当搜索条件变化时，更新filters并重置到第一页
+  useEffect(() => {
     // 解析复合排序字段（如 "created_at-desc" -> sortBy: "created_at", sortOrder: "desc"）
     let sortBy: string = 'created_at';
     let sortOrder: string = 'desc';
@@ -137,31 +149,27 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
       sortOrder = sortDirection;
     } else {
       sortBy = searchForm.sortBy || 'created_at';
-      sortOrder = searchForm.sortOrder || 'desc';
+      sortOrder = 'desc';
     }
 
     const searchFilters: ProductFilters = {
-      ...filters,
       current: 1,
-      keyword: searchForm.keyword || undefined,
+      size: 12,
+      status: 1,
+      keyword: debouncedKeyword || undefined,
       categoryId: searchForm.categoryId ? Number(searchForm.categoryId) : undefined,
-      minPrice: searchForm.minPrice ? Number(searchForm.minPrice) : undefined,
-      maxPrice: searchForm.maxPrice ? Number(searchForm.maxPrice) : undefined,
       sortBy: sortBy as any,
       sortOrder: sortOrder as any,
     };
 
     setFilters(searchFilters);
-  };
+  }, [debouncedKeyword, searchForm.categoryId, searchForm.sortBy]);
 
   const handleReset = () => {
     setSearchForm({
       keyword: '',
       categoryId: '',
-      minPrice: '',
-      maxPrice: '',
       sortBy: 'created_at-desc',
-      sortOrder: 'desc',
     });
     setFilters({
       current: 1,
@@ -279,128 +287,173 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
   return (
     <Box>
       {/* Search and Filter Section */}
-      <Box sx={{ mb: 4, p: 3, bgcolor: 'white', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-        <Grid container spacing={3} alignItems="center">
-          <Grid size={{ xs: 12, md: 4 }}>
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="搜索商品名称..."
-              value={searchForm.keyword}
-              onChange={(e) => setSearchForm({ ...searchForm, keyword: e.target.value })}
-              InputProps={{
-                startAdornment: <SearchIcon sx={{ mr: 1, color: '#D4AF37' }} />,
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 1,
-                  '&:hover fieldset': {
-                    borderColor: '#D4AF37',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#D4AF37',
-                  },
-                },
-              }}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-            <FormControl fullWidth size="small">
-              <InputLabel sx={{ fontSize: '14px' }}>商品分类</InputLabel>
-              <Select
-                value={searchForm.categoryId}
-                label="商品分类"
-                onChange={(e) => setSearchForm({ ...searchForm, categoryId: e.target.value })}
-                sx={{ fontSize: '14px' }}
-              >
-                <MenuItem value="">全部分类</MenuItem>
-                {categories.map((category) => (
-                  <MenuItem key={category.id} value={String(category.id)} sx={{ fontSize: '14px' }}>
-                    {category.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-            <FormControl fullWidth size="small">
-              <InputLabel sx={{ fontSize: '14px' }}>排序方式</InputLabel>
-              <Select
-                value={searchForm.sortBy}
-                label="排序方式"
-                onChange={(e) => setSearchForm({ ...searchForm, sortBy: e.target.value })}
-                sx={{ fontSize: '14px' }}
-              >
-                <MenuItem value="created_at-desc" sx={{ fontSize: '14px' }}>最新上架</MenuItem>
-                <MenuItem value="price-asc" sx={{ fontSize: '14px' }}>价格从低到高</MenuItem>
-                <MenuItem value="price-desc" sx={{ fontSize: '14px' }}>价格从高到低</MenuItem>
-                <MenuItem value="sales-desc" sx={{ fontSize: '14px' }}>按销量排序</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-            <FormControl fullWidth size="small">
-              <InputLabel sx={{ fontSize: '14px' }}>排序顺序</InputLabel>
-              <Select
-                value={searchForm.sortOrder}
-                label="排序顺序"
-                onChange={(e) => setSearchForm({ ...searchForm, sortOrder: e.target.value })}
-                sx={{ fontSize: '14px' }}
-              >
-                <MenuItem value="desc" sx={{ fontSize: '14px' }}>降序</MenuItem>
-                <MenuItem value="asc" sx={{ fontSize: '14px' }}>升序</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 2 }}>
-            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-              <Button
-                variant="contained"
-                startIcon={<SearchIcon />}
-                onClick={handleSearch}
-                size="small"
-                sx={{
-                  background: 'linear-gradient(135deg, #D4AF37 0%, #B8941F 100%)',
-                  color: '#1B3A2B',
-                  fontWeight: 600,
-                  minWidth: 90,
-                  height: 36,
-                  fontSize: '14px',
-                  whiteSpace: 'nowrap',
-                  '&:hover': {
-                    background: 'linear-gradient(135deg, #B8941F 0%, #D4AF37 100%)',
-                  },
-                }}
-              >
-                搜索
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={handleReset}
-                size="small"
-                sx={{
+      <Box sx={{ mb: 3, p: 2, bgcolor: 'white', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+        {/* 第一行：搜索框 */}
+        <Box sx={{ mb: 2 }}>
+          <TextField
+            size="small"
+            placeholder="搜索商品..."
+            value={searchForm.keyword}
+            onChange={(e) => setSearchForm({ ...searchForm, keyword: e.target.value })}
+            onCompositionStart={() => setIsComposing(true)}
+            onCompositionEnd={() => setIsComposing(false)}
+            InputProps={{
+              startAdornment: <SearchIcon sx={{ mr: 1, color: '#D4AF37', fontSize: '18px' }} />,
+              endAdornment: searchForm.keyword && (
+                <IconButton
+                  size="small"
+                  onClick={() => setSearchForm({ ...searchForm, keyword: '' })}
+                  sx={{ color: 'text.secondary' }}
+                >
+                  <CloseIcon sx={{ fontSize: '16px' }} />
+                </IconButton>
+              ),
+            }}
+            sx={{
+              width: { xs: '100%', md: '400px' },
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 1,
+                '&:hover fieldset': {
                   borderColor: '#D4AF37',
-                  color: '#1B3A2B',
-                  fontWeight: 600,
-                  minWidth: 90,
-                  height: 36,
-                  fontSize: '14px',
-                  whiteSpace: 'nowrap',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: '#D4AF37',
+                },
+              },
+            }}
+          />
+        </Box>
+
+        {/* 第二行：分类 + 排序 chips */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+          {/* 分类 */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: '#1B3A2B', fontSize: '13px' }}>
+              分类:
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 0.75 }}>
+              <Chip
+                label="全部"
+                onClick={() => setSearchForm({ ...searchForm, categoryId: '' })}
+                size="small"
+                sx={{
+                  height: 28,
+                  bgcolor: searchForm.categoryId === '' ? '#D4AF37' : 'transparent',
+                  color: searchForm.categoryId === '' ? '#1B3A2B' : '#D4AF37',
+                  fontWeight: searchForm.categoryId === '' ? 600 : 400,
+                  border: '1px solid #D4AF37',
+                  cursor: 'pointer',
+                  fontSize: '13px',
                   '&:hover': {
-                    borderColor: '#1B3A2B',
-                    bgcolor: 'rgba(212, 175, 55, 0.1)',
+                    bgcolor: 'rgba(212, 175, 55, 0.2)',
                   },
                 }}
-              >
-                重置
-              </Button>
+              />
+              {categories.map((category) => (
+                <Chip
+                  key={category.id}
+                  label={category.name}
+                  onClick={() => setSearchForm({ ...searchForm, categoryId: String(category.id) })}
+                  size="small"
+                  sx={{
+                    height: 28,
+                    bgcolor: searchForm.categoryId === String(category.id) ? '#D4AF37' : 'transparent',
+                    color: searchForm.categoryId === String(category.id) ? '#1B3A2B' : '#D4AF37',
+                    fontWeight: searchForm.categoryId === String(category.id) ? 600 : 400,
+                    border: '1px solid #D4AF37',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    '&:hover': {
+                      bgcolor: 'rgba(212, 175, 55, 0.2)',
+                    },
+                  }}
+                />
+              ))}
             </Box>
-          </Grid>
-        </Grid>
+          </Box>
+
+          {/* 分隔符 */}
+          <Typography sx={{ color: 'rgba(0,0,0,0.2)', fontSize: '18px', display: { xs: 'none', md: 'block' } }}>
+            |
+          </Typography>
+
+          {/* 排序 */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: '#1B3A2B', fontSize: '13px' }}>
+              排序:
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 0.75 }}>
+              <Chip
+                label="最新"
+                onClick={() => setSearchForm({ ...searchForm, sortBy: 'created_at-desc' })}
+                size="small"
+                sx={{
+                  height: 28,
+                  bgcolor: searchForm.sortBy === 'created_at-desc' ? '#D4AF37' : 'transparent',
+                  color: searchForm.sortBy === 'created_at-desc' ? '#1B3A2B' : '#D4AF37',
+                  fontWeight: searchForm.sortBy === 'created_at-desc' ? 600 : 400,
+                  border: '1px solid #D4AF37',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  '&:hover': {
+                    bgcolor: 'rgba(212, 175, 55, 0.2)',
+                  },
+                }}
+              />
+              <Chip
+                label="价格↑"
+                onClick={() => setSearchForm({ ...searchForm, sortBy: 'price-asc' })}
+                size="small"
+                sx={{
+                  height: 28,
+                  bgcolor: searchForm.sortBy === 'price-asc' ? '#D4AF37' : 'transparent',
+                  color: searchForm.sortBy === 'price-asc' ? '#1B3A2B' : '#D4AF37',
+                  fontWeight: searchForm.sortBy === 'price-asc' ? 600 : 400,
+                  border: '1px solid #D4AF37',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  '&:hover': {
+                    bgcolor: 'rgba(212, 175, 55, 0.2)',
+                  },
+                }}
+              />
+              <Chip
+                label="价格↓"
+                onClick={() => setSearchForm({ ...searchForm, sortBy: 'price-desc' })}
+                size="small"
+                sx={{
+                  height: 28,
+                  bgcolor: searchForm.sortBy === 'price-desc' ? '#D4AF37' : 'transparent',
+                  color: searchForm.sortBy === 'price-desc' ? '#1B3A2B' : '#D4AF37',
+                  fontWeight: searchForm.sortBy === 'price-desc' ? 600 : 400,
+                  border: '1px solid #D4AF37',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  '&:hover': {
+                    bgcolor: 'rgba(212, 175, 55, 0.2)',
+                  },
+                }}
+              />
+              <Chip
+                label="销量"
+                onClick={() => setSearchForm({ ...searchForm, sortBy: 'sales-desc' })}
+                size="small"
+                sx={{
+                  height: 28,
+                  bgcolor: searchForm.sortBy === 'sales-desc' ? '#D4AF37' : 'transparent',
+                  color: searchForm.sortBy === 'sales-desc' ? '#1B3A2B' : '#D4AF37',
+                  fontWeight: searchForm.sortBy === 'sales-desc' ? 600 : 400,
+                  border: '1px solid #D4AF37',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  '&:hover': {
+                    bgcolor: 'rgba(212, 175, 55, 0.2)',
+                  },
+                }}
+              />
+            </Box>
+          </Box>
+        </Box>
       </Box>
 
       {/* Loading state */}
