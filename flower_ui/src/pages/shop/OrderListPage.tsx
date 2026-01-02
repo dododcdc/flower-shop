@@ -13,10 +13,6 @@ import {
     Grid,
     Chip,
     IconButton,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
     Pagination,
     Tabs,
     Tab,
@@ -29,10 +25,11 @@ import ShopLayout from '../../components/shop/ShopLayout';
 import PageContainer from '../../components/common/PageContainer';
 import { motion } from 'framer-motion';
 import { orderAPI, Order } from '../../api/orderAPI';
-import { useAuthStore } from '../../store/authStore'; // Import authStore
+import { useAuthStore } from '../../store/authStore';
+import OrderDetailDrawer from '../../components/orders/OrderDetailDrawer';
 
 const OrderListPage: React.FC = () => {
-    const { user } = useAuthStore(); // Get user status
+    const { user } = useAuthStore();
     const [searchPhone, setSearchPhone] = useState('');
     const [loading, setLoading] = useState(false);
     const [orders, setOrders] = useState<Order[]>([]);
@@ -66,7 +63,6 @@ const OrderListPage: React.FC = () => {
         { value: 'CANCELLED', label: '已取消' },
     ];
 
-    // 加载当前用户的订单
     const fetchMyOrders = async (page: number = 1, statusOverride?: string) => {
         const statusToUse = statusOverride !== undefined ? statusOverride : currentStatus;
         setLoading(true);
@@ -104,7 +100,6 @@ const OrderListPage: React.FC = () => {
         }
     };
 
-    // 游客：根据手机号查询
     const handleSearch = async (page: number = 1, statusOverride?: string) => {
         if (!searchPhone.trim()) {
             setError('请输入手机号码');
@@ -150,7 +145,6 @@ const OrderListPage: React.FC = () => {
         }
     };
 
-    // 统一的数据获取入口
     const fetchData = (page: number, status?: string) => {
         if (user) {
             fetchMyOrders(page, status);
@@ -159,7 +153,6 @@ const OrderListPage: React.FC = () => {
         }
     };
 
-    // 初始化加载（如果是登录用户）
     React.useEffect(() => {
         if (user) {
             fetchMyOrders(1, 'ALL');
@@ -178,7 +171,6 @@ const OrderListPage: React.FC = () => {
 
     const handleCloseDetail = () => {
         setDetailOpen(false);
-        setSelectedOrder(null);
     };
 
     const handlePageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
@@ -195,7 +187,6 @@ const OrderListPage: React.FC = () => {
         <ShopLayout>
             <PageContainer title="" maxWidth="md">
                 <Container maxWidth="md" sx={{ py: 4 }}>
-                    {/* 标题区域 */}
                     <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#1B3A2B' }}>
                             {user ? '我的订单' : '订单查询'}
@@ -207,7 +198,6 @@ const OrderListPage: React.FC = () => {
                         )}
                     </Box>
 
-                    {/* 搜索区域 (仅游客显示) */}
                     {!user && (
                         <Paper
                             component={motion.div}
@@ -253,14 +243,12 @@ const OrderListPage: React.FC = () => {
                         </Paper>
                     )}
 
-                    {/* 错误提示 */}
                     {error && (
                         <Alert severity="error" sx={{ mb: 3 }}>
                             {error}
                         </Alert>
                     )}
 
-                    {/* 状态过滤标签栏 (一直显示，除非是游客且没搜出结果) */}
                     {(user || orders.length > 0 || currentStatus !== 'ALL') && (
                         <Paper
                             sx={{ mb: 3, bgcolor: 'background.paper' }}
@@ -271,7 +259,7 @@ const OrderListPage: React.FC = () => {
                             <Tabs
                                 value={currentStatus}
                                 onChange={handleTabChange}
-                                variant="scrollable" // ... rest of the props
+                                variant="scrollable"
                                 scrollButtons="auto"
                                 allowScrollButtonsMobile
                                 textColor="primary"
@@ -300,7 +288,6 @@ const OrderListPage: React.FC = () => {
                         </Paper>
                     )}
 
-                    {/* 订单列表 */}
                     {orders.length > 0 && (
                         <Box component={motion.div}
                             initial={{ opacity: 0, y: 20 }}
@@ -318,7 +305,7 @@ const OrderListPage: React.FC = () => {
 
                             <Grid container spacing={2}>
                                 {orders.map((order, index) => (
-                                    <Grid size={{ xs: 12 }} key={order.id}>
+                                    <Grid item xs={12} key={order.id}>
                                         <Card
                                             component={motion.div}
                                             initial={{ opacity: 0, scale: 0.95 }}
@@ -336,7 +323,7 @@ const OrderListPage: React.FC = () => {
                                         >
                                             <CardContent>
                                                 <Grid container spacing={2}>
-                                                    <Grid size={{ xs: 12, sm: 8 }}>
+                                                    <Grid item xs={12} sm={8}>
                                                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                                                             <Box>
                                                                 <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#1B3A2B' }}>
@@ -370,7 +357,7 @@ const OrderListPage: React.FC = () => {
                                                         </Box>
                                                     </Grid>
 
-                                                    <Grid size={{ xs: 12, sm: 4 }} sx={{ textAlign: 'right' }}>
+                                                    <Grid item xs={12} sm={4} sx={{ textAlign: 'right' }}>
                                                         <Typography variant="h6" sx={{ color: '#E91E63', fontWeight: 'bold' }}>
                                                             ¥{order.totalAmount.toFixed(2)}
                                                         </Typography>
@@ -392,7 +379,6 @@ const OrderListPage: React.FC = () => {
                                 ))}
                             </Grid>
 
-                            {/* 分页组件 */}
                             {paginationInfo.pages > 1 && (
                                 <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
                                     <Pagination
@@ -416,94 +402,11 @@ const OrderListPage: React.FC = () => {
                         </Box>
                     )}
 
-                    {/* 订单详情弹窗 */}
-                    <Dialog
+                    <OrderDetailDrawer
                         open={detailOpen}
+                        order={selectedOrder}
                         onClose={handleCloseDetail}
-                        maxWidth="sm"
-                        fullWidth
-                        PaperProps={{
-                            sx: {
-                                borderRadius: 2,
-                            },
-                        }}
-                    >
-                        {selectedOrder && (
-                            <>
-                                <DialogTitle sx={{ bgcolor: '#1B3A2B', color: '#F4E4C1' }}>
-                                    订单详情
-                                </DialogTitle>
-                                <DialogContent sx={{ p: 3 }}>
-                                    <Box sx={{ mb: 2 }}>
-                                        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                            订单编号
-                                        </Typography>
-                                        <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                                            {selectedOrder.orderNo}
-                                        </Typography>
-                                    </Box>
-
-                                    <Box sx={{ mb: 2 }}>
-                                        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                            订单状态
-                                        </Typography>
-                                        <Chip
-                                            label={statusMap[selectedOrder.status as keyof typeof statusMap]?.text}
-                                            size="small"
-                                            sx={{
-                                                backgroundColor: statusMap[selectedOrder.status as keyof typeof statusMap]?.color,
-                                                color: 'white',
-                                                fontWeight: 'bold',
-                                            }}
-                                        />
-                                    </Box>
-
-                                    <Box sx={{ mb: 2 }}>
-                                        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                            配送信息
-                                        </Typography>
-                                        <Typography variant="body2" sx={{ mb: 0.5 }}>
-                                            📍 {selectedOrder.notes}
-                                        </Typography>
-                                        <Typography variant="body2" sx={{ mb: 0.5 }}>
-                                            🕐 {selectedOrder.deliveryTime}
-                                        </Typography>
-                                        <Typography variant="body2">
-                                            📞 {selectedOrder.customerPhone}
-                                        </Typography>
-                                    </Box>
-
-                                    <Box sx={{ mb: 2 }}>
-                                        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                            订单金额
-                                        </Typography>
-                                        <Typography variant="h6" sx={{ color: '#E91E63', fontWeight: 'bold' }}>
-                                            ¥{selectedOrder.totalAmount.toFixed(2)}
-                                        </Typography>
-                                    </Box>
-
-                                    {selectedOrder.cardContent && (
-                                        <Box sx={{ mb: 2 }}>
-                                            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                                祝福贺卡
-                                            </Typography>
-                                            <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
-                                                {selectedOrder.cardContent}
-                                            </Typography>
-                                            <Typography variant="body2" sx={{ fontStyle: 'italic', mt: 1 }}>
-                                                —— {selectedOrder.cardSender}
-                                            </Typography>
-                                        </Box>
-                                    )}
-                                </DialogContent>
-                                <DialogActions sx={{ p: 3 }}>
-                                    <Button onClick={handleCloseDetail} variant="contained">
-                                        关闭
-                                    </Button>
-                                </DialogActions>
-                            </>
-                        )}
-                    </Dialog>
+                    />
                 </Container>
             </PageContainer>
         </ShopLayout>

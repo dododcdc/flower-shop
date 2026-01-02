@@ -118,6 +118,7 @@
     </select>
 
     <!-- 查询订单详情（包含配送地址和订单项） -->
+    <!-- 查询订单详情（包含配送地址和订单项） -->
     <select id="selectOrderDetail" resultMap="orderDetailResultMap">
         SELECT
             o.id,
@@ -143,10 +144,12 @@
             oi.product_name as product_snapshot_name,
             oi.product_price as unit_price,
             oi.quantity,
-            oi.total_price as subtotal
+            oi.total_price as subtotal,
+            pi.image_path as product_image
         FROM orders o
         LEFT JOIN delivery_addresses da ON da.order_id = o.id
         LEFT JOIN order_items oi ON oi.order_id = o.id
+        LEFT JOIN product_images pi ON pi.product_id = oi.product_id AND pi.image_type = 1
         WHERE o.id = #{orderId}
     </select>
 
@@ -178,6 +181,7 @@
             <result property="unitPrice" column="unit_price"/>
             <result property="quantity" column="quantity"/>
             <result property="subtotal" column="subtotal"/>
+            <result property="productImage" column="product_image"/>
         </collection>
     </resultMap>
 

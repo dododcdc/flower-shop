@@ -38,12 +38,14 @@ export interface Order {
     itemCount?: number; // 商品数量
     addressText?: string; // 配送地址
     items?: OrderItemDetail[]; // 订单项详情
+    orderItems?: OrderItemDetail[]; // API sometimes returns this
 }
 
 export interface OrderItemDetail {
     id: number;
     productId: number;
     productName: string;
+    productImage?: string;
     productPrice: number;
     quantity: number;
     totalPrice: number;
@@ -52,10 +54,10 @@ export interface OrderItemDetail {
 export interface OrderFilters {
     current?: number;
     size?: number;
-    status?: string;
-    startDate?: string;
-    endDate?: string;
-    keyword?: string;
+    status?: string | undefined;
+    startDate?: string | undefined;
+    endDate?: string | undefined;
+    keyword?: string | undefined;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
 }
@@ -91,7 +93,14 @@ export const orderAPI = {
         const response = await api.get('/orders/by-phone', {
             params: { phone, status, page, size }
         });
-        return response.data.data;
+        const result = response.data.data;
+        if (result && result.records) {
+            result.records = result.records.map((order: any) => ({
+                ...order,
+                items: order.orderItems || order.items
+            }));
+        }
+        return result;
     },
 
     /**
@@ -113,7 +122,14 @@ export const orderAPI = {
             throw new Error(response.data.message || '查询订单失败');
         }
 
-        return response.data.data;
+        const result = response.data.data;
+        if (result && result.records) {
+            result.records = result.records.map((order: any) => ({
+                ...order,
+                items: order.orderItems || order.items
+            }));
+        }
+        return result;
     },
 
     /**
@@ -123,7 +139,15 @@ export const orderAPI = {
         const response = await api.get('/orders/search', {
             params: filters
         });
-        return response.data.data;
+        const result = response.data.data;
+        // Map orderItems to items for frontend compatibility
+        if (result && result.records) {
+            result.records = result.records.map((order: any) => ({
+                ...order,
+                items: order.orderItems || order.items
+            }));
+        }
+        return result;
     },
 
     /**
@@ -131,7 +155,12 @@ export const orderAPI = {
      */
     getOrderDetail: async (id: number): Promise<Order> => {
         const response = await api.get(`/orders/${id}`);
-        return response.data.data;
+        const order = response.data.data;
+        // Map orderItems to items for frontend compatibility
+        if (order) {
+            order.items = order.orderItems || order.items;
+        }
+        return order;
     },
 
     /**
