@@ -424,7 +424,24 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
                 }}
               />
               <Chip
-                label="销量"
+                label="销量↑"
+                onClick={() => setSearchForm({ ...searchForm, sortBy: 'sales-asc' })}
+                size="small"
+                sx={{
+                  height: 28,
+                  bgcolor: searchForm.sortBy === 'sales-asc' ? '#D4AF37' : 'transparent',
+                  color: searchForm.sortBy === 'sales-asc' ? '#1B3A2B' : '#D4AF37',
+                  fontWeight: searchForm.sortBy === 'sales-asc' ? 600 : 400,
+                  border: '1px solid #D4AF37',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  '&:hover': {
+                    bgcolor: 'rgba(212, 175, 55, 0.2)',
+                  },
+                }}
+              />
+              <Chip
+                label="销量↓"
                 onClick={() => setSearchForm({ ...searchForm, sortBy: 'sales-desc' })}
                 size="small"
                 sx={{

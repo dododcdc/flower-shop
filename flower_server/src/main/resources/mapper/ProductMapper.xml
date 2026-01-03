@@ -110,6 +110,11 @@
                 <if test="request.sortOrder == 'asc'">ASC</if>
                 <if test="request.sortOrder == 'desc'">DESC</if>
             </when>
+            <when test="request.sortBy == 'sales'">
+                ORDER BY total_sales
+                <if test="request.sortOrder == 'asc'">ASC</if>
+                <if test="request.sortOrder == 'desc'">DESC</if>
+            </when>
             <otherwise>
                 ORDER BY p.created_at DESC
             </otherwise>
@@ -134,7 +139,8 @@
             p.created_at,
             p.updated_at,
             c.name as category_name,
-            COALESCE(pi.image_path, '') as main_image_path
+            COALESCE(pi.image_path, '') as main_image_path,
+            COALESCE(sales.total_sales, 0) as total_sales
         FROM products p
         LEFT JOIN categories c ON p.category_id = c.id
         LEFT JOIN (
@@ -145,6 +151,11 @@
             FROM product_images
             WHERE image_type = 1
         ) pi ON p.id = pi.product_id AND pi.rn = 1
+        LEFT JOIN (
+            SELECT product_id, SUM(quantity) as total_sales
+            FROM order_items
+            GROUP BY product_id
+        ) sales ON p.id = sales.product_id
         WHERE 1=1
 
         <!-- 关键词搜索：商品名称、描述、花语 -->
@@ -206,6 +217,11 @@
             </when>
             <when test="request.sortBy == 'stock_quantity'">
                 ORDER BY p.stock_quantity
+                <if test="request.sortOrder == 'asc'">ASC</if>
+                <if test="request.sortOrder == 'desc'">DESC</if>
+            </when>
+            <when test="request.sortBy == 'sales'">
+                ORDER BY total_sales
                 <if test="request.sortOrder == 'asc'">ASC</if>
                 <if test="request.sortOrder == 'desc'">DESC</if>
             </when>

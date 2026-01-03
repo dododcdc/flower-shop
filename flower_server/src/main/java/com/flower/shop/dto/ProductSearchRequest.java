@@ -64,8 +64,9 @@ public class ProductSearchRequest {
      * price - 价格
      * name - 名称
      * stock_quantity - 库存数量
+     * sales - 销量
      */
-    @Pattern(regexp = "created_at|price|name|stock_quantity", message = "排序字段必须是: created_at, price, name, stock_quantity")
+    @Pattern(regexp = "created_at|price|name|stock_quantity|sales", message = "排序字段必须是: created_at, price, name, stock_quantity, sales")
     private String sortBy = "created_at";
 
     /**
