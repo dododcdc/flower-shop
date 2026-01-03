@@ -22,9 +22,9 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   // 定义导航菜单
   const menuItems = [
-    { label: 'Dashboard', value: '/dashboard', icon: <DashboardIcon /> },
-    { label: '商品管理', value: '/products', icon: <InventoryIcon /> },
-    { label: '订单管理', value: '/orders', icon: <ShoppingBasketIcon /> },
+    { label: 'Dashboard', value: '/admin/dashboard', icon: <DashboardIcon /> },
+    { label: '商品管理', value: '/admin/products', icon: <InventoryIcon /> },
+    { label: '订单管理', value: '/admin/orders', icon: <ShoppingBasketIcon /> },
   ];
 
   const handleLogout = () => {

@@ -205,6 +205,8 @@ export function withErrorHandling<T extends any[], R>(
         const currentPath = window.location.pathname;
         const loginPath = currentPath.startsWith('/admin') ? '/admin/login' : '/login';
         window.location.href = loginPath;
+        // 阻止错误继续传播
+        return undefined as any;
       }
 
       throw new Error(ApiErrorHandler.getUserFriendlyMessage(apiError));

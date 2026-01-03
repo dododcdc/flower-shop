@@ -81,7 +81,7 @@ const App: React.FC = () => {
           {/* 管理端路由 */}
           <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
           <Route path="/admin/login" element={<LoginPage />} />
-          <Route path="/dashboard" element={
+          <Route path="/admin/dashboard" element={
             <ProtectedRoute>
               <DashboardLayout>
                 <Suspense fallback={<LoadingSpinner />}>
@@ -90,7 +90,7 @@ const App: React.FC = () => {
               </DashboardLayout>
             </ProtectedRoute>
           } />
-          <Route path="/products" element={
+          <Route path="/admin/products" element={
             <ProtectedRoute>
               <DashboardLayout>
                 <Suspense fallback={<LoadingSpinner />}>
@@ -99,7 +99,7 @@ const App: React.FC = () => {
               </DashboardLayout>
             </ProtectedRoute>
           } />
-          <Route path="/orders" element={
+          <Route path="/admin/orders" element={
             <ProtectedRoute>
               <DashboardLayout>
                 <Suspense fallback={<LoadingSpinner />}>

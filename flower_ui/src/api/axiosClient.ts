@@ -66,12 +66,11 @@ instance.interceptors.response.use(
       const currentPath = window.location.pathname;
       const loginPath = currentPath.startsWith('/admin') ? '/admin/login' : '/login';
 
-      // 使用 setTimeout 确保错误处理完成后再跳转
-      setTimeout(() => {
-        window.location.href = loginPath;
-      }, 100);
+      // 立即跳转，不显示错误
+      window.location.href = loginPath;
 
-      return Promise.reject(error);
+      // 返回一个永远不会 resolve 的 promise，阻止错误继续传播
+      return new Promise(() => {});
     }
 
     // 统一错误处理

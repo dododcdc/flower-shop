@@ -26,7 +26,7 @@ const LoginForm: React.FC = () => {
       const res = await login({ username, password });
       if (res?.token) {
         // Token is already stored in authAPI.login function
-        window.location.href = '/dashboard';
+        window.location.href = '/admin/dashboard';
       } else {
         setError('用户名或密码错误，请重试');
       }
