@@ -110,31 +110,26 @@ const CheckoutPage: React.FC = () => {
 
             const order = await orderAPI.createOrder(orderRequest);
 
-            enqueueSnackbar('订单创建成功！订单号：' + order.orderNo, {
-                variant: 'success',
-                autoHideDuration: 3000,
-            });
-
             // 标记成功，防止显示空购物车界面
             setOrderSuccess(true);
 
-            // 清空购物车
-            clearCart();
+            // 立即跳转到订单成功页面
+            navigate('/shop/order-success', {
+                state: {
+                    orderNo: order.orderNo,
+                    customerName: recipientName,
+                    customerPhone: recipientPhone,
+                    deliveryAddress: recipientAddress,
+                    deliveryTime: `${deliveryDate} ${deliveryTime}`,
+                    totalAmount: order.finalAmount || totalPrice,
+                    message: cardContent
+                }
+            });
 
-            // 跳转到订单成功页面
+            // 跳转后再清空购物车（避免当前页面重新渲染）
             setTimeout(() => {
-                navigate('/shop/order-success', {
-                    state: {
-                        orderNo: order.orderNo,
-                        customerName: recipientName,
-                        customerPhone: recipientPhone,
-                        deliveryAddress: recipientAddress,
-                        deliveryTime: `${deliveryDate} ${deliveryTime}`,
-                        totalAmount: order.finalAmount || totalPrice,
-                        message: cardContent
-                    }
-                });
-            }, 500); // 缩短等待时间，改善体验
+                clearCart();
+            }, 100);
 
         } catch (error: any) {
             console.error('订单创建失败:', error);
