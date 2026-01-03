@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Grid,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
   Card,
   CardContent,
-  CardMedia,
   Typography,
   TextField,
   Button,
@@ -24,14 +29,10 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Visibility as ViewIcon,
-  ToggleOn as ToggleOnIcon,
-  ToggleOff as ToggleOffIcon,
   Star as StarIcon,
   StarBorder as StarBorderIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
-import { motion } from 'framer-motion';
 import { z } from 'zod';
 
 import {
@@ -49,12 +50,6 @@ import { productAPI } from '../../api/productAPI';
 import { categoryAPI, type Category } from '../../api/categoryAPI';
 import ProductEditDialog from './ProductEditDialog';
 import { API_BASE_URL } from '../../constants';
-
-// Animation variants
-const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
-};
 
 const ProductList: React.FC = () => {
   // State for products and pagination
@@ -734,246 +729,221 @@ const ProductList: React.FC = () => {
         </Box>
       )}
 
-      {/* Products Grid */}
+      {/* Products Table */}
       {!loading && (
-        <Grid container spacing={3}>
-          {products.map((product) => {
-            const images = parseImages(product);
-            const stockStatus = getStockStatusText(product);
-            const stockColor = getStockStatusColor(product);
-            const isDiscounted = hasDiscount(product);
-            const discountPercent = getDiscountPercentage(product);
+        <TableContainer
+          component={Paper}
+          sx={{
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+            borderRadius: 2,
+            overflow: 'hidden',
+          }}
+        >
+          <Table sx={{ minWidth: 800 }}>
+            <TableHead sx={{ bgcolor: 'grey.50' }}>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 'bold', width: 80 }}>图片</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>商品名称</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', width: 100 }}>价格</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', width: 100 }}>库存</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', width: 100 }}>分类</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', width: 150 }}>状态</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', width: 150 }}>操作</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {products.map((product) => {
+                const images = parseImages(product);
+                const stockStatus = getStockStatusText(product);
+                const isDiscounted = hasDiscount(product);
+                const discountPercent = getDiscountPercentage(product);
 
-            return (
-              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={product.id}>
-                <motion.div
-                  variants={cardVariants}
-                  initial="hidden"
-                  animate="visible"
-                  transition={{ duration: 0.3 }}
-                >
-                  <Card
-                    sx={{
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                      '&:hover': {
-                        transform: 'translateY(-4px)',
-                        boxShadow: '0 8px 25px rgba(0, 0, 0, 0.15)',
-                      },
-                    }}
+                return (
+                  <TableRow
+                    key={product.id}
+                    hover
+                    sx={{ '&:last-child td': { border: 0 } }}
                   >
-                    {/* Product Image */}
-                    <CardMedia
-                      component="div"
-                      sx={{
-                        height: 200,
-                        backgroundColor: 'grey.100',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        position: 'relative',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {images.length > 0 ? (
-                        <img
-                          src={images[0]}
-                          alt={product.name}
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                          }}
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <Avatar
-                          sx={{ width: 80, height: 80, bgcolor: 'grey.300' }}
-                          variant="square"
-                        >
-                          <Typography variant="body2" color="text.secondary">
-                            暂无图片
-                          </Typography>
-                        </Avatar>
-                      )}
-
-                      {/* Discount badge */}
-                      {isDiscounted && (
-                        <Chip
-                          label={`${discountPercent}% OFF`}
-                          color="error"
-                          size="small"
-                          sx={{
-                            position: 'absolute',
-                            top: 8,
-                            right: 8,
-                            fontWeight: 'bold',
-                          }}
-                        />
-                      )}
-
-                      {/* Featured badge */}
-                      {product.featured === 1 && (
-                        <Chip
-                          icon={<StarIcon />}
-                          label="推荐"
-                          color="warning"
-                          size="small"
-                          sx={{
-                            position: 'absolute',
-                            top: 8,
-                            left: 8,
-                            fontWeight: 'bold',
-                          }}
-                        />
-                      )}
-                    </CardMedia>
-
-                    <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                      {/* Product Name */}
-                      <Typography variant="h6" component="h3" sx={{ mb: 1, fontWeight: 600 }}>
-                        {product.name}
-                      </Typography>
-
-                      {/* Product Description */}
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
+                    {/* Image */}
+                    <TableCell>
+                      <Box
                         sx={{
-                          mb: 2,
+                          width: 60,
+                          height: 60,
+                          bgcolor: 'grey.100',
+                          borderRadius: 1,
                           overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                         }}
                       >
-                        {product.description || '暂无描述'}
-                      </Typography>
-
-                      {/* Price */}
-                      <Box sx={{ mb: 2 }}>
-                        <Typography variant="h6" color="primary" fontWeight="bold">
-                          ¥{product.price}
-                        </Typography>
-                        {isDiscounted && (
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{ textDecoration: 'line-through' }}
-                          >
-                            ¥{product.originalPrice}
-                          </Typography>
+                        {images.length > 0 ? (
+                          <Box
+                            component="img"
+                            src={images[0]}
+                            alt={product.name}
+                            sx={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                            }}
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <Avatar sx={{ width: 40, height: 40, bgcolor: 'grey.300' }}>
+                            <Typography variant="caption" color="text.secondary">
+                              暂无
+                            </Typography>
+                          </Avatar>
                         )}
                       </Box>
+                    </TableCell>
 
-                      {/* Stock Status */}
-                      <Box sx={{ mb: 2 }}>
+                    {/* Name & Badge */}
+                    <TableCell>
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {product.name}
+                        </Typography>
+                        {isDiscounted && (
+                          <Chip
+                            label={`${discountPercent}% OFF`}
+                            color="error"
+                            size="small"
+                            sx={{ height: 18, fontSize: '10px', mt: 0.5 }}
+                          />
+                        )}
+                      </Box>
+                    </TableCell>
+
+                    {/* Price */}
+                    <TableCell>
+                      <Typography variant="body2" color="primary" fontWeight="bold">
+                        ¥{product.price}
+                      </Typography>
+                      {isDiscounted && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ textDecoration: 'line-through', display: 'block' }}
+                        >
+                          ¥{product.originalPrice}
+                        </Typography>
+                      )}
+                    </TableCell>
+
+                    {/* Stock */}
+                    <TableCell>
+                      <Box>
                         <Chip
                           label={stockStatus}
-                          color={stockColor}
+                          color={getStockStatusColor(product)}
                           size="small"
-                          sx={{ mb: 1 }}
+                          sx={{ height: 20, fontSize: '11px' }}
                         />
-                        <Typography variant="body2" color="text.secondary">
-                          库存: {product.stockQuantity} 件
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                          {product.stockQuantity} 件
                         </Typography>
                       </Box>
+                    </TableCell>
 
-                      {/* Product Status */}
-                      <Box sx={{ mb: 2 }}>
-                        <Chip
-                          label={getProductStatusText(product.status)}
-                          color={getProductStatusColor(product.status)}
-                          size="small"
-                        />
-                      </Box>
-
-                      {/* Category */}
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        分类: {product.categoryName || '未分类'}
+                    {/* Category */}
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary">
+                        {product.categoryName || '未分类'}
                       </Typography>
+                    </TableCell>
 
-                      {/* Date */}
-                      <Typography variant="caption" color="text.secondary" sx={{ mb: 2 }}>
-                        创建时间: {formatDate(product.createdAt)}
-                      </Typography>
+                    {/* Status & Featured (Interactive) */}
+                    <TableCell>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        {/* Status Chip - Clickable */}
+                        <Tooltip title="点击切换上架/下架">
+                          <Chip
+                            label={getProductStatusText(product.status)}
+                            color={getProductStatusColor(product.status)}
+                            size="small"
+                            onClick={() => handleToggleStatus(product.id, product.status)}
+                            sx={{
+                              height: 24,
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              '&:hover': {
+                                opacity: 0.8,
+                                filter: 'brightness(1.1)',
+                              },
+                            }}
+                          />
+                        </Tooltip>
 
-                      {/* Action Buttons */}
-                      <Box sx={{ mt: 'auto' }}>
-                        <Stack direction="row" spacing={1} justifyContent="space-between">
-                          <Box>
-                            <Tooltip title="查看详情">
-                              <IconButton size="small" color="info">
-                                <ViewIcon />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="编辑">
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => handleEdit(product.id)}
-                              >
-                                <EditIcon />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="删除">
-                              <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() => handleDeleteClick(product.id, product.name)}
-                              >
-                                <DeleteIcon />
-                              </IconButton>
-                            </Tooltip>
+                        {/* Featured Star - Clickable */}
+                        <Tooltip title={product.featured === 1 ? '点击取消推荐' : '点击设为推荐'}>
+                          <Box
+                            onClick={() => handleToggleFeatured(product.id, product.featured)}
+                            sx={{
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: 0.5,
+                              borderRadius: 1,
+                              '&:hover': {
+                                bgcolor: 'action.hover',
+                              },
+                            }}
+                          >
+                            {product.featured === 1 ? (
+                              <StarIcon sx={{ fontSize: 18, color: 'warning.main' }} />
+                            ) : (
+                              <StarBorderIcon sx={{ fontSize: 18, color: 'text.disabled' }} />
+                            )}
                           </Box>
-                          <Box>
-                            <Tooltip title={product.status === 1 ? '下架' : '上架'}>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleToggleStatus(product.id, product.status)}
-                                color={product.status === 1 ? 'success' : 'default'}
-                              >
-                                {product.status === 1 ? <ToggleOnIcon /> : <ToggleOffIcon />}
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title={product.featured === 1 ? '取消推荐' : '设为推荐'}>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleToggleFeatured(product.id, product.featured)}
-                                color={product.featured === 1 ? 'warning' : 'default'}
-                              >
-                                {product.featured === 1 ? <StarIcon /> : <StarBorderIcon />}
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
-                        </Stack>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </Grid>
-            );
-          })}
+                        </Tooltip>
+                      </Stack>
+                    </TableCell>
 
-          {/* Empty state */}
-          {!loading && products.length === 0 && (
-            <Grid size={{ xs: 12 }}>
-              <Box sx={{ textAlign: 'center', py: 8 }}>
-                <Typography variant="h6" color="text.secondary" gutterBottom>
-                  暂无商品数据
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  请调整搜索条件、添加新商品，或初始化示例数据进行测试
-                </Typography>
-              </Box>
-            </Grid>
-          )}
-        </Grid>
+                    {/* Actions */}
+                    <TableCell>
+                      <Stack direction="row" spacing={0.5}>
+                        <Tooltip title="编辑">
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => handleEdit(product.id)}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="删除">
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleDeleteClick(product.id, product.name)}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+
+              {/* Empty state */}
+              {products.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
+                    <Typography color="text.secondary">
+                      暂无商品数据
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
 
       {/* Pagination */}
