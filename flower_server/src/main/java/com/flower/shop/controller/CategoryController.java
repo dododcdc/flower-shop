@@ -124,28 +124,6 @@ public class CategoryController {
     }
 
     /**
-     * 删除分类
-     */
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "删除分类", description = "管理员：删除指定分类")
-    public Result<String> deleteCategory(@PathVariable("id") @NotNull Long id) {
-        try {
-            boolean result = categoryService.deleteCategory(id);
-            if (result) {
-                return Result.success("删除分类成功");
-            } else {
-                return Result.error("删除分类失败");
-            }
-        } catch (IllegalArgumentException e) {
-            return Result.validationError(e.getMessage());
-        } catch (Exception e) {
-            log.error("删除分类失败", e);
-            return Result.error("删除分类失败");
-        }
-    }
-
-    /**
      * 启用/禁用分类
      */
     @PutMapping("/{id}/status")

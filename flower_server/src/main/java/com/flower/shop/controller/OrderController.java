@@ -2,16 +2,20 @@ package com.flower.shop.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.flower.shop.dto.CreateOrderRequest;
+import com.flower.shop.dto.CancelOrderRequest;
 import com.flower.shop.common.Result;
 import com.flower.shop.entity.Order;
 import com.flower.shop.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/orders")
 @RequiredArgsConstructor
@@ -25,7 +29,7 @@ public class OrderController {
      */
     @PostMapping
     @Operation(summary = "创建订单", description = "创建新的订单")
-    public Result<Order> createOrder(@RequestBody CreateOrderRequest request) {
+    public Result<Order> createOrder(@Valid @RequestBody CreateOrderRequest request) {
         try {
             Order order = orderService.createOrder(request);
             return Result.success(order);
@@ -54,7 +58,7 @@ public class OrderController {
 
             return Result.success(orders);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("查询我的订单失败", e);
             return Result.error("查询订单失败: " + e.getMessage());
         }
     }
@@ -73,7 +77,7 @@ public class OrderController {
             IPage<Order> orders = orderService.getOrdersByPhone(phone, status, page, size);
             return Result.success(orders);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("按手机号查询订单失败", e);
             return Result.error("查询订单失败: " + e.getMessage());
         }
     }
@@ -96,7 +100,7 @@ public class OrderController {
             IPage<Order> orders = orderService.searchOrders(keyword, status, startDate, endDate, page, size, sortBy, sortOrder);
             return Result.success(orders);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("搜索订单失败", e);
             return Result.error("搜索订单失败: " + e.getMessage());
         }
     }
@@ -114,7 +118,7 @@ public class OrderController {
             }
             return Result.success(order);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("查询订单详情失败", e);
             return Result.error("查询订单详情失败: " + e.getMessage());
         }
     }
@@ -129,7 +133,7 @@ public class OrderController {
             Order order = orderService.confirmOrder(id);
             return Result.success(order);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("确认订单失败", e);
             return Result.error("确认订单失败: " + e.getMessage());
         }
     }
@@ -144,7 +148,7 @@ public class OrderController {
             Order order = orderService.startDelivery(id);
             return Result.success(order);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("开始配送失败", e);
             return Result.error("开始配送失败: " + e.getMessage());
         }
     }
@@ -159,7 +163,7 @@ public class OrderController {
             Order order = orderService.completeOrder(id);
             return Result.success(order);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("完成配送失败", e);
             return Result.error("完成配送失败: " + e.getMessage());
         }
     }
@@ -171,13 +175,13 @@ public class OrderController {
     @Operation(summary = "取消订单", description = "取消订单，恢复库存，需要提供取消原因（可选）")
     public Result<Order> cancelOrder(
             @PathVariable("id") Long id,
-            @RequestBody(required = false) java.util.Map<String, String> request) {
+            @RequestBody(required = false) CancelOrderRequest request) {
         try {
-            String reason = request != null ? request.get("reason") : null;
+            String reason = request != null ? request.getReason() : null;
             Order order = orderService.cancelOrder(id, reason);
             return Result.success(order);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("取消订单失败", e);
             return Result.error("取消订单失败: " + e.getMessage());
         }
     }

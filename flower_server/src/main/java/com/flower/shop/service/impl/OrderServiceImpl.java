@@ -7,11 +7,13 @@ import com.flower.shop.dto.CreateOrderRequest;
 import com.flower.shop.entity.Order;
 import com.flower.shop.entity.OrderItem;
 import com.flower.shop.entity.Product;
+import com.flower.shop.exception.BusinessException;
 import com.flower.shop.mapper.OrderItemMapper;
 import com.flower.shop.mapper.OrderMapper;
 import com.flower.shop.service.OrderService;
 import com.flower.shop.service.ProductService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,7 @@ import java.util.List;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements OrderService {
@@ -48,7 +51,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             }
         } catch (Exception e) {
             // 忽略获取用户信息的异常，不影响游客下单
-            System.err.println("绑定用户下单失败: " + e.getMessage());
+            log.warn("绑定用户下单失败: {}", e.getMessage());
         }
 
         // 2. 设置配送信息
@@ -99,7 +102,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         for (CreateOrderRequest.OrderItemDTO itemDTO : request.getItems()) {
             Product product = productService.getById(itemDTO.getProductId());
             if (product == null) {
-                throw new RuntimeException("商品不存在: " + itemDTO.getProductId());
+                throw new BusinessException("商品不存在: " + itemDTO.getProductId());
             }
 
             OrderItem orderItem = new OrderItem();
@@ -148,10 +151,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     public Order confirmOrder(Long orderId) {
         Order order = this.getById(orderId);
         if (order == null) {
-            throw new RuntimeException("订单不存在");
+            throw new BusinessException("订单不存在");
         }
         if (!"PENDING".equals(order.getStatus())) {
-            throw new RuntimeException("只有待确认状态的订单才能确认");
+            throw new BusinessException("只有待确认状态的订单才能确认");
         }
 
         order.setStatus("PREPARING");
@@ -164,10 +167,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     public Order startDelivery(Long orderId) {
         Order order = this.getById(orderId);
         if (order == null) {
-            throw new RuntimeException("订单不存在");
+            throw new BusinessException("订单不存在");
         }
         if (!"PREPARING".equals(order.getStatus())) {
-            throw new RuntimeException("只有准备中状态的订单才能开始配送");
+            throw new BusinessException("只有准备中状态的订单才能开始配送");
         }
 
         order.setStatus("DELIVERING");
@@ -180,10 +183,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     public Order completeOrder(Long orderId) {
         Order order = this.getById(orderId);
         if (order == null) {
-            throw new RuntimeException("订单不存在");
+            throw new BusinessException("订单不存在");
         }
         if (!"DELIVERING".equals(order.getStatus())) {
-            throw new RuntimeException("只有配送中状态的订单才能完成配送");
+            throw new BusinessException("只有配送中状态的订单才能完成配送");
         }
 
         order.setStatus("COMPLETED");
@@ -197,10 +200,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     public Order cancelOrder(Long orderId, String reason) {
         Order order = this.getById(orderId);
         if (order == null) {
-            throw new RuntimeException("订单不存在");
+            throw new BusinessException("订单不存在");
         }
         if ("COMPLETED".equals(order.getStatus()) || "CANCELLED".equals(order.getStatus())) {
-            throw new RuntimeException("已完成或已取消的订单不能取消");
+            throw new BusinessException("已完成或已取消的订单不能取消");
         }
 
         // 恢复库存

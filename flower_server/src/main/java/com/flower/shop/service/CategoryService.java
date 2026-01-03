@@ -58,9 +58,4 @@ public interface CategoryService extends IService<Category> {
      * @param excludeId 排除的ID（用于更新时检查）
      */
     boolean isNameDuplicate(String name, String type, Long excludeId);
-
-    /**
-     * 判断是否可以删除分类（检查是否有关联商品）
-     */
-    boolean canDeleteCategory(Long categoryId);
 }

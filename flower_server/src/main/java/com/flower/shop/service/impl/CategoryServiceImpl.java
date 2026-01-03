@@ -121,11 +121,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
             throw new IllegalArgumentException("分类不存在");
         }
 
-        // 检查是否可以删除
-        if (!canDeleteCategory(categoryId)) {
-            throw new IllegalArgumentException("该分类下有关联商品，无法删除");
-        }
-
+        // 直接删除，让数据库外键约束处理关联商品检查
         return removeById(categoryId);
     }
 
@@ -184,16 +180,6 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         return count(queryWrapper) > 0;
     }
 
-    @Override
-    public boolean canDeleteCategory(Long categoryId) {
-        // 检查是否有关联的商品
-        // 这里需要注入 ProductMapper 或 ProductService 来检查
-        // 简化实现，暂时返回 true
-        // TODO: 实现真正的检查逻辑
-        return true;
-    }
-
-    
     /**
      * 获取下一个排序值
      */
