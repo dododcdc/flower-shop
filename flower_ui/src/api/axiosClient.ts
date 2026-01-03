@@ -58,10 +58,19 @@ instance.interceptors.response.use(
 
     // 处理认证错误
     if (error.response?.status === 401 || error.response?.status === 403) {
-      // Clear token and redirect to login
+      // 清除认证信息
       localStorage.removeItem(STORAGE_KEYS.TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER);
-      window.location.href = '/admin/login';
+
+      // 根据当前路径判断跳转到哪个登录页
+      const currentPath = window.location.pathname;
+      const loginPath = currentPath.startsWith('/admin') ? '/admin/login' : '/login';
+
+      // 使用 setTimeout 确保错误处理完成后再跳转
+      setTimeout(() => {
+        window.location.href = loginPath;
+      }, 100);
+
       return Promise.reject(error);
     }
 

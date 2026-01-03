@@ -31,6 +31,12 @@ const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({ open, order, onCl
 
     if (!order) return null;
 
+    const cardStyleMap: Record<string, string> = {
+        'simple': '简约白',
+        'romantic': '浪漫粉',
+        'business': '商务金',
+    };
+
     const statusMap: Record<string, { text: string; color: string; bg: string }> = {
         'PENDING': { text: '待确认', color: '#B76E00', bg: '#FFF4E5' },
         'PREPARING': { text: '准备中', color: '#00497A', bg: '#E5F6FD' },
@@ -162,6 +168,16 @@ const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({ open, order, onCl
                             <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 2, color: '#B76E00' }}>
                                 ✉️ 祝福贺卡
                             </Typography>
+                            {order.cardStyle && (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                                    <Typography variant="caption" sx={{ color: '#8D6E63', fontWeight: 600 }}>
+                                        卡片风格:
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: '#B76E00' }}>
+                                        {cardStyleMap[order.cardStyle] || order.cardStyle}
+                                    </Typography>
+                                </Box>
+                            )}
                             {order.cardContent && (
                                 <Typography variant="body2" sx={{ fontStyle: 'italic', mb: 1, color: '#4A4A4A' }}>
                                     "{order.cardContent}"

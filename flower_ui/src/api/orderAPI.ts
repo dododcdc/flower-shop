@@ -14,6 +14,7 @@ export interface CreateOrderRequest {
     deliveryTime: string; // HH:mm format
     cardContent?: string | undefined;
     cardSender?: string | undefined;
+    cardStyle?: string | undefined;
     items: OrderItem[];
 }
 
@@ -28,12 +29,12 @@ export interface Order {
     status: string; // "PENDING" | "PREPARING" | "DELIVERING" | "COMPLETED" | "CANCELLED"
     paymentMethod: string;
     paymentStatus: string;
-    deliveryTime?: string;
     deliveryStartTime?: string;
     deliveryEndTime?: string;
     notes?: string;
     cardContent?: string;
     cardSender?: string;
+    cardStyle?: string;
     createdAt: string;
     updatedAt: string;
     // 管理端额外字段

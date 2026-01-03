@@ -58,12 +58,6 @@ public class Order {
     private BigDecimal deliveryFee;
 
     /**
-     * 期望配送时间
-     */
-    @TableField("delivery_time")
-    private LocalDateTime deliveryTime;
-
-    /**
      * 配送开始时间
      */
     @TableField("delivery_start_time")
@@ -127,6 +121,12 @@ public class Order {
      */
     @TableField("card_sender")
     private String cardSender;
+
+    /**
+     * 贺卡风格
+     */
+    @TableField("card_style")
+    private String cardStyle;
 
     /**
      * 创建时间

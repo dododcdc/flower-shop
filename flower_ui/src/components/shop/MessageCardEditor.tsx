@@ -48,6 +48,8 @@ interface MessageCardEditorProps {
     sender: string;
     onContentChange: (value: string) => void;
     onSenderChange: (value: string) => void;
+    onStyleChange?: (styleId: string) => void;
+    cardStyle?: string;
 }
 
 const MessageCardEditor: React.FC<MessageCardEditorProps> = ({
@@ -55,6 +57,8 @@ const MessageCardEditor: React.FC<MessageCardEditorProps> = ({
     sender,
     onContentChange,
     onSenderChange,
+    onStyleChange,
+    cardStyle,
 }) => {
     const [selectedStyle, setSelectedStyle] = useState(CARD_STYLES[0]!);
 
@@ -63,6 +67,7 @@ const MessageCardEditor: React.FC<MessageCardEditorProps> = ({
         const style = CARD_STYLES.find((s) => s.id === styleId);
         if (style) {
             setSelectedStyle(style);
+            onStyleChange?.(styleId);
         }
     };
 

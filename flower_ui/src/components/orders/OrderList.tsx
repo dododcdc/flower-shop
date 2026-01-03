@@ -179,6 +179,19 @@ const OrderList: React.FC = () => {
   const formatPrice = (price?: number) => `¥${(price || 0).toFixed(2)}`;
   const formatDate = (dateStr?: string) => dateStr ? new Date(dateStr).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
 
+  // 格式化配送时间
+  const formatDeliveryTime = (order: Order) => {
+    if (order.deliveryStartTime && order.deliveryEndTime) {
+      const start = new Date(order.deliveryStartTime);
+      const dateStr = start.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
+      const startTimeStr = start.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+      const end = new Date(order.deliveryEndTime);
+      const endTimeStr = end.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+      return `${dateStr} ${startTimeStr}-${endTimeStr}`;
+    }
+    return null;
+  };
+
   return (
     <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
       {/* Header & Search */}
@@ -308,7 +321,7 @@ const OrderList: React.FC = () => {
                     <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                       <span>👤 {order.customerName}</span>
                       <span>📞 {order.customerPhone}</span>
-                      {order.deliveryTime && <span>⏰ {formatDate(order.deliveryTime)}配送</span>}
+                      {formatDeliveryTime(order) && <span>⏰ {formatDeliveryTime(order)}配送</span>}
                     </Typography>
                     {(order.addressText || order.notes) && (
                       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>

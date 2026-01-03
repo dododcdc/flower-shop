@@ -5,6 +5,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -71,6 +72,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             log.error("JWT认证失败", e);
             // 清理认证上下文
             SecurityContextHolder.clearContext();
+            // 返回 401 未授权状态码
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
         }
 
         // 继续过滤器链

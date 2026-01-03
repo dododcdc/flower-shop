@@ -15,7 +15,6 @@
             o.status,
             o.payment_method,
             o.payment_status,
-            o.delivery_time,
             o.delivery_start_time,
             o.delivery_end_time,
             o.notes,
@@ -45,7 +44,6 @@
             o.status,
             o.payment_method,
             o.payment_status,
-            o.delivery_time,
             o.delivery_start_time,
             o.delivery_end_time,
             o.notes,
@@ -75,7 +73,6 @@
             o.status,
             o.payment_method,
             o.payment_status,
-            o.delivery_time,
             o.delivery_start_time,
             o.delivery_end_time,
             o.notes,
@@ -138,7 +135,6 @@
             o.status,
             o.payment_method,
             o.payment_status,
-            o.delivery_time,
             o.delivery_start_time,
             o.delivery_end_time,
             o.notes,
@@ -174,7 +170,6 @@
         <result property="status" column="status"/>
         <result property="paymentMethod" column="payment_method"/>
         <result property="paymentStatus" column="payment_status"/>
-        <result property="deliveryTime" column="delivery_time"/>
         <result property="deliveryStartTime" column="delivery_start_time"/>
         <result property="deliveryEndTime" column="delivery_end_time"/>
         <result property="notes" column="notes"/>

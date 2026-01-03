@@ -44,6 +44,27 @@ const AdminOrderDetailDrawer: React.FC<AdminOrderDetailDrawerProps> = ({ open, o
 
     if (!order) return null;
 
+    // 格式化配送时间显示
+    const formatDeliveryTime = (order: Order) => {
+        if (order.deliveryStartTime && order.deliveryEndTime) {
+            const start = new Date(order.deliveryStartTime);
+            const end = new Date(order.deliveryEndTime);
+
+            const dateStr = start.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+            const startTimeStr = start.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+            const endTimeStr = end.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+            return `${dateStr} ${startTimeStr} - ${endTimeStr}`;
+        }
+        return '-';
+    };
+
+    const cardStyleMap: Record<string, string> = {
+        'simple': '简约白',
+        'romantic': '浪漫粉',
+        'business': '商务金',
+    };
+
     const statusMap: Record<string, { text: string; color: string; bg: string }> = {
         'PENDING': { text: '待确认', color: '#B76E00', bg: '#FFF4E5' },
         'PREPARING': { text: '准备中', color: '#00497A', bg: '#E5F6FD' },
@@ -287,7 +308,7 @@ const AdminOrderDetailDrawer: React.FC<AdminOrderDetailDrawerProps> = ({ open, o
                             <InfoItem label="电话" value={order.customerPhone} />
                             <InfoItem label="支付方式" value={order.paymentMethod === 'ON_DELIVERY' ? '货到付款' : '在线支付'} />
                             <InfoItem label="支付状态" value={order.paymentStatus === 'PAID' ? '已支付' : '待支付'} />
-                            <InfoItem label="配送时间" value={order.deliveryTime ? new Date(order.deliveryTime).toLocaleString() : '-'} fullWidth />
+                            <InfoItem label="配送时间" value={formatDeliveryTime(order)} fullWidth />
                             <InfoItem label="地址" value={order.addressText || order.notes} fullWidth />
                         </Grid>
                     </Box>
@@ -298,6 +319,16 @@ const AdminOrderDetailDrawer: React.FC<AdminOrderDetailDrawerProps> = ({ open, o
                             <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 2, color: '#B76E00' }}>
                                 ✉️ 祝福贺卡
                             </Typography>
+                            {order.cardStyle && (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                                    <Typography variant="caption" sx={{ color: '#8D6E63', fontWeight: 600 }}>
+                                        卡片风格:
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: '#B76E00' }}>
+                                        {cardStyleMap[order.cardStyle] || order.cardStyle}
+                                    </Typography>
+                                </Box>
+                            )}
                             {order.cardContent && (
                                 <Typography variant="body2" sx={{ fontStyle: 'italic', mb: 1, color: '#4A4A4A' }}>
                                     "{order.cardContent}"

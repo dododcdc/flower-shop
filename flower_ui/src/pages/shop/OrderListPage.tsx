@@ -94,6 +94,12 @@ const OrderListPage: React.FC = () => {
                 setError('您还没有相关订单');
             }
         } catch (err: any) {
+            // 401 错误会被 axios 拦截器处理，自动跳转登录
+            // 这里不需要额外处理
+            if (err.message?.includes('401')) {
+                // 401 已被拦截器处理，静默失败
+                return;
+            }
             setError(err.message || '查询订单失败');
         } finally {
             setLoading(false);
@@ -189,7 +195,7 @@ const OrderListPage: React.FC = () => {
 
             return `${dateStr} ${startTimeStr} - ${endTimeStr}`;
         }
-        return order.deliveryTime || '未指定配送时间';
+        return '未指定配送时间';
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {

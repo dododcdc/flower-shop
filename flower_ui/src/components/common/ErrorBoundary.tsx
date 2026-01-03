@@ -54,7 +54,9 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
   private handleGoHome = () => {
     this.setState({ hasError: false });
-    window.location.href = '/admin/login';
+    const currentPath = window.location.pathname;
+    const loginPath = currentPath.startsWith('/admin') ? '/admin/login' : '/login';
+    window.location.href = loginPath;
   };
 
   render() {

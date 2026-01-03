@@ -202,7 +202,9 @@ export function withErrorHandling<T extends any[], R>(
 
       // 如果需要重新登录，跳转到登录页
       if (ApiErrorHandler.shouldReLogin(apiError)) {
-        window.location.href = '/admin/login';
+        const currentPath = window.location.pathname;
+        const loginPath = currentPath.startsWith('/admin') ? '/admin/login' : '/login';
+        window.location.href = loginPath;
       }
 
       throw new Error(ApiErrorHandler.getUserFriendlyMessage(apiError));

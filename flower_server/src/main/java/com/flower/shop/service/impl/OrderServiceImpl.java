@@ -66,23 +66,20 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                     java.time.LocalTime endTime = java.time.LocalTime.parse(parts[1]);
                     order.setDeliveryStartTime(LocalDateTime.of(request.getDeliveryDate(), startTime));
                     order.setDeliveryEndTime(LocalDateTime.of(request.getDeliveryDate(), endTime));
-                    // 为了兼容，deliveryTime 设为开始时间
-                    order.setDeliveryTime(order.getDeliveryStartTime());
                 } catch (Exception e) {
                     log.error("解析配送时间段失败: {}", timeStr);
                 }
             } else if ("尽快送达".equals(timeStr)) {
-                // "尽快送达" 设为当天的 00:00 到 23:59，或者根据业务设为当前时间
-                order.setDeliveryStartTime(LocalDateTime.of(request.getDeliveryDate(), java.time.LocalTime.MIN));
-                order.setDeliveryEndTime(LocalDateTime.of(request.getDeliveryDate(), java.time.LocalTime.MAX));
-                order.setDeliveryTime(order.getDeliveryStartTime());
+                // "尽快送达" 设为当前时间 到 当前时间+2小时
+                LocalDateTime now = LocalDateTime.now();
+                order.setDeliveryStartTime(now);
+                order.setDeliveryEndTime(now.plusHours(2));
             } else {
                 // 尝试作为普通时间解析
                 try {
                     java.time.LocalTime time = java.time.LocalTime.parse(timeStr);
                     order.setDeliveryStartTime(LocalDateTime.of(request.getDeliveryDate(), time));
                     order.setDeliveryEndTime(order.getDeliveryStartTime().plusHours(1)); // 默认给一小时窗口
-                    order.setDeliveryTime(order.getDeliveryStartTime());
                 } catch (Exception e) {
                     log.error("解析配送时间失败: {}", timeStr);
                 }
@@ -92,6 +89,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         // 3. 设置贺卡信息
         order.setCardContent(request.getCardContent());
         order.setCardSender(request.getCardSender());
+        order.setCardStyle(request.getCardStyle());
 
         // 4. 设置订单备注（收货地址）
         order.setNotes(request.getRecipientAddress());

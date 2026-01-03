@@ -31,6 +31,7 @@ public class CreateOrderRequest {
     // 贺卡信息
     private String cardContent;
     private String cardSender;
+    private String cardStyle;
 
     // 支付方式
     @NotBlank(message = "支付方式不能为空")
