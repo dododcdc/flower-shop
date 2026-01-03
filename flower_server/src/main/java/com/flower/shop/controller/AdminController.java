@@ -3,8 +3,10 @@ package com.flower.shop.controller;
 import com.flower.shop.dto.AdminInitRequest;
 import com.flower.shop.dto.LoginRequest;
 import com.flower.shop.dto.LoginResponse;
-import com.flower.shop.dto.Result;
+import com.flower.shop.common.Result;
 import com.flower.shop.service.AdminService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/admin")
 @RequiredArgsConstructor
 @CrossOrigin
+@Tag(name = "管理员管理", description = "管理员初始化和登录接口")
 public class AdminController {
 
     private final AdminService adminService;
@@ -28,6 +31,7 @@ public class AdminController {
      * 检查系统是否已初始化
      */
     @GetMapping("/init/check")
+    @Operation(summary = "检查系统初始化状态", description = "检查系统是否已创建管理员账号")
     public Result<Boolean> checkInitialization() {
         try {
             boolean isInitialized = adminService.isSystemInitialized();
@@ -42,6 +46,7 @@ public class AdminController {
      * 初始化管理员
      */
     @PostMapping("/init/setup")
+    @Operation(summary = "初始化管理员", description = "首次使用时创建管理员账号")
     public Result<String> initializeAdmin(@RequestBody @Validated AdminInitRequest request) {
         try {
             // 检查系统是否已经初始化
@@ -63,6 +68,7 @@ public class AdminController {
      * 管理员登录
      */
     @PostMapping("/auth/login")
+    @Operation(summary = "管理员登录", description = "管理员登录，返回JWT Token")
     public Result<LoginResponse> login(@RequestBody @Validated LoginRequest request) {
         try {
             LoginResponse response = adminService.login(request);

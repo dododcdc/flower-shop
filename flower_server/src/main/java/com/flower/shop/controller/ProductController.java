@@ -1,7 +1,7 @@
 package com.flower.shop.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.flower.shop.dto.Result;
+import com.flower.shop.common.Result;
 import com.flower.shop.dto.ProductSearchRequest;
 import com.flower.shop.entity.Product;
 import com.flower.shop.service.ProductService;
@@ -9,6 +9,8 @@ import com.flower.shop.service.impl.ProductServiceImpl;
 import com.flower.shop.config.FileUploadConfig;
 import com.flower.shop.util.FileUploadUtil;
 import com.alibaba.fastjson.JSON;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -36,6 +38,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @CrossOrigin
 @Validated
+@Tag(name = "商品管理", description = "商品CRUD和搜索接口")
 public class ProductController {
 
     private final ProductService productService;
@@ -45,6 +48,7 @@ public class ProductController {
      * 搜索商品（支持多条件查询）
      */
     @PostMapping("/search")
+    @Operation(summary = "搜索商品", description = "按分类、价格、关键词等条件搜索商品，支持分页")
     public Result<IPage<Product>> searchProducts(@RequestBody @Valid ProductSearchRequest request) {
         try {
             // 验证价格范围
@@ -66,6 +70,7 @@ public class ProductController {
      * 根据ID获取商品详情
      */
     @GetMapping("/{id}")
+    @Operation(summary = "获取商品详情", description = "根据ID获取商品详情，包含图片信息")
     public Result<Product> getProductById(@PathVariable("id") @NotNull Long id) {
         try {
             Product product = productService.getProductWithDetails(id);
@@ -85,6 +90,7 @@ public class ProductController {
      */
     @PostMapping(consumes = { "multipart/form-data" }, produces = { "application/json" })
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "创建商品", description = "管理员：创建新商品，必须上传至少一张图片")
     public Result<Product> createProduct(
             @RequestPart("product") String productJson,
             @RequestPart(value = "images") List<MultipartFile> images,
@@ -121,6 +127,7 @@ public class ProductController {
      */
     @PutMapping(value = "/{id}", consumes = { "multipart/form-data" })
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "更新商品", description = "管理员：更新商品信息和图片")
     public Result<Product> updateProductWithImages(
             @PathVariable("id") @NotNull Long id,
             @RequestPart("product") String productJson,
@@ -176,6 +183,7 @@ public class ProductController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "删除商品", description = "管理员：删除指定商品")
     public Result<String> deleteProduct(@PathVariable("id") @NotNull Long id) {
         try {
             boolean result = productService.deleteProduct(id);
@@ -197,6 +205,7 @@ public class ProductController {
      */
     @PutMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "切换商品状态", description = "管理员：上架或下架商品")
     public Result<String> toggleProductStatus(
             @PathVariable("id") @NotNull Long id,
             @RequestParam("status") @NotNull Integer status) {
@@ -221,6 +230,7 @@ public class ProductController {
      */
     @PutMapping("/{id}/featured")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "设置推荐商品", description = "管理员：设置或取消商品推荐状态")
     public Result<String> setFeaturedProduct(
             @PathVariable("id") @NotNull Long id,
             @RequestParam("featured") @NotNull Integer featured) {

@@ -27,7 +27,7 @@ import {
     Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { type Product } from '../../models/product';
-import { useProduct, useUpdateProduct, useCreateProduct } from '../../hooks/useProducts';
+import { fetchProduct, createProduct, updateProduct } from '../../hooks/useProducts';
 import { categoryAPI, type Category } from '../../api/categoryAPI';
 import { API_BASE_URL } from '../../constants';
 
@@ -59,11 +59,9 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
     onClose,
     onSuccess,
 }) => {
-    // React Query hooks
-    const { data: product, isLoading: productLoading, error: productError } = useProduct(productId);
-    const updateProduct = useUpdateProduct();
-    const createProduct = useCreateProduct();
-
+    const [productLoading, setProductLoading] = useState(false);
+    const [productError, setProductError] = useState<string | null>(null);
+    const [product, setProduct] = useState<Product | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -100,7 +98,31 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
         loadCategories();
     }, []);
 
-    // 加载商品数据 - 使用 React Query 自动处理
+    // 加载商品数据
+    useEffect(() => {
+        const loadProduct = async () => {
+            if (!productId) {
+                setProduct(null);
+                return;
+            }
+
+            try {
+                setProductLoading(true);
+                setProductError(null);
+                const data = await fetchProduct(productId);
+                setProduct(data);
+            } catch (err) {
+                console.error('Failed to load product', err);
+                setProductError('加载商品失败');
+            } finally {
+                setProductLoading(false);
+            }
+        };
+
+        loadProduct();
+    }, [productId]);
+
+    // 当商品数据加载完成后，更新表单
     useEffect(() => {
         if (product && productId) {
             // 编辑模式：加载商品数据
@@ -395,7 +417,7 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
                     ...formData,
                 };
 
-                await updateProduct.mutateAsync({
+                await updateProduct({
                     id: productId,
                     productData: completeProductData,
                     updateRequest: {
@@ -421,7 +443,7 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
                     images: newFiles,
                 };
 
-                await createProduct.mutateAsync({
+                await createProduct({
                     formData: newProductData,
                     mainImageIndex: newImageMainIndex
                 });

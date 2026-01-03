@@ -1,12 +1,9 @@
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { CircularProgress, Box } from '@mui/material';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import DashboardLayout from './components/layout/DashboardLayout';
 import ErrorBoundary from './components/common/ErrorBoundary';
-import { queryClient } from './utils/queryClient';
 
 // 懒加载页面组件
 const LoginPage = lazy(() => import('./components/auth/LoginPage'));
@@ -42,87 +39,87 @@ const LoadingSpinner = () => (
 const App: React.FC = () => {
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <Suspense fallback={<LoadingSpinner />}>
-          <Routes>
-            {/* 游客端公开路由 */}
-            <Route path="/" element={<Navigate to="/shop" replace />} />
-            <Route path="/shop" element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <ShopHome />
-              </Suspense>
-            } />
-            <Route path="/shop/products" element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <ShopPage />
-              </Suspense>
-            } />
-            <Route path="/shop/checkout" element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <CheckoutPage />
-              </Suspense>
-            } />
-            <Route path="/shop/order-success" element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <OrderSuccessPage />
-              </Suspense>
-            } />
-            <Route path="/shop/orders" element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <OrderListPage />
-              </Suspense>
-            } />
-            <Route path="/shop/product/:id" element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <ProductDetailPage />
-              </Suspense>
-            } />
+      <Suspense fallback={<LoadingSpinner />}>
+        <Routes>
+          {/* 游客端公开路由 */}
+          <Route path="/" element={<Navigate to="/shop" replace />} />
+          <Route path="/shop" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ShopHome />
+            </Suspense>
+          } />
+          <Route path="/shop/products" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ShopPage />
+            </Suspense>
+          } />
+          <Route path="/shop/checkout" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <CheckoutPage />
+            </Suspense>
+          } />
+          <Route path="/shop/order-success" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <OrderSuccessPage />
+            </Suspense>
+          } />
+          <Route path="/shop/orders" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <OrderListPage />
+            </Suspense>
+          } />
+          <Route path="/shop/product/:id" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ProductDetailPage />
+            </Suspense>
+          } />
 
-            {/* 用户认证路由 */}
-            <Route path="/login" element={<UserLoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
+          {/* 用户认证路由 */}
+          <Route path="/login" element={<UserLoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
 
-            {/* 管理端路由 */}
-            <Route path="/admin/login" element={<LoginPage />} />
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <DashboardLayout>
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <DashboardPage />
-                  </Suspense>
-                </DashboardLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/products" element={
-              <ProtectedRoute>
-                <DashboardLayout>
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <ProductManagementPage />
-                  </Suspense>
-                </DashboardLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/orders" element={
-              <ProtectedRoute>
-                <DashboardLayout>
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <OrderManagementPage />
-                  </Suspense>
-                </DashboardLayout>
-              </ProtectedRoute>
-            } />
+          {/* 管理端路由 */}
+          <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
+          <Route path="/admin/login" element={<LoginPage />} />
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <DashboardPage />
+                </Suspense>
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/products" element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <ProductManagementPage />
+                </Suspense>
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/orders" element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <OrderManagementPage />
+                </Suspense>
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
 
-            {/* 404页面 */}
-            <Route path="/404" element={
-              <ErrorBoundary fallback={
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '100vh',
-                  flexDirection: 'column'
-                }}>
-                  <h1>404 - 页面未找到</h1>
+          {/* 404页面 */}
+          <Route path="/404" element={
+            <ErrorBoundary fallback={
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100vh',
+                flexDirection: 'column'
+              }}>
+                <h1>404 - 页面未找到</h1>
                   <p>抱歉，您访问的页面不存在</p>
                 </div>
               }>
@@ -143,9 +140,6 @@ const App: React.FC = () => {
         </Suspense>
         {/* 全局Toast通知 */}
         <ToastRenderer />
-        {/* React Query DevTools - 仅在开发环境显示 */}
-        {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
-      </QueryClientProvider>
     </ErrorBoundary>
   );
 };

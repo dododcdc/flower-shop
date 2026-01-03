@@ -1,8 +1,10 @@
 package com.flower.shop.controller;
 
-import com.flower.shop.dto.Result;
+import com.flower.shop.common.Result;
 import com.flower.shop.entity.Category;
 import com.flower.shop.service.CategoryService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,7 +24,7 @@ import java.util.Map;
  * - 分类CRUD接口
  * - 按类型查询分类（FLOWER/PACKAGING）
  * - 分类状态管理
- * 
+ *
  * 设计说明：
  * - 扁平化分类结构，不支持树形层级
  * - 通过type字段区分花材(FLOWER)和包装(PACKAGING)
@@ -33,6 +35,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @CrossOrigin
 @Validated
+@Tag(name = "分类管理", description = "商品分类管理接口")
 public class CategoryController {
 
     private final CategoryService categoryService;
@@ -41,6 +44,7 @@ public class CategoryController {
      * 获取所有分类列表
      */
     @GetMapping("/list")
+    @Operation(summary = "获取所有分类", description = "获取所有分类列表")
     public Result<List<Category>> getAllCategories() {
         try {
             List<Category> categories = categoryService.list();
@@ -58,6 +62,7 @@ public class CategoryController {
      * 根据ID获取分类详情
      */
     @GetMapping("/{id}")
+    @Operation(summary = "获取分类详情", description = "根据ID获取单个分类的详细信息")
     public Result<Category> getCategoryById(@PathVariable("id") @NotNull Long id) {
         try {
             Category category = categoryService.getById(id);
@@ -76,6 +81,7 @@ public class CategoryController {
      */
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "创建分类", description = "管理员：创建新的商品分类")
     public Result<String> createCategory(@RequestBody @Valid Category category) {
         try {
             boolean success = categoryService.createCategory(category);
@@ -97,6 +103,7 @@ public class CategoryController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "更新分类", description = "管理员：更新分类信息")
     public Result<String> updateCategory(
             @PathVariable("id") @NotNull Long id,
             @RequestBody @Valid Category category) {
@@ -121,6 +128,7 @@ public class CategoryController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "删除分类", description = "管理员：删除指定分类")
     public Result<String> deleteCategory(@PathVariable("id") @NotNull Long id) {
         try {
             boolean result = categoryService.deleteCategory(id);
@@ -142,6 +150,7 @@ public class CategoryController {
      */
     @PutMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "切换分类状态", description = "管理员：启用或禁用分类")
     public Result<String> toggleCategoryStatus(@PathVariable("id") @NotNull Long id) {
         try {
             boolean result = categoryService.toggleCategoryStatus(id);
@@ -163,6 +172,7 @@ public class CategoryController {
      */
     @PutMapping("/sort")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "更新分类排序", description = "管理员：批量更新分类的排序")
     public Result<String> updateCategorySort(@RequestBody @Valid List<Map<String, Object>> sortData) {
         try {
             boolean result = categoryService.updateCategorySort(sortData);

@@ -2,9 +2,11 @@ package com.flower.shop.controller;
 
 import com.flower.shop.dto.LoginRequest;
 import com.flower.shop.dto.LoginResponse;
-import com.flower.shop.dto.Result;
+import com.flower.shop.common.Result;
 import com.flower.shop.dto.UserRegisterRequest;
 import com.flower.shop.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
+@Tag(name = "用户认证", description = "普通用户注册登录接口")
 public class AuthController {
 
     private final UserService userService;
@@ -25,6 +28,7 @@ public class AuthController {
      * 用户注册
      */
     @PostMapping("/register")
+    @Operation(summary = "用户注册", description = "普通用户注册，需要手机号、密码、用户名")
     public Result<String> register(@RequestBody @Validated UserRegisterRequest request) {
         try {
             userService.register(request);
@@ -41,6 +45,7 @@ public class AuthController {
      * 用户登录
      */
     @PostMapping("/login")
+    @Operation(summary = "用户登录", description = "普通用户登录，返回JWT Token")
     public Result<LoginResponse> login(@RequestBody @Validated LoginRequest request) {
         try {
             LoginResponse response = userService.login(request);

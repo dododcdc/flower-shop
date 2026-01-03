@@ -1,4 +1,4 @@
-package com.flower.shop.dto;
+package com.flower.shop.common;
 
 import lombok.Data;
 

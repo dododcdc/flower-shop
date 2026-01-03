@@ -57,7 +57,7 @@ instance.interceptors.response.use(
     }
 
     // 处理认证错误
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
       // Clear token and redirect to login
       localStorage.removeItem(STORAGE_KEYS.TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER);

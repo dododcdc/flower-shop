@@ -1,6 +1,6 @@
 package com.flower.shop.config;
 
-import com.flower.shop.dto.Result;
+import com.flower.shop.common.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindException;

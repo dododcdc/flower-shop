@@ -50,6 +50,8 @@ public class SecurityConfig {
                         .requestMatchers("/categories/**").permitAll()
                         // 允许游客端订单接口无需认证访问（游客下单）
                         .requestMatchers("/orders/**").permitAll()
+                        // 允许仪表盘接口访问（需要认证，但已在JWT过滤器中验证）
+                        .requestMatchers("/api/dashboard/**").authenticated()
                         // 允许静态资源访问
                         .requestMatchers("/static/**", "/css/**", "/js/**", "/images/**", "/uploads/**").permitAll()
                         // 允许错误页面访问
