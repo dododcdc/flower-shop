@@ -5,6 +5,7 @@ import {
   Card,
   CardContent,
   CardMedia,
+  CardActions,
   Typography,
   TextField,
   Button,
@@ -14,12 +15,12 @@ import {
 } from '@mui/material';
 import {
   Search as SearchIcon,
-  Visibility as ViewIcon,
   ShoppingCart as CartIcon,
   LocalFlorist,
   Close as CloseIcon,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 import {
   type Product,
@@ -32,14 +33,13 @@ import {
 import { productAPI } from '../../api/productAPI';
 import { categoryAPI, type Category } from '../../api/categoryAPI';
 import { API_BASE_URL } from '../../constants';
+import { useSnackbar } from 'notistack';
 
 // Animation variants
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 },
 };
-
-import { useSnackbar } from 'notistack';
 
 interface PublicProductListProps {
   onAddToCart?: (product: Product, quantity: number) => { success: boolean; message?: string };
@@ -50,6 +50,7 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
   onAddToCart,
   onViewDetails
 }) => {
+  const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
 
   // State for products and pagination
@@ -57,7 +58,6 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
 
   // Pagination state
   const [pagination, setPagination] = useState({
@@ -165,21 +165,6 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
     setFilters(searchFilters);
   }, [debouncedKeyword, searchForm.categoryId, searchForm.sortBy]);
 
-  const handleReset = () => {
-    setSearchForm({
-      keyword: '',
-      categoryId: '',
-      sortBy: 'created_at-desc',
-    });
-    setFilters({
-      current: 1,
-      size: 12,
-      status: 1,
-      sortBy: 'created_at',
-      sortOrder: 'desc',
-    });
-  };
-
   const handlePageChange = (_: React.ChangeEvent<unknown>, value: number) => {
     setFilters({ ...filters, current: value });
   };
@@ -192,7 +177,7 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
     const endRect = cartBtn.getBoundingClientRect();
 
     // 动画配置
-    const duration = 1.2; // 动画时长(秒)。想要更慢就改大这个数字，例如 1.5
+    const duration = 1.2;
 
     const flyer = document.createElement('img');
     flyer.src = imageSrc;
@@ -205,7 +190,6 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
     flyer.style.objectFit = 'cover';
     flyer.style.zIndex = '9999';
     flyer.style.pointerEvents = 'none';
-    // 使用变量设置动画时间
     flyer.style.transition = `all ${duration}s cubic-bezier(0.2, 0.8, 0.2, 1)`;
     flyer.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
 
@@ -223,7 +207,6 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
       flyer.style.transform = 'scale(0.5)';
     });
 
-    // 清理时间也要跟随动画时间
     setTimeout(() => {
       if (document.body.contains(flyer)) {
         document.body.removeChild(flyer);
@@ -235,15 +218,12 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
     e.stopPropagation();
 
     if (onAddToCart) {
-      const result = onAddToCart(product, 1); // 默认添加1个
+      const result = onAddToCart(product, 1);
 
       if (result && result.success) {
-        // Success: Trigger animation and global cart feedback
-        const images = parseImages(product);
-        const imageSrc = images.length > 0 ? images[0] : '/placeholder-flower.jpg'; // Fallback image
+        const imageSrc = getImageUrl(product.mainImagePath || product.imageList?.[0]);
         flyToCart(e.currentTarget, imageSrc);
 
-        // Trigger global cart feedback
         if ((window as any).triggerCartFeedback) {
           (window as any).triggerCartFeedback({
             name: product.name,
@@ -251,7 +231,6 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
           });
         }
       } else {
-        // Error: Show error toast
         enqueueSnackbar(result?.message || '添加失败', {
           variant: 'error',
           autoHideDuration: 3000
@@ -266,22 +245,32 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
     }
   };
 
-  const parseImages = (product: Product) => {
-    try {
-      if (product.mainImagePath) {
-        let imageUrl = product.mainImagePath;
-        if (!/^https?:/i.test(imageUrl)) {
-          if (imageUrl.startsWith('/uploads/')) {
-            imageUrl = `${API_BASE_URL}${imageUrl}`;
-          }
+  const handleBuyNow = (e: React.MouseEvent, product: Product) => {
+    e.stopPropagation();
+    if (product.stockQuantity === 0) return;
+
+    // 方案一：独立订单流
+    navigate('/shop/checkout', {
+      state: {
+        directBuyItem: {
+          id: `direct-${Date.now()}`,
+          productId: product.id,
+          product: product,
+          quantity: 1,
+          addedAt: new Date(),
+          selected: true
         }
-        return [imageUrl];
       }
-      return [];
-    } catch (error) {
-      console.error('Error parsing images:', error);
-      return [];
+    });
+  };
+
+  const getImageUrl = (imagePath: string | null | undefined) => {
+    if (!imagePath) return '/placeholder-flower.jpg';
+    if (imagePath.startsWith('http')) return imagePath;
+    if (imagePath.startsWith('/uploads/')) {
+      return `${API_BASE_URL}${imagePath}`;
     }
+    return imagePath;
   };
 
   return (
@@ -479,7 +468,6 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
       {!loading && !error && (
         <Grid container spacing={3}>
           {products.map((product, index) => {
-            const images = parseImages(product);
             const isDiscounted = hasDiscount(product);
             const discountPercent = getDiscountPercentage(product);
 
@@ -499,11 +487,13 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
                       transition: 'all 0.3s ease',
                       borderRadius: 2,
                       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                      cursor: 'pointer',
                       '&:hover': {
                         transform: 'translateY(-4px)',
                         boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
                       },
                     }}
+                    onClick={() => handleViewDetails(product)}
                   >
                     {/* Product Image */}
                     <CardMedia
@@ -518,27 +508,15 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
                         overflow: 'hidden',
                       }}
                     >
-                      {images.length > 0 ? (
-                        <img
-                          src={images[0]}
-                          alt={product.name}
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                          }}
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <Box sx={{ textAlign: 'center', p: 2 }}>
-                          <LocalFlorist sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
-                          <Typography variant="body2" color="text.secondary">
-                            暂无图片
-                          </Typography>
-                        </Box>
-                      )}
+                      <img
+                        src={getImageUrl(product.mainImagePath || product.imageList?.[0])}
+                        alt={product.name}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
+                      />
 
                       {/* Discount badge */}
                       {isDiscounted && (
@@ -552,6 +530,7 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
                             bgcolor: '#D4AF37',
                             color: '#1B3A2B',
                             fontWeight: 'bold',
+                            fontSize: '11px',
                           }}
                         />
                       )}
@@ -561,18 +540,34 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
                         <Chip
                           label="推荐"
                           size="small"
-                          color="primary"
                           sx={{
                             position: 'absolute',
                             top: 8,
                             right: 8,
+                            bgcolor: 'rgba(27, 58, 43, 0.9)',
+                            color: '#D4AF37',
                             fontWeight: 'bold',
+                            fontSize: '11px',
                           }}
                         />
                       )}
+
+                      {/* Stock Status */}
+                      <Chip
+                        label={getStockStatusText(product)}
+                        size="small"
+                        color={getStockStatusColor(product)}
+                        sx={{
+                          position: 'absolute',
+                          bottom: 8,
+                          left: 8,
+                          fontSize: '11px',
+                          height: '24px',
+                        }}
+                      />
                     </CardMedia>
 
-                    <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 2 }}>
+                    <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 2, pb: 1 }}>
                       {/* Category */}
                       <Chip
                         label={product.categoryName || '精选花艺'}
@@ -582,7 +577,7 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
                           color: '#D4AF37',
                           mb: 1,
                           alignSelf: 'flex-start',
-                          fontSize: '12px',
+                          fontSize: '11px',
                           height: 24,
                         }}
                       />
@@ -645,75 +640,79 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
                           </Typography>
                         )}
                       </Box>
-
-                      {/* Stock Status */}
-                      <Box sx={{ mb: 2 }}>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: getStockStatusColor(product),
-                            fontSize: '13px',
-                            fontWeight: 500,
-                          }}
-                        >
-                          {getStockStatusText(product)}
-                        </Typography>
-                      </Box>
-
-                      {/* Action Buttons */}
-                      <Box sx={{ display: 'flex', gap: 1, mt: 'auto' }}>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          startIcon={<ViewIcon />}
-                          onClick={() => handleViewDetails(product)}
-                          sx={{
-                            flex: 1,
-                            height: 40,
-                            fontSize: '13px',
-                            fontWeight: 500,
-                            borderColor: '#D4AF37',
-                            color: '#1B3A2B',
-                            minWidth: 100,
-                            whiteSpace: 'nowrap',
-                            textOverflow: 'ellipsis',
-                            '&:hover': {
-                              borderColor: '#1B3A2B',
-                              bgcolor: 'rgba(212, 175, 55, 0.1)',
-                            },
-                          }}
-                        >
-                          查看详情
-                        </Button>
-                        <Button
-                          variant="contained"
-                          size="small"
-                          startIcon={<CartIcon />}
-                          onClick={(e) => handleAddToCart(e, product)}
-                          disabled={product.stockQuantity === 0}
-                          sx={{
-                            flex: 1,
-                            height: 40,
-                            fontSize: '13px',
-                            fontWeight: 600,
-                            bgcolor: '#D4AF37',
-                            color: '#1B3A2B',
-                            minWidth: 110,
-                            whiteSpace: 'nowrap',
-                            textOverflow: 'ellipsis',
-                            '&:hover': {
-                              bgcolor: '#B8941F',
-                            },
-                            '&:disabled': {
-                              bgcolor: 'rgba(0, 0, 0, 0.12)',
-                              color: 'rgba(0, 0, 0, 0.26)',
-                            },
-                          }}
-                        >
-                          加入购物车
-                        </Button>
-                      </Box>
                     </CardContent>
+
+                    {/* Action Buttons */}
+                    <CardActions sx={{ px: 2, pb: 2, pt: 0, gap: 1, alignItems: 'center' }}>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={(e) => { e.stopPropagation(); handleViewDetails(product); }}
+                        sx={{
+                          flex: 1,
+                          height: 32,
+                          minWidth: 0,
+                          padding: '0 4px',
+                          fontSize: '12px',
+                          whiteSpace: 'nowrap',
+                          borderColor: 'rgba(212, 175, 55, 0.5)',
+                          color: '#1B3A2B',
+                          borderRadius: '6px',
+                          '&:hover': {
+                            borderColor: '#1B3A2B',
+                            bgcolor: 'rgba(212, 175, 55, 0.05)',
+                          },
+                        }}
+                      >
+                        详情
+                      </Button>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        onClick={(e) => handleBuyNow(e, product)}
+                        disabled={product.stockQuantity === 0}
+                        sx={{
+                          flex: 2,
+                          height: 32,
+                          minWidth: 0,
+                          padding: '0 8px',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          whiteSpace: 'nowrap',
+                          bgcolor: '#D4AF37',
+                          color: '#1B3A2B',
+                          borderRadius: '6px',
+                          boxShadow: 'none',
+                          '&:hover': {
+                            bgcolor: '#B8941F',
+                            boxShadow: 'none',
+                          },
+                        }}
+                      >
+                        立即购买
+                      </Button>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => handleAddToCart(e, product)}
+                        disabled={product.stockQuantity === 0}
+                        sx={{
+                          height: 32,
+                          width: 32,
+                          border: '1px solid rgba(212, 175, 55, 0.3)',
+                          color: '#D4AF37',
+                          borderRadius: '6px',
+                          '&:hover': {
+                            bgcolor: 'rgba(212, 175, 55, 0.1)',
+                            borderColor: '#D4AF37',
+                          },
+                          '& .MuiSvgIcon-root': {
+                            fontSize: '18px'
+                          }
+                        }}
+                      >
+                        <CartIcon />
+                      </IconButton>
+                    </CardActions>
                   </Card>
                 </motion.div>
               </Grid>
@@ -761,7 +760,6 @@ const PublicProductList: React.FC<PublicProductListProps> = ({
           />
         </Box>
       )}
-
     </Box>
   );
 };

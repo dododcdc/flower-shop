@@ -42,7 +42,7 @@ interface ShopLayoutProps {
 const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
   const navigate = useNavigate();
   const location = useLocation(); // Hook for checking current path
-  const { totalItems, openCart } = useCartStore();
+  const { totalItems, openCart, clearCart } = useCartStore();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const cartButtonRef = useRef<HTMLButtonElement>(null);
@@ -91,6 +91,7 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
 
   const handleLogout = () => {
     handleUserMenuClose();
+    clearCart(); // 退出登录时清空购物车
     logout();
     setGuestId(null); // 清除游客ID，下次进入会再次询问
     navigate('/login');
