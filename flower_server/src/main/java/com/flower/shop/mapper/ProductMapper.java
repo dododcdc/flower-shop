@@ -38,7 +38,7 @@ public interface ProductMapper extends BaseMapper<Product> {
      * 查询商品的所有图片详情（包含完整信息）
      */
     @Select("SELECT id, image_path, image_type, sort_order FROM product_images " +
-            "WHERE product_id = #{productId} ORDER BY sort_order ASC, id ASC")
+            "WHERE product_id = #{productId} ORDER BY image_type ASC, sort_order ASC, id ASC")
     List<ProductImageInfo> selectProductImagesWithDetails(@Param("productId") Long productId);
 
     /**

@@ -1,6 +1,33 @@
 import React, { ReactNode, useRef, useState, useEffect } from 'react';
-import { Box, AppBar, Toolbar, Typography, Container, IconButton, Badge, Menu, MenuItem, Chip } from '@mui/material';
-import { ShoppingBasket, Receipt, AccountCircle, Login } from '@mui/icons-material';
+import {
+  Box,
+  AppBar,
+  Toolbar,
+  Typography,
+  Container,
+  IconButton,
+  Badge,
+  Menu,
+  MenuItem,
+  Chip,
+  useMediaQuery,
+  useTheme,
+  Drawer,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+} from '@mui/material';
+import {
+  ShoppingBasket,
+  Receipt,
+  AccountCircle,
+  Login,
+  Menu as MenuIcon,
+  Home,
+  Store,
+  ChevronRight,
+} from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import CartDrawer from './CartDrawer';
@@ -16,7 +43,10 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
   const navigate = useNavigate();
   const location = useLocation(); // Hook for checking current path
   const { totalItems, openCart } = useCartStore();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const cartButtonRef = useRef<HTMLButtonElement>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // 获取用户认证状态
   const { user, logout, guestId, setGuestId } = useAuthStore();
@@ -155,84 +185,96 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
               </Box>
             </motion.div>
 
-            {/* 导航链接 - 紧跟 Logo */}
-            <Box sx={{ display: 'flex', gap: 0, alignItems: 'center' }}>
-              <Box
-                onClick={() => navigate('/shop')}
-                sx={{
-                  px: 2.5,
-                  py: 1,
-                  cursor: 'pointer',
-                  position: 'relative',
-                  transition: 'all 0.3s ease',
-                  '&::after': {
-                    content: '""',
-                    position: 'absolute',
-                    bottom: 0,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: location.pathname === '/shop' ? '60%' : '0%',
-                    height: '3px',
-                    bgcolor: '#D4AF37',
-                    borderRadius: '2px 2px 0 0',
-                    transition: 'width 0.3s ease',
-                  },
-                  '&:hover::after': {
-                    width: '60%',
-                  },
-                }}
-              >
-                <Typography
+            {/* 导航链接 - 仅桌面端显示 */}
+            {!isMobile && (
+              <Box sx={{ display: 'flex', gap: 0, alignItems: 'center' }}>
+                <Box
+                  onClick={() => navigate('/shop')}
                   sx={{
-                    color: location.pathname === '/shop' ? '#D4AF37' : '#F4E4C1',
-                    fontSize: '15px',
-                    fontWeight: location.pathname === '/shop' ? 600 : 400,
-                    letterSpacing: '0.5px',
-                    transition: 'color 0.3s ease',
+                    px: 2.5,
+                    py: 1,
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'all 0.3s ease',
+                    '&::after': {
+                      content: '""',
+                      position: 'absolute',
+                      bottom: 0,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      width: location.pathname === '/shop' ? '60%' : '0%',
+                      height: '3px',
+                      bgcolor: '#D4AF37',
+                      borderRadius: '2px 2px 0 0',
+                      transition: 'width 0.3s ease',
+                    },
+                    '&:hover::after': {
+                      width: '60%',
+                    },
                   }}
                 >
-                  首页
-                </Typography>
-              </Box>
+                  <Typography
+                    sx={{
+                      color: location.pathname === '/shop' ? '#D4AF37' : '#F4E4C1',
+                      fontSize: '15px',
+                      fontWeight: location.pathname === '/shop' ? 600 : 400,
+                      letterSpacing: '0.5px',
+                      transition: 'color 0.3s ease',
+                    }}
+                  >
+                    首页
+                  </Typography>
+                </Box>
 
-              <Box
-                onClick={() => navigate('/shop/products')}
-                sx={{
-                  px: 2.5,
-                  py: 1,
-                  cursor: 'pointer',
-                  position: 'relative',
-                  transition: 'all 0.3s ease',
-                  '&::after': {
-                    content: '""',
-                    position: 'absolute',
-                    bottom: 0,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: location.pathname === '/shop/products' ? '60%' : '0%',
-                    height: '3px',
-                    bgcolor: '#D4AF37',
-                    borderRadius: '2px 2px 0 0',
-                    transition: 'width 0.3s ease',
-                  },
-                  '&:hover::after': {
-                    width: '60%',
-                  },
-                }}
-              >
-                <Typography
+                <Box
+                  onClick={() => navigate('/shop/products')}
                   sx={{
-                    color: location.pathname === '/shop/products' ? '#D4AF37' : '#F4E4C1',
-                    fontSize: '15px',
-                    fontWeight: location.pathname === '/shop/products' ? 600 : 400,
-                    letterSpacing: '0.5px',
-                    transition: 'color 0.3s ease',
+                    px: 2.5,
+                    py: 1,
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'all 0.3s ease',
+                    '&::after': {
+                      content: '""',
+                      position: 'absolute',
+                      bottom: 0,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      width: location.pathname === '/shop/products' ? '60%' : '0%',
+                      height: '3px',
+                      bgcolor: '#D4AF37',
+                      borderRadius: '2px 2px 0 0',
+                      transition: 'width 0.3s ease',
+                    },
+                    '&:hover::after': {
+                      width: '60%',
+                    },
                   }}
                 >
-                  全部商品
-                </Typography>
+                  <Typography
+                    sx={{
+                      color: location.pathname === '/shop/products' ? '#D4AF37' : '#F4E4C1',
+                      fontSize: '15px',
+                      fontWeight: location.pathname === '/shop/products' ? 600 : 400,
+                      letterSpacing: '0.5px',
+                      transition: 'color 0.3s ease',
+                    }}
+                  >
+                    全部商品
+                  </Typography>
+                </Box>
               </Box>
-            </Box>
+            )}
+
+            {/* 移动端菜单按钮 */}
+            {isMobile && (
+              <IconButton
+                onClick={() => setMobileMenuOpen(true)}
+                sx={{ color: '#D4AF37', ml: -1 }}
+              >
+                <MenuIcon />
+              </IconButton>
+            )}
 
             {/* 占位符，将右侧按钮推到最右边 */}
             <Box sx={{ flexGrow: 1 }} />
@@ -431,6 +473,61 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
 
       {/* 购物车抽屉 */}
       <CartDrawer />
+
+      {/* 移动端导航抽屉 */}
+      <Drawer
+        anchor="left"
+        open={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        PaperProps={{
+          sx: {
+            width: 280,
+            bgcolor: '#1B3A2B',
+            color: '#F4E4C1',
+          }
+        }}
+      >
+        <Box sx={{ p: 3, borderBottom: '1px solid rgba(212, 175, 55, 0.2)', mb: 2 }}>
+          <Typography variant="h6" sx={{ color: '#D4AF37', fontWeight: 'bold' }}>
+            🌺 花言花语
+          </Typography>
+        </Box>
+        <List sx={{ px: 2 }}>
+          {[
+            { text: '首页', icon: <Home />, path: '/shop' },
+            { text: '全部商品', icon: <Store />, path: '/shop/products' },
+            { text: '我的订单', icon: <Receipt />, path: '/shop/orders' },
+          ].map((item) => (
+            <ListItem
+              key={item.text}
+              onClick={() => {
+                navigate(item.path);
+                setMobileMenuOpen(false);
+              }}
+              sx={{
+                borderRadius: 2,
+                mb: 1,
+                bgcolor: location.pathname === item.path ? 'rgba(212, 175, 55, 0.15)' : 'transparent',
+                color: location.pathname === item.path ? '#D4AF37' : '#F4E4C1',
+                '&:hover': {
+                  bgcolor: 'rgba(212, 175, 55, 0.1)',
+                }
+              }}
+            >
+              <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText
+                primary={item.text}
+                primaryTypographyProps={{
+                  fontWeight: location.pathname === item.path ? 700 : 400
+                }}
+              />
+              <ChevronRight sx={{ fontSize: 18, opacity: 0.5 }} />
+            </ListItem>
+          ))}
+        </List>
+      </Drawer>
 
       {/* 主要内容区域 */}
       <Box sx={{ flexGrow: 1, bgcolor: '#ffffff', minHeight: 'calc(100vh - 200px)' }}>

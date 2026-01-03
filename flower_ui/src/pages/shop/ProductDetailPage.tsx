@@ -9,8 +9,6 @@ import {
   IconButton,
   Card,
   CardMedia,
-  Breadcrumbs,
-  Link,
   Chip,
   Paper,
   Divider,
@@ -18,6 +16,8 @@ import {
   Skeleton,
   Snackbar,
   Alert,
+  Breadcrumbs,
+  Link,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -30,16 +30,24 @@ import {
   AccessTime,
   Favorite,
   FavoriteBorder,
+  Home,
+  ChevronRight,
+  VerifiedUser,
+  LocalShipping,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import { Link as RouterLink } from 'react-router-dom';
 import ShopLayout from '../../components/shop/ShopLayout';
 import { Product } from '../../models/product';
 import { productAPI } from '../../api/productAPI';
+import { useCartStore } from '../../store/cartStore';
+import { API_BASE_URL } from '../../constants';
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const theme = useTheme();
+  const addItem = useCartStore((state) => state.addItem);
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,6 +55,8 @@ const ProductDetailPage: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showSnackbar, setShowSnackbar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
   const [isFavorite, setIsFavorite] = useState(false);
 
   // 加载商品详情
@@ -55,9 +65,9 @@ const ProductDetailPage: React.FC = () => {
 
     try {
       setLoading(true);
-      const response = await productAPI.getProductById(Number(id));
-      if (response.success && response.data) {
-        setProduct(response.data);
+      const productData = await productAPI.getProductById(Number(id));
+      if (productData) {
+        setProduct(productData);
       } else {
         setError('商品不存在或已下架');
       }
@@ -85,18 +95,36 @@ const ProductDetailPage: React.FC = () => {
   const handleAddToCart = () => {
     if (!product) return;
 
-    console.log('添加到购物车:', { product, quantity });
+    const result = addItem(product, quantity);
+    if (result.success) {
+      setSnackbarMessage('已添加到购物车！');
+      setSnackbarSeverity('success');
+    } else {
+      setSnackbarMessage(result.message || '添加失败');
+      setSnackbarSeverity('error');
+    }
     setShowSnackbar(true);
-    // TODO: 实现购物车功能
   };
 
   // 立即购买
   const handleBuyNow = () => {
     if (!product) return;
 
-    console.log('立即购买:', { product, quantity });
-    // TODO: 跳转到结算页面
-    navigate('/shop/checkout');
+    // 先添加到购物车
+    const result = addItem(product, quantity);
+    if (result.success) {
+      // 跳转到结算页面
+      navigate('/shop/checkout');
+    } else {
+      setSnackbarMessage(result.message || '添加失败');
+      setSnackbarSeverity('error');
+      setShowSnackbar(true);
+    }
+  };
+
+  // 返回上一页
+  const handleBack = () => {
+    navigate(-1);
   };
 
   // 图片导航
@@ -119,17 +147,29 @@ const ProductDetailPage: React.FC = () => {
   if (loading) {
     return (
       <ShopLayout>
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container maxWidth="xl" sx={{ py: 4 }}>
+          <Box sx={{ mb: 3 }}>
+            <Button
+              startIcon={<ArrowBack />}
+              onClick={handleBack}
+              sx={{
+                color: '#1B3A2B',
+                '&:hover': { bgcolor: 'rgba(212, 175, 55, 0.1)' },
+              }}
+            >
+              返回
+            </Button>
+          </Box>
           <Grid container spacing={4}>
-            <Grid item xs={12} md={6}>
-              <Skeleton variant="rectangular" height={400} sx={{ borderRadius: 2 }} />
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Skeleton variant="rectangular" height={500} sx={{ borderRadius: 4 }} />
             </Grid>
-            <Grid item xs={12} md={6}>
-              <Skeleton variant="text" height={40} sx={{ mb: 2 }} />
-              <Skeleton variant="text" height={24} width="80%" sx={{ mb: 2 }} />
-              <Skeleton variant="text" height={32} width="60%" sx={{ mb: 4 }} />
-              <Skeleton variant="rectangular" height={200} sx={{ mb: 4 }} />
-              <Skeleton variant="rectangular" height={56} sx={{ borderRadius: 2 }} />
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Skeleton variant="text" height={60} width="80%" />
+              <Skeleton variant="text" height={40} width="40%" sx={{ mt: 2 }} />
+              <Skeleton variant="rectangular" height={200} sx={{ mt: 4, borderRadius: 2 }} />
+              <Skeleton variant="rectangular" height={60} sx={{ mt: 4, borderRadius: 2 }} />
+              <Skeleton variant="rectangular" height={56} sx={{ mt: 4, borderRadius: 2 }} />
             </Grid>
           </Grid>
         </Container>
@@ -154,7 +194,21 @@ const ProductDetailPage: React.FC = () => {
     );
   }
 
-  const images = product.imageList || [product.mainImagePath].filter(Boolean);
+  const getImageUrl = (imagePath: string | null | undefined) => {
+    if (!imagePath) return '/placeholder-flower.jpg';
+    if (imagePath.startsWith('http')) return imagePath;
+    if (imagePath.startsWith('/uploads/')) {
+      return `${API_BASE_URL}${imagePath}`;
+    }
+    return imagePath;
+  };
+
+  const images = product.imageList && product.imageList.length > 0
+    ? product.imageList.map(getImageUrl)
+    : product.mainImagePath
+      ? [getImageUrl(product.mainImagePath)]
+      : ['/placeholder-flower.jpg'];
+
   const hasDiscount = product.originalPrice && product.originalPrice > product.price;
   const discountPercentage = hasDiscount
     ? Math.round(((product.originalPrice! - product.price) / product.originalPrice!) * 100)
@@ -162,23 +216,47 @@ const ProductDetailPage: React.FC = () => {
 
   return (
     <ShopLayout>
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         {/* 面包屑导航 */}
-        <Breadcrumbs sx={{ mb: 4 }}>
-          <Link
-            component="button"
-            variant="body1"
-            onClick={() => navigate('/shop')}
-            sx={{ color: '#D4AF37', textDecoration: 'none' }}
+        <Box sx={{ mb: 4 }}>
+          <Breadcrumbs
+            separator={<ChevronRight fontSize="small" sx={{ color: 'rgba(212, 175, 55, 0.5)' }} />}
+            aria-label="breadcrumb"
           >
-            商品列表
-          </Link>
-          <Typography color="text.primary">{product.name}</Typography>
-        </Breadcrumbs>
+            <Link
+              component={RouterLink}
+              to="/shop"
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                color: 'text.secondary',
+                textDecoration: 'none',
+                '&:hover': { color: '#D4AF37' }
+              }}
+            >
+              <Home sx={{ mr: 0.5, fontSize: 20 }} />
+              首页
+            </Link>
+            <Link
+              component={RouterLink}
+              to="/shop/products"
+              sx={{
+                color: 'text.secondary',
+                textDecoration: 'none',
+                '&:hover': { color: '#D4AF37' }
+              }}
+            >
+              全部商品
+            </Link>
+            <Typography color="#D4AF37" sx={{ fontWeight: 500 }}>
+              {product.name}
+            </Typography>
+          </Breadcrumbs>
+        </Box>
 
-        <Grid container spacing={4}>
-          {/* 商品图片 */}
-          <Grid item xs={12} md={6}>
+        <Grid container spacing={4} sx={{ mb: 8 }}>
+          {/* 左侧：图片展示区 */}
+          <Grid size={{ xs: 12, md: 6 }}>
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -186,16 +264,29 @@ const ProductDetailPage: React.FC = () => {
             >
               <Card sx={{ borderRadius: 2, overflow: 'hidden' }}>
                 <Box sx={{ position: 'relative' }}>
-                  {/* 主图片 */}
-                  <CardMedia
-                    component="img"
-                    height={400}
-                    image={images[currentImageIndex] || '/placeholder-flower.jpg'}
-                    alt={product.name}
-                    sx={{ objectFit: 'cover' }}
-                  />
+                  <Box
+                    sx={{
+                      width: '100%',
+                      height: 450,
+                      position: 'relative',
+                      bgcolor: '#f5f5f5',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <CardMedia
+                      component="img"
+                      image={images[currentImageIndex] || '/placeholder-flower.jpg'}
+                      alt={product.name}
+                      sx={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  </Box>
 
-                  {/* 图片导航按钮 */}
                   {images.length > 1 && (
                     <>
                       <IconButton
@@ -227,7 +318,6 @@ const ProductDetailPage: React.FC = () => {
                     </>
                   )}
 
-                  {/* 折扣标签 */}
                   {hasDiscount && (
                     <Chip
                       label={`${discountPercentage}% OFF`}
@@ -244,7 +334,6 @@ const ProductDetailPage: React.FC = () => {
                     />
                   )}
 
-                  {/* 收藏按钮 */}
                   <IconButton
                     onClick={() => setIsFavorite(!isFavorite)}
                     sx={{
@@ -263,7 +352,6 @@ const ProductDetailPage: React.FC = () => {
                   </IconButton>
                 </Box>
 
-                {/* 缩略图 */}
                 {images.length > 1 && (
                   <Box sx={{ p: 2, display: 'flex', gap: 1, overflowX: 'auto' }}>
                     {images.map((image, index) => (
@@ -294,27 +382,23 @@ const ProductDetailPage: React.FC = () => {
             </motion.div>
           </Grid>
 
-          {/* 商品信息 */}
-          <Grid item xs={12} md={6}>
+          {/* 右侧：商品购买区 */}
+          <Grid size={{ xs: 12, md: 6 }}>
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              {/* 分类和推荐标签 */}
               <Box sx={{ mb: 2, display: 'flex', gap: 1, alignItems: 'center' }}>
                 <Chip
-                  icon={<LocalFlorist />}
+                  icon={<LocalFlorist fontSize="small" />}
                   label={product.categoryName || '精选花艺'}
                   size="small"
-                  sx={{
-                    bgcolor: 'rgba(212, 175, 55, 0.1)',
-                    color: '#D4AF37',
-                  }}
+                  sx={{ bgcolor: 'rgba(212, 175, 55, 0.1)', color: '#D4AF37' }}
                 />
                 {product.featured === 1 && (
                   <Chip
-                    icon={<Star />}
+                    icon={<Star fontSize="small" />}
                     label="推荐商品"
                     size="small"
                     color="primary"
@@ -322,88 +406,118 @@ const ProductDetailPage: React.FC = () => {
                 )}
               </Box>
 
-              {/* 商品名称 */}
-              <Typography variant="h4" sx={{ color: '#1B3A2B', fontWeight: 'bold', mb: 2 }}>
+              <Typography variant="h3" sx={{
+                color: '#1B3A2B',
+                fontWeight: 800,
+                mb: 2,
+                fontSize: { xs: '1.75rem', md: '2.5rem' },
+                lineHeight: 1.2
+              }}>
                 {product.name}
               </Typography>
 
-              {/* 商品描述 */}
-              <Typography variant="body1" sx={{ color: 'text.secondary', mb: 3, lineHeight: 1.6 }}>
+              <Typography variant="body1" sx={{
+                color: 'text.secondary',
+                mb: 4,
+                lineHeight: 1.8,
+                fontSize: '1.05rem',
+                borderLeft: '4px solid rgba(212, 175, 55, 0.3)',
+                pl: 2
+              }}>
                 {product.description || '精选花材，精心搭配，为您传递最真挚的情感。每一束花都经过花艺师的精心设计，确保品质和美观。'}
               </Typography>
 
-              {/* 价格信息 */}
-              <Box sx={{ mb: 3, display: 'flex', alignItems: 'baseline', gap: 2 }}>
-                <Typography variant="h3" sx={{ color: '#D4AF37', fontWeight: 'bold' }}>
-                  ¥{product.price.toFixed(2)}
-                </Typography>
-                {hasDiscount && (
-                  <>
-                    <Typography variant="h6" sx={{ color: 'text.secondary', textDecoration: 'line-through' }}>
+              <Box sx={{
+                mb: 4,
+                p: 3,
+                borderRadius: 3,
+                bgcolor: 'rgba(212, 175, 55, 0.03)',
+                border: '1px solid rgba(212, 175, 55, 0.1)'
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2, mb: 1 }}>
+                  <Typography variant="h3" sx={{ color: '#D4AF37', fontWeight: 800 }}>
+                    <Box component="span" sx={{ fontSize: '1.5rem', mr: 0.5 }}>¥</Box>
+                    {product.price.toFixed(2)}
+                  </Typography>
+                  {hasDiscount && (
+                    <Typography variant="h6" sx={{ color: 'text.disabled', textDecoration: 'line-through' }}>
                       ¥{product.originalPrice!.toFixed(2)}
                     </Typography>
-                    <Chip
-                      label={`省${(product.originalPrice! - product.price).toFixed(2)}元`}
-                      size="small"
-                      color="error"
-                    />
-                  </>
-                )}
-              </Box>
+                  )}
+                </Box>
 
-              {/* 库存信息 */}
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="body2" sx={{ color: product.stockQuantity > 0 ? 'success.main' : 'error.main' }}>
-                  {product.stockQuantity > 0
-                    ? `库存: ${product.stockQuantity} 件`
-                    : '暂时缺货'}
-                </Typography>
-              </Box>
-
-              {/* 数量选择 */}
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="h6" sx={{ mb: 2 }}>购买数量</Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Chip
+                    icon={<VerifiedUser sx={{ fontSize: '16px !important' }} />}
+                    label="正品保障"
+                    size="small"
+                    variant="outlined"
+                    sx={{ borderColor: 'rgba(76, 175, 80, 0.3)', color: '#4CAF50', height: 24 }}
+                  />
+                  <Typography variant="caption" sx={{ color: product.stockQuantity > 0 ? 'success.main' : 'error.main', fontWeight: 600 }}>
+                    {product.stockQuantity > 0
+                      ? `✨ 当前有现货 (库存: ${product.stockQuantity})`
+                      : '❌ 暂时缺货'}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Box sx={{ mb: 4 }}>
+                <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 600, color: '#1B3A2B' }}>购买数量</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0 }}>
                   <IconButton
                     onClick={() => handleQuantityChange(-1)}
                     disabled={quantity <= 1}
                     sx={{
-                      bgcolor: 'rgba(212, 175, 55, 0.1)',
-                      '&:hover': { bgcolor: 'rgba(212, 175, 55, 0.2)' },
-                      '&:disabled': { bgcolor: 'rgba(0, 0, 0, 0.05)' },
+                      width: 44,
+                      height: 44,
+                      borderRadius: '4px 0 0 4px',
+                      border: '1px solid #e0e0e0',
+                      bgcolor: 'white',
+                      '&:hover': { bgcolor: '#f5f5f5' },
                     }}
                   >
-                    <Remove />
+                    <Remove fontSize="small" />
                   </IconButton>
-                  <Typography variant="h6" sx={{ minWidth: 40, textAlign: 'center' }}>
+                  <Box sx={{
+                    width: 60,
+                    height: 44,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderTop: '1px solid #e0e0e0',
+                    borderBottom: '1px solid #e0e0e0',
+                    fontSize: '1.1rem',
+                    fontWeight: 600
+                  }}>
                     {quantity}
-                  </Typography>
+                  </Box>
                   <IconButton
                     onClick={() => handleQuantityChange(1)}
                     disabled={quantity >= product.stockQuantity}
                     sx={{
-                      bgcolor: 'rgba(212, 175, 55, 0.1)',
-                      '&:hover': { bgcolor: 'rgba(212, 175, 55, 0.2)' },
-                      '&:disabled': { bgcolor: 'rgba(0, 0, 0, 0.05)' },
+                      width: 44,
+                      height: 44,
+                      borderRadius: '0 4px 4px 0',
+                      border: '1px solid #e0e0e0',
+                      bgcolor: 'white',
+                      '&:hover': { bgcolor: '#f5f5f5' },
                     }}
                   >
-                    <Add />
+                    <Add fontSize="small" />
                   </IconButton>
+                  <Typography variant="body2" sx={{ ml: 2, color: 'text.secondary' }}>
+                    小计: <Box component="span" sx={{ color: '#D4AF37', fontWeight: 600 }}>¥{(product.price * quantity).toFixed(2)}</Box>
+                  </Typography>
                 </Box>
               </Box>
 
-              {/* 总价 */}
-              <Paper sx={{ p: 2, mb: 3, bgcolor: 'rgba(212, 175, 55, 0.05)' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography variant="h6">总计</Typography>
-                  <Typography variant="h5" sx={{ color: '#D4AF37', fontWeight: 'bold' }}>
-                    ¥{(product.price * quantity).toFixed(2)}
-                  </Typography>
-                </Box>
-              </Paper>
-
-              {/* 操作按钮 */}
-              <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
+              <Box sx={{
+                display: 'flex',
+                gap: 2,
+                mb: 4,
+                flexDirection: { xs: 'column', sm: 'row' }
+              }}>
                 <Button
                   variant="outlined"
                   size="large"
@@ -415,13 +529,13 @@ const ProductDetailPage: React.FC = () => {
                     height: 56,
                     borderColor: '#D4AF37',
                     color: '#1B3A2B',
+                    borderWidth: 2,
+                    borderRadius: 1,
+                    fontWeight: 700,
                     '&:hover': {
+                      borderWidth: 2,
                       borderColor: '#1B3A2B',
                       bgcolor: 'rgba(212, 175, 55, 0.1)',
-                    },
-                    '&:disabled': {
-                      borderColor: 'rgba(0, 0, 0, 0.12)',
-                      color: 'rgba(0, 0, 0, 0.26)',
                     },
                   }}
                 >
@@ -437,12 +551,12 @@ const ProductDetailPage: React.FC = () => {
                     height: 56,
                     bgcolor: '#D4AF37',
                     color: '#1B3A2B',
+                    borderRadius: 1,
+                    fontWeight: 700,
+                    boxShadow: '0 4px 12px rgba(212, 175, 55, 0.2)',
                     '&:hover': {
                       bgcolor: '#B8941F',
-                    },
-                    '&:disabled': {
-                      bgcolor: 'rgba(0, 0, 0, 0.12)',
-                      color: 'rgba(0, 0, 0, 0.26)',
+                      boxShadow: '0 6px 16px rgba(212, 175, 55, 0.3)',
                     },
                   }}
                 >
@@ -450,7 +564,6 @@ const ProductDetailPage: React.FC = () => {
                 </Button>
               </Box>
 
-              {/* 服务信息 */}
               <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <AccessTime sx={{ color: '#D4AF37', fontSize: 20 }} />
@@ -465,82 +578,162 @@ const ProductDetailPage: React.FC = () => {
           </Grid>
         </Grid>
 
-        {/* 详细信息 */}
-        <Grid container spacing={4} sx={{ mt: 4 }}>
-          <Grid item xs={12}>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <Paper sx={{ p: 4, borderRadius: 2 }}>
-                <Typography variant="h5" sx={{ color: '#1B3A2B', fontWeight: 'bold', mb: 3 }}>
-                  商品详情
+        {/* ---------------- 真实数据详情展示区域 ---------------- */}
+        <Box sx={{ mt: 8 }}>
+          {/* 1. 核心感性体验：花语 */}
+          <Box
+            component={motion.div}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            sx={{
+              textAlign: 'center',
+              py: { xs: 6, md: 10 },
+              px: 3,
+              mb: 8,
+              borderRadius: 4,
+              background: 'linear-gradient(180deg, rgba(212, 175, 55, 0.05) 0%, rgba(212, 175, 55, 0) 100%)',
+              border: '1px solid rgba(212, 175, 55, 0.1)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+          >
+            <Typography variant="overline" sx={{ color: '#D4AF37', fontWeight: 800, letterSpacing: 6, mb: 1, display: 'block' }}>
+              FLOWER LANGUAGE
+            </Typography>
+            <Typography variant="h3" sx={{ color: '#1B3A2B', fontWeight: 800, mb: 4, fontFamily: 'serif' }}>
+              花语寓意
+            </Typography>
+            <Container maxWidth="md">
+              <Typography variant="h5" sx={{
+                color: '#1B3A2B',
+                fontStyle: 'italic',
+                lineHeight: 1.8,
+                fontWeight: 300,
+                position: 'relative',
+                display: 'inline-block'
+              }}>
+                <Box component="span" sx={{ fontSize: '3rem', position: 'absolute', left: -40, top: -20, opacity: 0.2, color: '#D4AF37' }}>“</Box>
+                {product.flowerLanguage || '每一束鲜花都是大自然的情书，在指尖绽放，在心间留香。'}
+                <Box component="span" sx={{ fontSize: '3rem', position: 'absolute', right: -40, bottom: -40, opacity: 0.2, color: '#D4AF37' }}>”</Box>
+              </Typography>
+            </Container>
+          </Box>
+
+          <Grid container spacing={6}>
+            {/* 左侧：商品详情与养护 */}
+            <Grid size={{ xs: 12, md: 7 }}>
+              <Box sx={{ mb: 6 }}>
+                <Typography variant="h5" sx={{ color: '#1B3A2B', fontWeight: 800, mb: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box sx={{ width: 4, height: 24, bgcolor: '#D4AF37', borderRadius: 4 }} />
+                  详情描述
                 </Typography>
+                <Typography variant="body1" sx={{ color: 'text.secondary', lineHeight: 2, fontSize: '1.05rem', whiteSpace: 'pre-wrap' }}>
+                  {product.description || '暂无详细描述'}
+                </Typography>
+              </Box>
 
-                {/* 花语说明 */}
-                {product.flowerLanguage && (
-                  <Box sx={{ mb: 4 }}>
-                    <Typography variant="h6" sx={{ color: '#D4AF37', mb: 2 }}>
-                      🌸 花语寓意
-                    </Typography>
-                    <Typography variant="body1" sx={{ lineHeight: 1.6 }}>
-                      {product.flowerLanguage}
-                    </Typography>
+              <Divider sx={{ mb: 6, opacity: 0.5 }} />
+
+              <Box>
+                <Typography variant="h5" sx={{ color: '#1B3A2B', fontWeight: 800, mb: 4, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box sx={{ width: 4, height: 24, bgcolor: '#D4AF37', borderRadius: 4 }} />
+                  养护指南
+                </Typography>
+                <Grid container spacing={3}>
+                  {(product.careGuide || '保持直立：收到花后请尽快拆除包装放入花瓶。\n勤换清水：建议每天更换一次清水并清洗花瓶内壁。\n修剪根部：每次换水时斜剪根部1-2厘米。\n避光放置：避免阳光直射和空调出风口。')
+                    .split('\n')
+                    .map((guide, index) => guide.trim() && (
+                      <Grid size={{ xs: 12, sm: 6 }} key={index}>
+                        <Paper elevation={0} sx={{
+                          p: 3,
+                          height: '100%',
+                          border: '1px solid #f0f0f0',
+                          borderRadius: 2,
+                          transition: 'all 0.3s',
+                          '&:hover': {
+                            borderColor: '#D4AF37',
+                            transform: 'translateY(-4px)',
+                            boxShadow: '0 10px 20px rgba(0,0,0,0.05)'
+                          }
+                        }}>
+                          <Typography variant="h4" sx={{ color: 'rgba(212, 175, 55, 0.2)', fontWeight: 900, mb: 1 }}>
+                            0{index + 1}
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: '#1B3A2B', fontWeight: 500, lineHeight: 1.6 }}>
+                            {guide.replace(/^•\s*/, '')}
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                    ))}
+                </Grid>
+              </Box>
+            </Grid>
+
+            {/* 右侧：配送服务与保障 (侧边栏) */}
+            <Grid size={{ xs: 12, md: 5 }}>
+              <Box sx={{ position: { md: 'sticky' }, top: 100 }}>
+                <Paper elevation={0} sx={{
+                  p: 4,
+                  bgcolor: '#fafafa',
+                  borderRadius: 3,
+                  border: '1px solid #f0f0f0',
+                  mb: 4
+                }}>
+                  <Typography variant="h6" sx={{ color: '#1B3A2B', fontWeight: 800, mb: 4 }}>服务保障</Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                      <LocalShipping sx={{ color: '#D4AF37' }} />
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.5 }}>极速配送</Typography>
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>支持同城配送，最快2小时内鲜美达。具体时间请在结算页选择。</Typography>
+                      </Box>
+                    </Box>
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                      <VerifiedUser sx={{ color: '#D4AF37' }} />
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.5 }}>品质保证</Typography>
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>精选昆明直发花材，资深花艺师亲手设计，确保成品与照片相符。</Typography>
+                      </Box>
+                    </Box>
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                      <Phone sx={{ color: '#D4AF37' }} />
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 0.5 }}>售后无忧</Typography>
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>如收到花材有明显损伤，请在签收后24小时内联系客服处理。</Typography>
+                      </Box>
+                    </Box>
                   </Box>
-                )}
+                </Paper>
 
-                {/* 养护说明 */}
-                {product.careGuide && (
-                  <Box sx={{ mb: 4 }}>
-                    <Typography variant="h6" sx={{ color: '#D4AF37', mb: 2 }}>
-                      🌿 养护指南
-                    </Typography>
-                    <Typography variant="body1" sx={{ lineHeight: 1.6 }}>
-                      {product.careGuide}
-                    </Typography>
-                  </Box>
-                )}
-
-                {/* 商品规格 */}
-                <Box>
-                  <Typography variant="h6" sx={{ color: '#D4AF37', mb: 2 }}>
-                    📏 商品规格
-                  </Typography>
-                  <Typography variant="body1" sx={{ lineHeight: 1.6 }}>
-                    {product.specification || '标准花束规格，包含包装和保养说明'}
-                  </Typography>
-                </Box>
-
-                <Divider sx={{ my: 3 }} />
-
-                {/* 配送说明 */}
-                <Box>
-                  <Typography variant="h6" sx={{ color: '#D4AF37', mb: 2 }}>
-                    🚚 配送说明
-                  </Typography>
-                  <Typography variant="body1" sx={{ lineHeight: 1.6 }}>
-                    • 配送范围：10公里以内<br />
-                    • 配送时间：每日9:00-21:00<br />
-                    • 同城急送：下单后2小时内送达<br />
-                    • 送货前电话确认，确保您在家收货
-                  </Typography>
-                </Box>
-              </Paper>
-            </motion.div>
+                <Paper sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  bgcolor: '#1B3A2B',
+                  color: 'white',
+                  textAlign: 'center'
+                }}>
+                  <Typography variant="body2" sx={{ opacity: 0.8, mb: 1 }}>咨询客服获取更多定制方案</Typography>
+                  <Typography variant="h5" sx={{ color: '#F4E4C1', fontWeight: 800 }}>400-888-8888</Typography>
+                </Paper>
+              </Box>
+            </Grid>
           </Grid>
-        </Grid>
+        </Box>
       </Container>
 
-      {/* 成功提示 */}
       <Snackbar
         open={showSnackbar}
         autoHideDuration={3000}
         onClose={() => setShowSnackbar(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert onClose={() => setShowSnackbar(false)} severity="success" sx={{ width: '100%' }}>
-          已添加到购物车！
+        <Alert
+          onClose={() => setShowSnackbar(false)}
+          severity={snackbarSeverity}
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
         </Alert>
       </Snackbar>
     </ShopLayout>
