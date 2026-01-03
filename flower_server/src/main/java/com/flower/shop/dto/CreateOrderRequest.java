@@ -5,7 +5,7 @@ import jakarta.validation.constraints.*;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalTime;
+
 import java.util.List;
 
 @Data
@@ -25,8 +25,8 @@ public class CreateOrderRequest {
     @NotNull(message = "配送日期不能为空")
     private LocalDate deliveryDate;
 
-    @NotNull(message = "配送时间不能为空")
-    private LocalTime deliveryTime;
+    @NotBlank(message = "配送时间不能为空")
+    private String deliveryTime;
 
     // 贺卡信息
     private String cardContent;

@@ -57,8 +57,36 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
         // 2. 设置配送信息
         if (request.getDeliveryDate() != null && request.getDeliveryTime() != null) {
-            LocalDateTime deliveryDateTime = LocalDateTime.of(request.getDeliveryDate(), request.getDeliveryTime());
-            order.setDeliveryTime(deliveryDateTime);
+            String timeStr = request.getDeliveryTime();
+            if (timeStr.contains("-")) {
+                // 处理时间段格式，如 "09:00-12:00"
+                String[] parts = timeStr.split("-");
+                try {
+                    java.time.LocalTime startTime = java.time.LocalTime.parse(parts[0]);
+                    java.time.LocalTime endTime = java.time.LocalTime.parse(parts[1]);
+                    order.setDeliveryStartTime(LocalDateTime.of(request.getDeliveryDate(), startTime));
+                    order.setDeliveryEndTime(LocalDateTime.of(request.getDeliveryDate(), endTime));
+                    // 为了兼容，deliveryTime 设为开始时间
+                    order.setDeliveryTime(order.getDeliveryStartTime());
+                } catch (Exception e) {
+                    log.error("解析配送时间段失败: {}", timeStr);
+                }
+            } else if ("尽快送达".equals(timeStr)) {
+                // "尽快送达" 设为当天的 00:00 到 23:59，或者根据业务设为当前时间
+                order.setDeliveryStartTime(LocalDateTime.of(request.getDeliveryDate(), java.time.LocalTime.MIN));
+                order.setDeliveryEndTime(LocalDateTime.of(request.getDeliveryDate(), java.time.LocalTime.MAX));
+                order.setDeliveryTime(order.getDeliveryStartTime());
+            } else {
+                // 尝试作为普通时间解析
+                try {
+                    java.time.LocalTime time = java.time.LocalTime.parse(timeStr);
+                    order.setDeliveryStartTime(LocalDateTime.of(request.getDeliveryDate(), time));
+                    order.setDeliveryEndTime(order.getDeliveryStartTime().plusHours(1)); // 默认给一小时窗口
+                    order.setDeliveryTime(order.getDeliveryStartTime());
+                } catch (Exception e) {
+                    log.error("解析配送时间失败: {}", timeStr);
+                }
+            }
         }
 
         // 3. 设置贺卡信息
@@ -134,7 +162,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
     @Override
     public IPage<Order> searchOrders(String keyword, String status, String startDate, String endDate,
-                                      Integer page, Integer size, String sortBy, String sortOrder) {
+            Integer page, Integer size, String sortBy, String sortOrder) {
         Page<Order> pageInfo = new Page<>(page, size);
         return orderMapper.searchOrders(pageInfo, keyword, status, startDate, endDate, sortBy, sortOrder);
     }
@@ -209,9 +237,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
         // 恢复库存
         List<OrderItem> items = orderItemMapper.selectList(
-            new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<OrderItem>()
-                .eq("order_id", orderId)
-        );
+                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<OrderItem>()
+                        .eq("order_id", orderId));
 
         for (OrderItem item : items) {
             Product product = productService.getById(item.getProductId());

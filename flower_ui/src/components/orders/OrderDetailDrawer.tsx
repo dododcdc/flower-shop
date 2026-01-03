@@ -15,9 +15,7 @@ import {
 import {
     Close as CloseIcon,
     LocalShipping as ShippingIcon,
-    Person as PersonIcon,
     LocationOn as LocationIcon,
-    CreditCard as PaymentIcon
 } from '@mui/icons-material';
 import { Order } from '../../api/orderAPI';
 
@@ -42,6 +40,21 @@ const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({ open, order, onCl
     };
 
     const statusInfo = statusMap[order.status] || { text: order.status, color: 'text.primary', bg: 'grey.100' };
+
+    // 格式化配送时间显示
+    const formatDeliveryTime = (order: Order) => {
+        if (order.deliveryStartTime && order.deliveryEndTime) {
+            const start = new Date(order.deliveryStartTime);
+            const end = new Date(order.deliveryEndTime);
+
+            const dateStr = start.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+            const startTimeStr = start.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+            const endTimeStr = end.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+            return `${dateStr} ${startTimeStr} - ${endTimeStr}`;
+        }
+        return order.deliveryTime || '-';
+    };
 
     return (
         <Drawer
@@ -136,10 +149,10 @@ const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({ open, order, onCl
                             <LocationIconWrapper /> 配送信息
                         </Typography>
                         <Grid container spacing={2}>
-                            <InfoItem label="收货人" value={order.customerName} />
-                            <InfoItem label="联系电话" value={order.customerPhone} />
-                            <InfoItem label="配送时间" value={order.deliveryTime} fullWidth />
-                            <InfoItem label="配送地址" value={order.notes || order.addressText} fullWidth />
+                            <InfoItem label="收货人" value={order.customerName || '-'} />
+                            <InfoItem label="联系电话" value={order.customerPhone || '-'} />
+                            <InfoItem label="配送时间" value={formatDeliveryTime(order)} fullWidth />
+                            <InfoItem label="配送地址" value={order.notes || order.addressText || '-'} fullWidth />
                         </Grid>
                     </Box>
 
@@ -186,13 +199,13 @@ const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({ open, order, onCl
 };
 
 // Helper Components
-const InfoItem = ({ label, value, fullWidth = false }: { label: string, value?: string, fullWidth?: boolean }) => (
-    <Grid item xs={fullWidth ? 12 : 6}>
+const InfoItem = ({ label, value, fullWidth = false }: { label: string, value: string, fullWidth?: boolean }) => (
+    <Grid size={fullWidth ? 12 : 6}>
         <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
             {label}
         </Typography>
         <Typography variant="body2" sx={{ fontWeight: 500 }}>
-            {value || '-'}
+            {value}
         </Typography>
     </Grid>
 );

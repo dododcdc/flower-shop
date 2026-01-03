@@ -177,6 +177,21 @@ const OrderListPage: React.FC = () => {
         fetchData(value);
     };
 
+    // 格式化配送时间显示
+    const formatDeliveryTime = (order: Order) => {
+        if (order.deliveryStartTime && order.deliveryEndTime) {
+            const start = new Date(order.deliveryStartTime);
+            const end = new Date(order.deliveryEndTime);
+
+            const dateStr = start.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+            const startTimeStr = start.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+            const endTimeStr = end.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+            return `${dateStr} ${startTimeStr} - ${endTimeStr}`;
+        }
+        return order.deliveryTime || '未指定配送时间';
+    };
+
     const handleKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
             handleSearch(1);
@@ -305,7 +320,7 @@ const OrderListPage: React.FC = () => {
 
                             <Grid container spacing={2}>
                                 {orders.map((order, index) => (
-                                    <Grid item xs={12} key={order.id}>
+                                    <Grid size={{ xs: 12 }} key={order.id}>
                                         <Card
                                             component={motion.div}
                                             initial={{ opacity: 0, scale: 0.95 }}
@@ -323,7 +338,7 @@ const OrderListPage: React.FC = () => {
                                         >
                                             <CardContent>
                                                 <Grid container spacing={2}>
-                                                    <Grid item xs={12} sm={8}>
+                                                    <Grid size={{ xs: 12, sm: 8 }}>
                                                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                                                             <Box>
                                                                 <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#1B3A2B' }}>
@@ -352,12 +367,12 @@ const OrderListPage: React.FC = () => {
 
                                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
                                                             <Typography variant="body2" color="text.secondary">
-                                                                🕐 {order.deliveryTime || '未指定配送时间'}
+                                                                🕐 {formatDeliveryTime(order)}
                                                             </Typography>
                                                         </Box>
                                                     </Grid>
 
-                                                    <Grid item xs={12} sm={4} sx={{ textAlign: 'right' }}>
+                                                    <Grid size={{ xs: 12, sm: 4 }} sx={{ textAlign: 'right' }}>
                                                         <Typography variant="h6" sx={{ color: '#E91E63', fontWeight: 'bold' }}>
                                                             ¥{order.totalAmount.toFixed(2)}
                                                         </Typography>

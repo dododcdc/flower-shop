@@ -29,6 +29,8 @@ export interface Order {
     paymentMethod: string;
     paymentStatus: string;
     deliveryTime?: string;
+    deliveryStartTime?: string;
+    deliveryEndTime?: string;
     notes?: string;
     cardContent?: string;
     cardSender?: string;

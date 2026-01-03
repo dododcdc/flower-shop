@@ -64,6 +64,18 @@ public class Order {
     private LocalDateTime deliveryTime;
 
     /**
+     * 配送开始时间
+     */
+    @TableField("delivery_start_time")
+    private LocalDateTime deliveryStartTime;
+
+    /**
+     * 配送结束时间
+     */
+    @TableField("delivery_end_time")
+    private LocalDateTime deliveryEndTime;
+
+    /**
      * 订单状态：
      * PENDING - 待确认（新订单）
      * PREPARING - 准备中（已确认，正在准备商品）
