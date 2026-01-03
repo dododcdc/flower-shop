@@ -29,10 +29,10 @@ public class AuthController {
      */
     @PostMapping("/register")
     @Operation(summary = "用户注册", description = "普通用户注册，需要手机号、密码、用户名")
-    public Result<String> register(@RequestBody @Validated UserRegisterRequest request) {
+    public Result<Long> register(@RequestBody @Validated UserRegisterRequest request) {
         try {
-            userService.register(request);
-            return Result.success("注册成功，请登录");
+            Long userId = userService.register(request);
+            return Result.success("注册成功", userId);
         } catch (IllegalArgumentException e) {
             return Result.validationError(e.getMessage());
         } catch (Exception e) {

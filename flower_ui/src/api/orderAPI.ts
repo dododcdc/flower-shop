@@ -136,9 +136,7 @@ export const orderAPI = {
      * 管理端：搜索订单（分页、筛选、排序）
      */
     searchOrders: async (filters: OrderFilters): Promise<PageResult<Order>> => {
-        const response = await api.get('/orders/search', {
-            params: filters
-        });
+        const response = await api.post('/orders/search', filters);
         const result = response.data.data;
         // Map orderItems to items for frontend compatibility
         if (result && result.records) {

@@ -7,6 +7,7 @@ import com.flower.shop.dto.CreateOrderRequest;
 import com.flower.shop.entity.Order;
 import com.flower.shop.entity.OrderItem;
 import com.flower.shop.entity.Product;
+import com.flower.shop.enums.OrderStatus;
 import com.flower.shop.exception.BusinessException;
 import com.flower.shop.mapper.OrderItemMapper;
 import com.flower.shop.mapper.OrderMapper;
@@ -88,10 +89,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         // 7. 设置订单状态
         // 对于到付订单，直接进入准备状态；对于在线支付订单，需要等待支付
         if ("ON_DELIVERY".equals(request.getPaymentMethod())) {
-            order.setStatus("PREPARING"); // 准备中
+            order.setStatus(OrderStatus.PREPARING); // 准备中
             order.setPaymentStatus("PENDING"); // 待支付（配送时付款）
         } else {
-            order.setStatus("PENDING"); // 待支付
+            order.setStatus(OrderStatus.PENDING); // 待支付
             order.setPaymentStatus("PENDING"); // 待支付
         }
 
@@ -153,11 +154,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         if (order == null) {
             throw new BusinessException("订单不存在");
         }
-        if (!"PENDING".equals(order.getStatus())) {
+        if (!OrderStatus.PENDING.equals(order.getStatus())) {
             throw new BusinessException("只有待确认状态的订单才能确认");
         }
 
-        order.setStatus("PREPARING");
+        order.setStatus(OrderStatus.PREPARING);
         this.updateById(order);
         return order;
     }
@@ -169,11 +170,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         if (order == null) {
             throw new BusinessException("订单不存在");
         }
-        if (!"PREPARING".equals(order.getStatus())) {
+        if (!OrderStatus.PREPARING.equals(order.getStatus())) {
             throw new BusinessException("只有准备中状态的订单才能开始配送");
         }
 
-        order.setStatus("DELIVERING");
+        order.setStatus(OrderStatus.DELIVERING);
         this.updateById(order);
         return order;
     }
@@ -185,11 +186,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         if (order == null) {
             throw new BusinessException("订单不存在");
         }
-        if (!"DELIVERING".equals(order.getStatus())) {
+        if (!OrderStatus.DELIVERING.equals(order.getStatus())) {
             throw new BusinessException("只有配送中状态的订单才能完成配送");
         }
 
-        order.setStatus("COMPLETED");
+        order.setStatus(OrderStatus.COMPLETED);
         order.setPaymentStatus("PAID");
         this.updateById(order);
         return order;
@@ -202,7 +203,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         if (order == null) {
             throw new BusinessException("订单不存在");
         }
-        if ("COMPLETED".equals(order.getStatus()) || "CANCELLED".equals(order.getStatus())) {
+        if (OrderStatus.COMPLETED.equals(order.getStatus()) || OrderStatus.CANCELLED.equals(order.getStatus())) {
             throw new BusinessException("已完成或已取消的订单不能取消");
         }
 
@@ -220,7 +221,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             }
         }
 
-        order.setStatus("CANCELLED");
+        order.setStatus(OrderStatus.CANCELLED);
         if (reason != null && !reason.trim().isEmpty()) {
             order.setNotes((order.getNotes() != null ? order.getNotes() + "\n" : "") + "取消原因: " + reason);
         }

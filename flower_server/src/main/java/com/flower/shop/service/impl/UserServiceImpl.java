@@ -27,7 +27,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void register(UserRegisterRequest request) {
+    public Long register(UserRegisterRequest request) {
         // 1. 校验确认密码
         if (!request.getPassword().equals(request.getConfirmPassword())) {
             throw new IllegalArgumentException("两次输入的密码不一致");
@@ -58,6 +58,7 @@ public class UserServiceImpl implements UserService {
                 .setLastLogin(null); // 尚未登录
 
         userMapper.insert(user);
+        return user.getId();
     }
 
     @Override

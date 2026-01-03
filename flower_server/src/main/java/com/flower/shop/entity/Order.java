@@ -1,6 +1,7 @@
 package com.flower.shop.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.flower.shop.enums.OrderStatus;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -71,7 +72,7 @@ public class Order {
      * CANCELLED - 已取消（订单取消）
      */
     @TableField("status")
-    private String status;
+    private OrderStatus status;
 
     /**
      * 支付方式: ALIPAY, WECHAT, ON_DELIVERY
@@ -151,20 +152,7 @@ public class Order {
     public String getStatusText() {
         if (status == null)
             return "未知";
-        switch (status) {
-            case "PENDING":
-                return "待确认";
-            case "PREPARING":
-                return "准备中";
-            case "DELIVERING":
-                return "配送中";
-            case "COMPLETED":
-                return "已完成";
-            case "CANCELLED":
-                return "已取消";
-            default:
-                return "未知";
-        }
+        return status.getDescription();
     }
 
     /**
@@ -214,14 +202,14 @@ public class Order {
      * 判断是否已完成
      */
     public boolean isCompleted() {
-        return "COMPLETED".equals(this.status);
+        return OrderStatus.COMPLETED.equals(this.status);
     }
 
     /**
      * 判断是否已取消
      */
     public boolean isCancelled() {
-        return "CANCELLED".equals(this.status);
+        return OrderStatus.CANCELLED.equals(this.status);
     }
 
     /**
@@ -229,7 +217,7 @@ public class Order {
      */
     public boolean canCancel() {
         return status != null &&
-                ("PENDING".equals(status) || "PREPARING".equals(status)) &&
+                (OrderStatus.PENDING.equals(status) || OrderStatus.PREPARING.equals(status)) &&
                 !isCancelled();
     }
 
@@ -237,20 +225,20 @@ public class Order {
      * 判断是否可以确认
      */
     public boolean canConfirm() {
-        return "PENDING".equals(status);
+        return OrderStatus.PENDING.equals(status);
     }
 
     /**
      * 判断是否可以开始配送
      */
     public boolean canShip() {
-        return "PREPARING".equals(this.status);
+        return OrderStatus.PREPARING.equals(this.status);
     }
 
     /**
      * 判断是否可以完成
      */
     public boolean canComplete() {
-        return "DELIVERING".equals(this.status);
+        return OrderStatus.DELIVERING.equals(this.status);
     }
 }

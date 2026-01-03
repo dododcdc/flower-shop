@@ -33,7 +33,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/categories")
 @RequiredArgsConstructor
-@CrossOrigin
 @Validated
 @Tag(name = "分类管理", description = "商品分类管理接口")
 public class CategoryController {

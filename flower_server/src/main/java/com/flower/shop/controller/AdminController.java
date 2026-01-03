@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/admin")
 @RequiredArgsConstructor
-@CrossOrigin
 @Tag(name = "管理员管理", description = "管理员初始化和登录接口")
 public class AdminController {
 

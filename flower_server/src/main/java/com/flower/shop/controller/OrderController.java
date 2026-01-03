@@ -3,6 +3,7 @@ package com.flower.shop.controller;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.flower.shop.dto.CreateOrderRequest;
 import com.flower.shop.dto.CancelOrderRequest;
+import com.flower.shop.dto.OrderSearchRequestDTO;
 import com.flower.shop.common.Result;
 import com.flower.shop.entity.Order;
 import com.flower.shop.service.OrderService;
@@ -85,19 +86,20 @@ public class OrderController {
     /**
      * 管理端：搜索订单（分页、筛选、排序）
      */
-    @GetMapping("/search")
+    @PostMapping("/search")
     @Operation(summary = "搜索订单", description = "管理端：按关键词、状态、日期范围搜索订单，支持分页和排序")
-    public Result<IPage<Order>> searchOrders(
-            @RequestParam(value = "keyword", required = false) String keyword,
-            @RequestParam(value = "status", required = false) String status,
-            @RequestParam(value = "startDate", required = false) String startDate,
-            @RequestParam(value = "endDate", required = false) String endDate,
-            @RequestParam(value = "page", defaultValue = "1") Integer page,
-            @RequestParam(value = "size", defaultValue = "10") Integer size,
-            @RequestParam(value = "sortBy", defaultValue = "created_at") String sortBy,
-            @RequestParam(value = "sortOrder", defaultValue = "desc") String sortOrder) {
+    public Result<IPage<Order>> searchOrders(@RequestBody OrderSearchRequestDTO request) {
         try {
-            IPage<Order> orders = orderService.searchOrders(keyword, status, startDate, endDate, page, size, sortBy, sortOrder);
+            IPage<Order> orders = orderService.searchOrders(
+                    request.getKeyword(),
+                    request.getStatus(),
+                    request.getStartDate(),
+                    request.getEndDate(),
+                    request.getPage(),
+                    request.getSize(),
+                    request.getSortBy(),
+                    request.getSortOrder()
+            );
             return Result.success(orders);
         } catch (Exception e) {
             log.error("搜索订单失败", e);

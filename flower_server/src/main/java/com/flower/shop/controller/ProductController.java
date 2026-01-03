@@ -36,7 +36,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/products")
 @RequiredArgsConstructor
-@CrossOrigin
 @Validated
 @Tag(name = "商品管理", description = "商品CRUD和搜索接口")
 public class ProductController {

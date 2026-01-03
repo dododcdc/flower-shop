@@ -12,10 +12,11 @@ public interface UserService {
 
     /**
      * 用户注册
-     * 
+     *
      * @param request 注册请求参数
+     * @return 新用户的ID
      */
-    void register(UserRegisterRequest request);
+    Long register(UserRegisterRequest request);
 
     /**
      * 用户登录
