@@ -4,21 +4,30 @@ import { motion } from 'framer-motion';
 import ShopLayout from '../../components/shop/ShopLayout';
 import { useAuthStore } from '../../store/authStore';
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import { orderAPI } from '../../api/orderAPI';
 import { useCartStore } from '../../store/cartStore';
 import MessageCardEditor from '../../components/shop/MessageCardEditor';
 import { API_BASE_URL } from '../../constants';
+import { CartItem } from '../../store/cartStore';
 
 const CheckoutPage: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { enqueueSnackbar } = useSnackbar();
     const { getSelectedItems, getTotalSelectedPrice, clearCart } = useCartStore();
     const { user } = useAuthStore(); // 获取登录用户
 
-    const selectedItems = getSelectedItems();
-    const totalPrice = getTotalSelectedPrice();
+    // 获取来自路由状态的直接购买数据 (方案一)
+    const directBuyItem = location.state?.directBuyItem as CartItem | undefined;
+    const isDirectBuy = !!directBuyItem;
+
+    // 根据来源确定显示的商品和总价
+    const selectedItems = isDirectBuy ? [directBuyItem] : getSelectedItems();
+    const totalPrice = isDirectBuy
+        ? directBuyItem.product.price * directBuyItem.quantity
+        : getTotalSelectedPrice();
 
     // 状态管理
     const [cardContent, setCardContent] = React.useState('');
@@ -126,10 +135,12 @@ const CheckoutPage: React.FC = () => {
                 }
             });
 
-            // 跳转后再清空购物车（避免当前页面重新渲染）
-            setTimeout(() => {
-                clearCart();
-            }, 100);
+            // 跳转后再根据来源决定是否清空购物车（避免当前页面重新渲染）
+            if (!isDirectBuy) {
+                setTimeout(() => {
+                    clearCart();
+                }, 100);
+            }
 
         } catch (error: any) {
             console.error('订单创建失败:', error);

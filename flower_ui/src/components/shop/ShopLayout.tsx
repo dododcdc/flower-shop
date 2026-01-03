@@ -156,7 +156,7 @@ const ShopLayout: React.FC<ShopLayoutProps> = ({ children, onCartUpdate }) => {
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
-                  <Typography variant="h6" sx={{ color: '#1B3A2B', fontWeight: 'bold', fontSize: '14px' }}>
+                  <Typography variant="h6" sx={{ color: '#1B3A2B', fontWeight: 'bold', fontSize: '22px' }}>
                     🌺
                   </Typography>
                 </Box>

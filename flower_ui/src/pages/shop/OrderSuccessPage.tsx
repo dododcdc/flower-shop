@@ -6,19 +6,13 @@ import {
     Typography,
     Button,
     Paper,
-    Grid,
     Card,
     CardContent,
-    Divider,
-    IconButton,
 } from '@mui/material';
 import {
     CheckCircle as CheckCircleIcon,
     Home as HomeIcon,
     Receipt as ReceiptIcon,
-    LocalShipping as LocalShippingIcon,
-    Phone as PhoneIcon,
-    Schedule as ScheduleIcon,
 } from '@mui/icons-material';
 import ShopLayout from '../../components/shop/ShopLayout';
 import { motion } from 'framer-motion';
@@ -39,6 +33,11 @@ const OrderSuccessPage: React.FC = () => {
     const navigate = useNavigate();
     const orderData = location.state as OrderData;
 
+    // 确保进入页面时滚动到顶部
+    React.useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
+
     if (!orderData) {
         navigate('/shop');
         return null;
@@ -55,7 +54,7 @@ const OrderSuccessPage: React.FC = () => {
 
     return (
         <ShopLayout>
-            <PageContainer title="订单提交成功" maxWidth="md">
+            <PageContainer maxWidth="md">
                 <Container maxWidth="sm" sx={{ py: 2 }}>
                     {/* 成功提示 */}
                     <Box component={motion.div}

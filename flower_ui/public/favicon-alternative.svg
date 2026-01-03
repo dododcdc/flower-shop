@@ -1,19 +1,11 @@
 <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="roseGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#F06292;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#E91E63;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-
-  <!-- 简化的玫瑰花轮廓 -->
-  <g transform="translate(16,16)">
-    <!-- 玫瑰花瓣层次 -->
-    <path d="M 0,-8 Q -6,-4 -6,2 Q -3,6 0,8 Q 3,6 6,2 Q 6,-4 0,-8 Z"
-          fill="url(#roseGradient)" opacity="0.8"/>
-    <path d="M 0,-6 Q -4,-3 -4,1 Q -2,4 0,6 Q 2,4 4,1 Q 4,-3 0,-6 Z"
-          fill="#E91E63" opacity="0.6"/>
-    <path d="M 0,-3 Q -2,-1 -2,1 Q -1,2 0,3 Q 1,2 2,1 Q 2,-1 0,-3 Z"
-          fill="#C2185B" opacity="0.8"/>
+  <!-- 简化透明背景版 -->
+  <g transform="translate(16,16) scale(1.15)">
+    <path d="M0,-11 C3.5,-11 7,-7 7,0 C7,7 3.5,11 0,11 C-3.5,11 -7,7 -7,0 C-7,-7 -3.5,-11 0,-11" fill="#D4AF37" transform="rotate(0)"/>
+    <path d="M0,-11 C3.5,-11 7,-7 7,0 C7,7 3.5,11 0,11 C-3.5,11 -7,7 -7,0 C-7,-7 -3.5,-11 0,-11" fill="#D4AF37" transform="rotate(72)"/>
+    <path d="M0,-11 C3.5,-11 7,-7 7,0 C7,7 3.5,11 0,11 C-3.5,11 -7,7 -7,0 C-7,-7 -3.5,-11 0,-11" fill="#D4AF37" transform="rotate(144)"/>
+    <path d="M0,-11 C3.5,-11 7,-7 7,0 C7,7 3.5,11 0,11 C-3.5,11 -7,7 -7,0 C-7,-7 -3.5,-11 0,-11" fill="#D4AF37" transform="rotate(216)"/>
+    <path d="M0,-11 C3.5,-11 7,-7 7,0 C7,7 3.5,11 0,11 C-3.5,11 -7,7 -7,0 C-7,-7 -3.5,-11 0,-11" fill="#D4AF37" transform="rotate(288)"/>
+    <circle cx="0" cy="0" r="2.8" fill="#1B3A2B" />
   </g>
 </svg>

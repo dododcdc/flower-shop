@@ -106,20 +106,30 @@ const ProductDetailPage: React.FC = () => {
     setShowSnackbar(true);
   };
 
-  // 立即购买
+  // 立即购买 (直接下单流)
   const handleBuyNow = () => {
     if (!product) return;
 
-    // 先添加到购物车
-    const result = addItem(product, quantity);
-    if (result.success) {
-      // 跳转到结算页面
-      navigate('/shop/checkout');
-    } else {
-      setSnackbarMessage(result.message || '添加失败');
+    if (product.stockQuantity === 0) {
+      setSnackbarMessage('该商品暂时缺货');
       setSnackbarSeverity('error');
       setShowSnackbar(true);
+      return;
     }
+
+    // 方案一：独立订单流，直接携带商品信息跳转，不进入购物车存储
+    navigate('/shop/checkout', {
+      state: {
+        directBuyItem: {
+          id: `direct-${Date.now()}`,
+          productId: product.id,
+          product: product,
+          quantity: quantity,
+          addedAt: new Date(),
+          selected: true
+        }
+      }
+    });
   };
 
   // 返回上一页
