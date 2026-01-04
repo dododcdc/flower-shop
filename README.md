@@ -241,7 +241,7 @@ java -jar target/flower-shop-1.0.0.jar
 
 ## 许可证
 
-本项目为花店内部使用系统，不对外开源。
+本项目采用 [MIT License](LICENSE) 开源协议。
 
 ---
 
