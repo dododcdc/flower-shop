@@ -79,9 +79,14 @@ flower_shop/
 CREATE DATABASE flower_shop CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-2. 执行初始化脚本：
+2. 执行建表脚本：
 ```bash
-mysql -u root -p flower_shop < script.sql
+mysql -u root -p flower_shop < flower_server/sql/schema.sql
+```
+
+3. 执行数据初始化脚本（可选）：
+```bash
+mysql -u root -p flower_shop < flower_server/sql/init_data.sql
 ```
 
 ### 后端启动
