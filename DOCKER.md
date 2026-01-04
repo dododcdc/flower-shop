@@ -52,6 +52,19 @@ docker-compose logs -f
 - **后端API**: http://localhost:8080/api
 - **健康检查**: http://localhost:8080/actuator/health
 
+#### 系统入口
+
+**消费者入口**：http://localhost:80
+
+**管理者入口**：http://localhost:80/admin
+
+**测试账号**：
+
+| 角色 | 账号 | 密码 |
+|------|------|------|
+| 消费者 | test1 | 111111 |
+| 管理者 | floweradmin | flower123 |
+
 ## 📦 服务说明
 
 ### 服务架构

@@ -98,6 +98,6 @@ flower-shop:
   upload:
     max-file-size: 5MB
     allowed-types: jpg,jpeg,png,gif,webp
-    upload-path: ${UPLOAD_PATH:/app/uploads/}
+    upload-path: ${UPLOAD_PATH:uploads/}
     # 图片访问基础URL
     base-url: ${BASE_URL:http://localhost:8080}/api
