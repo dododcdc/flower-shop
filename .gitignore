@@ -15,6 +15,9 @@ build/
 .env.test.local
 .env.production.local
 
+# Docker
+docker-compose.override.yml
+
 # IDE and editor files
 .vscode/
 .idea/

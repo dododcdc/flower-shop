@@ -24,9 +24,9 @@ spring:
 
   # 数据库配置
   datasource:
-    url: jdbc:mysql://localhost:3306/flower_shop?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/flower_shop?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       connection-timeout: 30000
@@ -98,6 +98,6 @@ flower-shop:
   upload:
     max-file-size: 5MB
     allowed-types: jpg,jpeg,png,gif,webp
-    upload-path: /Users/wenbin/Projects/flower_shop/flower_server/uploads/
+    upload-path: ${UPLOAD_PATH:/app/uploads/}
     # 图片访问基础URL
-    base-url: http://localhost:8080/api
+    base-url: ${BASE_URL:http://localhost:8080}/api

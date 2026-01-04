@@ -1,0 +1,44 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+LICENSE
+CLAUDE.md
+docs/
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+DOCKER.md
+
+# Node
+node_modules
+npm-debug.log
+package-lock.json
+
+# IDE
+.idea
+.vscode
+*.iml
+.DS_Store
+
+# Logs
+logs
+*.log
+
+# Test files
+src/test
+target/test-classes
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+ehthumbs.db

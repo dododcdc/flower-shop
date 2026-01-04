@@ -38,6 +38,9 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 // 配置请求授权
                 .authorizeHttpRequests(auth -> auth
+                        // 允许健康检查端点访问（Docker健康检查需要）
+                        .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/actuator/info").permitAll()
                         // 允许测试接口无需认证访问
                         .requestMatchers("/test/**").permitAll()
                         // 允许管理员初始化和登录接口无需认证访问
