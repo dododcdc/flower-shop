@@ -120,7 +120,7 @@ const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
         };
 
         loadProduct();
-    }, [productId]);
+    }, [productId, open]); // 添加 open 依赖，每次打开对话框都重新加载
 
     // 当商品数据加载完成后，更新表单
     useEffect(() => {

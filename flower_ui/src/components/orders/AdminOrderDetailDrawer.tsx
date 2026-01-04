@@ -25,6 +25,7 @@ import {
     Image as ImageIcon
 } from '@mui/icons-material';
 import { orderAPI, Order } from '../../api/orderAPI';
+import { API_BASE_URL } from '../../constants';
 
 interface AdminOrderDetailDrawerProps {
     open: boolean;
@@ -57,6 +58,16 @@ const AdminOrderDetailDrawer: React.FC<AdminOrderDetailDrawerProps> = ({ open, o
             return `${dateStr} ${startTimeStr} - ${endTimeStr}`;
         }
         return '-';
+    };
+
+    // 获取图片URL（与其他地方保持一致）
+    const getImageUrl = (imagePath: string | undefined): string => {
+        if (!imagePath) return '';
+        if (imagePath.startsWith('http')) return imagePath;
+        if (imagePath.startsWith('/uploads/')) {
+            return `${API_BASE_URL}${imagePath}`;
+        }
+        return imagePath;
     };
 
     const cardStyleMap: Record<string, string> = {
@@ -261,7 +272,7 @@ const AdminOrderDetailDrawer: React.FC<AdminOrderDetailDrawerProps> = ({ open, o
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                             {/* Product Image */}
                                             <Avatar
-                                                src={item.productImage || ''}
+                                                src={getImageUrl(item.productImage)}
                                                 variant="rounded"
                                                 sx={{ width: 48, height: 48, bgcolor: 'grey.100' }}
                                             >

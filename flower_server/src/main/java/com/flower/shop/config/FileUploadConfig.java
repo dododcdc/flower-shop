@@ -14,6 +14,8 @@ public class FileUploadConfig {
 
     /**
      * 上传文件保存路径
+     * 本地开发：使用项目根目录下的 uploads/
+     * Docker：环境变量设置为 /app/uploads/
      */
     private String uploadPath = "uploads/";
 

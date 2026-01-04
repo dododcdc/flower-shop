@@ -62,8 +62,12 @@ public class FileUploadUtil {
 
         // 按日期创建子目录（如：uploads/2025/11/23/）
         String dateDir = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
-        // 使用绝对路径存储文件
-        Path uploadDir = Paths.get(uploadPath, dateDir);
+
+        // 确保使用绝对路径
+        Path path = Paths.get(uploadPath);
+        String absoluteUploadPath = path.isAbsolute() ? uploadPath : path.toAbsolutePath().toString();
+        Path uploadDir = Paths.get(absoluteUploadPath, dateDir);
+
         if (!Files.exists(uploadDir)) {
             Files.createDirectories(uploadDir);
         }
@@ -73,9 +77,8 @@ public class FileUploadUtil {
         file.transferTo(filePath.toFile());
 
         // 返回Web可访问的相对路径（用于存储到数据库）
-        String absolutePath = filePath.toAbsolutePath().toString();
         String relativePath = "/uploads/" + dateDir + "/" + newFileName;
-        log.info("文件上传成功，相对路径: {}, 绝对路径: {}", relativePath, absolutePath);
+        log.info("文件上传成功，相对路径: {}, 绝对路径: {}", relativePath, filePath.toAbsolutePath());
 
         return relativePath;
     }
@@ -119,14 +122,20 @@ public class FileUploadUtil {
         try {
             // 移除开头的 /uploads/
             String relativePath = filePath.replace("/uploads/", "");
-            Path fullPath = Paths.get(uploadPath, relativePath);
+
+            // 确保使用绝对路径
+            Path path = Paths.get(uploadPath);
+            String absoluteUploadPath = path.isAbsolute() ? uploadPath : path.toAbsolutePath().toString();
+            Path fullPath = Paths.get(absoluteUploadPath, relativePath);
+
+            log.info("尝试删除文件: {} (绝对路径: {})", filePath, fullPath);
 
             if (Files.exists(fullPath)) {
                 Files.delete(fullPath);
                 log.info("文件删除成功: {}", filePath);
                 return true;
             } else {
-                log.warn("文件不存在: {}", filePath);
+                log.warn("文件不存在: {}", fullPath);
                 return false;
             }
         } catch (IOException e) {

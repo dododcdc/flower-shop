@@ -69,7 +69,8 @@ public class ProductImageService {
                 detail.setImagePath(info.getImagePath());
                 detail.setImageType(info.getImageType());
                 detail.setSortOrder(info.getSortOrder());
-                detail.setImageUrl(fileUploadConfig.getBaseUrl() + info.getImagePath());
+                // 直接使用相对路径，由前端根据环境拼接完整URL
+                detail.setImageUrl(info.getImagePath());
                 return detail;
             })
             .collect(Collectors.toList());
