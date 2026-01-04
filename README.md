@@ -91,13 +91,20 @@ mysql -u root -p flower_shop < flower_server/sql/init_data.sql
 
 ### 后端启动
 
+**本地开发环境**（需要设置文件上传路径环境变量）：
+```bash
+cd flower_server
+UPLOAD_PATH=uploads/ mvn spring-boot:run
+```
+
+**生产环境**：
 ```bash
 cd flower_server
 mvn clean package
 java -jar target/flower-shop-1.0.0.jar
 ```
 
-后端服务将运行在 `http://localhost:8080`
+后端服务将运行在 `http://localhost:8080/api`
 
 ### 前端启动
 
