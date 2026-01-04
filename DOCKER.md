@@ -50,7 +50,8 @@ docker-compose logs -f
 
 - **前端**: http://localhost:80
 - **后端API**: http://localhost:8080/api
-- **健康检查**: http://localhost:8080/actuator/health
+- **健康检查**: http://localhost:8080/api/actuator/health
+- **API文档**: http://localhost:8080/api/swagger-ui.html
 
 #### 系统入口
 

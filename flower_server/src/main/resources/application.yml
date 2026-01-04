@@ -101,3 +101,12 @@ flower-shop:
     upload-path: ${UPLOAD_PATH:uploads/}
     # 图片访问基础URL
     base-url: ${BASE_URL:http://localhost:8080}/api
+
+# SpringDoc OpenAPI (Swagger) 配置
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha

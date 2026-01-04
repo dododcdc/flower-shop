@@ -30,6 +30,7 @@ Database (MySQL 8.0)
 - **MyBatis-Plus 3.5.5** - 数据访问层（Spring Boot 3专用版本）
 - **MySQL 8.2.0** - 数据库
 - **Spring Security + JWT** - 安全认证
+- **SpringDoc OpenAPI 2.3.0** - API 文档（Swagger）
 - **Maven 3.9+** - 构建工具
 
 ## 项目结构
@@ -115,6 +116,16 @@ npm run dev
 ```
 
 前端服务将运行在 `http://localhost:5173`
+
+### API 文档
+
+项目集成了 Swagger (SpringDoc OpenAPI)，提供在线 API 文档：
+
+**Swagger UI**：http://localhost:8080/api/swagger-ui.html
+
+**OpenAPI JSON**：http://localhost:8080/api/v3/api-docs
+
+启动后端服务后，可直接访问查看所有 API 接口文档和在线测试。
 
 ### 系统入口
 
